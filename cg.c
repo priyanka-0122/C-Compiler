@@ -40,32 +40,24 @@ void cgpreamble()
 {
 	freeall_registers();
 	fputs(
-		"\t.text\n"			//Tells the assembler to switch to the text
-						//segment where code goes
-		".LC0:\n"			//local constant e.g string literal
+		"\t.text\n"
+		".LC0:\n"
 		"\t.string\t\"%d\\n\"\n"
 		"printint:\n"
-		"\tpushq\t%rbp\n"		//rbp is a frame pointer which points to the
-						//start of the stack frame
-						//pushq pushes 8 bytes to stack(q=quad i.e 64bit)
-		"\tmovq\t%rsp, %rbp\n"		//rsp is a stack pointer
-		"\tsubq\t$16, %rsp\n"		
-		"\tmovl\t%edi, -4(%rbp)\n"	//edi(32 bit) specifies the dest address where
-						// data will be copied or manipulated
-		"\tmovl\t-4(%rbp), %eax\n"	//eax-extended accumulator(32bit)
-						//loading a value in eax sets the upper 32 bits of
-						// register to 0
-		"\tmovl\t%eax, %esi\n"		//esi specifies the source address from where data is
-						// to be fetched
-		"\tleaq	.LC0(%rip), %rdi\n"	//leaq-load effective address, performs address
-						//calculation without accessing memory
-		"\tmovl	$0, %eax\n"		//rdi(64bit) same function as edi
+		"\tpushq\t%rbp\n"
+		"\tmovq\t%rsp, %rbp\n"
+		"\tsubq\t$16, %rsp\n"
+		"\tmovl\t%edi, -4(%rbp)\n"
+		"\tmovl\t-4(%rbp), %eax\n"
+		"\tmovl\t%eax, %esi\n"
+		"\tleaq	.LC0(%rip), %rdi\n"
+		"\tmovl	$0, %eax\n"
 		"\tcall	printf@PLT\n"
 		"\tnop\n"
 		"\tleave\n"
 		"\tret\n"
 		"\n"
-		"\t.globl\tmain\n"		//function main is defined globally
+		"\t.globl\tmain\n"
 		"\t.type\tmain, @function\n"
 		"main:\n"
 		"\tpushq\t%rbp\n"
@@ -119,16 +111,14 @@ int cgsub(int r1, int r2) {
 int cgdiv(int r1, int r2) {
 	fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[r1]);	//dividend is loaded to %rax
 	fprintf(Outfile, "\tcqo\n");				//cqo is used to extend to eight bytes
-	fprintf(Outfile, "\tdivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax
-								// with the r2 and stores quotient in %rax
+	fprintf(Outfile, "\tdivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax with the r2 and stores quotient in %rax
 	fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
 	free_register(r2);
 	return(r1);
 }
 
 void cgprintint(int r) {
-	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]); 	//Linux x86-64 expects te first arg
-								//to a function to be %rdi
+	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]); //Linux x86-64 expects te first arg to a function to be %rdi
 	fprintf(Outfile, "\tcall\tprintint\n");
 	free_register(r);
 }

@@ -60,9 +60,9 @@ struct ASTnode *binexpr(int ptp) {
   // Get the integer literal on the left. Fetch the next token at the same time.
   left = primary();
 
-  // If no tokens left, return just the left node
+  // If we hit a semicolon, return just the left node
   tokentype = Token.token;
-  if (tokentype == T_EOF)
+  if (tokentype == T_SEMI)
     return (left);
 
   // While the precedence of this token is more than that of the previous token precedence
@@ -76,9 +76,9 @@ struct ASTnode *binexpr(int ptp) {
     // Join that sub-tree with ours. Convert the token into an AST operation at the same time.
     left = mkastnode(arithop(tokentype), left, right, 0);
 
-    // Update the details of the current token. If no tokens left, return just the left node
+    // Update the details of the current token. If we hit a semicolon, return just the left node
     tokentype = Token.token;
-    if (tokentype == T_EOF)
+    if (tokentype == T_SEMI)
       return (left);
   }
 

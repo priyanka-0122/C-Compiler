@@ -3,6 +3,8 @@
 #include<stdlib.h>
 #include<ctype.h>
 
+#define TEXTLEN	512 //Length of symbols in input
+
 //Token structure
 struct token {
         int token;
@@ -11,7 +13,7 @@ struct token {
 
 //Tokens
 enum {
-        T_EOF, T_PLUS, T_MINUS, T_STAR, T_SLASH, T_INTLIT
+        T_EOF, T_PLUS, T_MINUS, T_STAR, T_SLASH, T_INTLIT, T_SEMI, T_PRINT
 };
 	
 // AST node types
