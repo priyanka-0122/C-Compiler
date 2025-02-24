@@ -1,5 +1,8 @@
-parser: *.c
-	gcc -o parser -g *.c
+pratt_parser: main.c scan.c expr.c tree.c interp.c
+		gcc -o pratt_parser -g main.c scan.c expr.c tree.c interp.c
+
+prec_parser: main.c scan.c expr2.c tree.c interp.c
+		gcc -o prec_parser -g main.c scan.c expr2.c tree.c interp.c
 
 clean: *.o
-	rm -f *.o
+	rm -rf *.o
