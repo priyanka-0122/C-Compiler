@@ -1,2 +1,5 @@
-scanner: *.c *.h
-	gcc -o scanner -g main.c scan.c
+parser: *.c
+	gcc -o parser -g *.c
+
+clean: *.o
+	rm -f *.o

@@ -1,12 +1,6 @@
-#ifndef DEFS_H
-	#include "defs.h"
-#endif
-#ifndef DATA_H
-	#include "data.h"
-#endif
-#ifndef DECL_H
-        #include "decl.h"
-#endif
+#include "defs.h"
+#include "data.h"
+#include "decl.h"
 
 //Return the position of character c in string s, or -1 if c not found
 static int chrpos(char *s, int c) {
@@ -69,7 +63,8 @@ int scan(struct token *t) {
 	c = skip();
 	switch (c) {
 		case EOF:
-			return 0;
+			t->token = T_EOF;
+			return (0);
 		case '+':
 			t->token = T_PLUS;
 			break;
@@ -85,11 +80,11 @@ int scan(struct token *t) {
 		default:
 			//If it's a digit, scan the literal integer value in
 			if (isdigit(c)) {
-				t->intval = scanint(c);
+				t->intvalue = scanint(c);
 				t->token = T_INTLIT;
 				break;
 			}
-			printf("Unrecognised character %c on line %d\n", c, Line);
+			printf("Unrecognised character '%c' on line %d\n", c, Line);
 			exit(1);
 	}
 	//We found a token

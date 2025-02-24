@@ -1,49 +1,34 @@
-#ifndef DEFS_H
-	#include "defs.h"
-#endif
+#include "defs.h"
 #define extern_
-#ifndef DATA_H
-	#include "data.h"
-#endif
+#include "data.h"
 #undef extern_
-#ifndef DECL_H
-        #include "decl.h"
-#endif
+#include "decl.h"
+#include <errno.h>
 
-//List of printable tokens
-char *tokstr[] = {"+", "-", "*", "/", "intlit" };
-
-//Loop scanning in all the tokens in the input file
-//Print out details of each token found
-static void scanfile() {
-	struct token T;
-
-	while (scan(&T)) {
-		printf("Token %s", tokstr[T.token]);
-		if (T.token == T_INTLIT)
-			printf(", value %d", T.intval);
-		printf("\n");
-	}
+static void init() {
+	Line = 1;
+	Putback = '\n';
 }
 
 void main(int argc, char *argv[]) {
-
-//	init();
+	struct ASTnode *n;
+	
 	if (argc != 2) {
-		printf("Expected number of input is 2\nexample: ./scanner <filename>\n");
-		exit(0);
+		fprintf(stderr, "Usage: %s infile", argv[0]);
+		exit(1);
 	}
 
-	Line = 1;
-       	Putback = '\n';
+	init();	
 	Infile = fopen(argv[1], "r");
 	
 	///Checking if the file is open or not
 	if (Infile == NULL) {
-		printf("The file is not opened\n");
-		exit(0);
+		fprintf(stderr, "Unable to open %s: %s\n",argv[1], strerror(errno));
+		exit(1);
 	}
-	scanfile();
+	scan(&Token);				// Get the first token from the input
+	n = binexpr();				// Parse the expression in the file
+	printf("%d\n", interpretAST(n));	// Calculate the final result
 	fclose(Infile);
 	exit(0);
 }
