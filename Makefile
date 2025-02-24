@@ -1,8 +1,20 @@
-pratt_parser: main.c scan.c expr.c tree.c interp.c
-		gcc -o pratt_parser -g main.c scan.c expr.c tree.c interp.c
+comp: cg.c expr.c gen.c interp.c main.c scan.c tree.c
+	gcc -o comp -g cg.c expr.c gen.c interp.c main.c scan.c tree.c
 
-prec_parser: main.c scan.c expr2.c tree.c interp.c
-		gcc -o prec_parser -g main.c scan.c expr2.c tree.c interp.c
+clean:
+	 rm -f comp *.o *.s out
 
-clean: *.o
-	rm -rf *.o
+test1: comp
+	./comp input01
+	gcc -o out out.s
+	./out
+
+test2: comp
+	./comp input02
+	gcc -o out out.s
+	./out
+
+test3: comp
+	./comp input06
+	gcc -o out out.s
+	./out

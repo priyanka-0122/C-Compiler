@@ -21,14 +21,26 @@ void main(int argc, char *argv[]) {
 	init();	
 	Infile = fopen(argv[1], "r");
 	
-	///Checking if the file is open or not
+	//Checking if the file is open or not
 	if (Infile == NULL) {
 		fprintf(stderr, "Unable to open %s: %s\n",argv[1], strerror(errno));
 		exit(1);
 	}
+	
+	// Create the output file
+	Outfile = fopen("out.s", "w");
+
+	if (Outfile == NULL) {
+		fprintf(stderr, "Unable to open %s: %s\n",argv[1], strerror(errno));
+		exit(1);
+	}
+
 	scan(&Token);				// Get the first token from the input
 	n = binexpr(0);				// Parse the expression in the file
 	printf("%d\n", interpretAST(n));	// Calculate the final result
+	generatecode(n);
+	
+	fclose(Outfile);
 	fclose(Infile);
 	exit(0);
 }
