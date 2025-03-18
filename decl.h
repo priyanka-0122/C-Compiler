@@ -15,7 +15,7 @@ void genpreamble();
 void genpostamble();
 void genfreeregs();
 void genprintint(int reg);
-void genglobsym(char *s);
+void genglobsym(char*s);
 
 //cg.c
 void freeall_registers(void);
@@ -28,8 +28,14 @@ int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
 void cgprintint(int r);
-int cgstorglob(int r, char *identifier);
+int cgstorglob(int r, char*identifier);
 void cgglobsym(char *sym);
+int cgequal(int r1, int r2);
+int cgnotequal(int r1, int r2);
+int cglessthan(int r1, int r2);
+int cggreaterthan(int r1, int r2);
+int cglessequal(int r1, int r2);
+int cggreaterequal(int r1, int r2);
 
 //stmt.c
 void statements(void);
