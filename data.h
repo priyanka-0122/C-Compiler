@@ -9,3 +9,4 @@ extern_ FILE *Infile;		// Input file
 extern_ FILE *Outfile;		// Output file
 extern_ struct token Token;	// Last token scanned
 extern_ char Text[TEXTLEN +1];	// Last identifier scanned
+extern_ struct symtable Gsym[NSYMBOLS];	//Global symbol table

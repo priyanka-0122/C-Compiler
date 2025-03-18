@@ -1,20 +1,29 @@
-comp: cg.c expr.c gen.c main.c misc.c scan.c stmt.c tree.c
-	gcc -o comp -g cg.c expr.c gen.c main.c misc.c scan.c stmt.c tree.c
+SRCS = cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c
+SRCN = cgn.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c
+
+comp1: $(SRCS)
+	cc -o comp1 -g $(SRCS)
+
+compn: $(SRCN)
+	cc -o compn -g $(SRCN)
 
 clean:
-	rm -f comp *.o *.s out
+	rm -f comp1 compn *.o *.s *.out
 
-test: comp input00
-	./comp input00
+test: comp1 input01 input02
+	./comp1 input01
+	cc -o out out.s
+	./out
+	./comp1 input02
 	cc -o out out.s
 	./out
 
-test1: comp input01
-	./comp input01
-	cc -o out out.s
+testn: compn input01 input02
+	./compn input01
+	nasm -f elf64 out.s
+	cc -no-pie -o out out.o
 	./out
-
-test2: comp input02
-	./comp input02
-	cc -o out out.s
+	./compn input02
+	nasm -f elf64 out.s
+	cc -no-pie -o out out.o
 	./out
