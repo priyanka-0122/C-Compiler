@@ -81,13 +81,19 @@ static int scanident(int c, char *buf, int lim) {
 // Switch on the first letter so that we don't have to waste strcmp()ing against all the keywords.
 static int keyword( char *s) {
 	switch (*s) {
+		case 'e':
+			if (!strcmp(s, "else"))
+				return (T_ELSE);
+			break;
 		case 'p':
 			if (!strcmp(s, "print")) //return 0 if 	identical
 				return (T_PRINT);
 			break;
 		case 'i':
 			if (!strcmp(s, "int"))
-			return (T_INT);
+				return (T_INT);
+			if (!strcmp(s, "if"))
+				return (T_IF);
 			break;
 	}
 	return (0);
@@ -118,6 +124,18 @@ int scan(struct token *t) {
 			break;
 		case ';':
 			t->token = T_SEMI;
+			break;
+		case '{':
+			t->token = T_LBRACE;
+			break;
+		case '}':
+			t->token = T_RBRACE;
+			break;
+		case '(':
+			t->token = T_LPAREN;
+			break;
+		case ')':
+			t->token = T_RPAREN;
 			break;
 		case '=':
 			if ((c =next()) == '=') {

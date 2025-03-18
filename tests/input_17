@@ -1,0 +1,15 @@
+{
+	int i; int j;
+	i = 6; j = 12;
+	if (i < j) {
+		print i;
+		if (i<7) {
+			if(i<5) {
+				print 7;
+			}
+			print i+j;
+		}
+	} else {
+		print j;
+	}
+}

@@ -1,12 +1,12 @@
-SRCS= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c
+SRC= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c
 
-comp: $(SRCS)
-	gcc -o comp -g $(SRCS)
+comp: $(SRC)
+	gcc -o comp -g $(SRC)
 
 clean:
 	rm -f comp *.o *.s *.out
 
-test1:  comp tests/input_07
-	./comp tests/input_07
-	gcc -o out out.s
+test: comp tests/input_10
+	./comp tests/input_10
+	cc -o out out.s
 	./out

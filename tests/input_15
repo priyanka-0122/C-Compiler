@@ -1,0 +1,20 @@
+{
+        if ( 10 < 5)
+        {
+                print 50;
+                if ( 20  < 5)
+                {
+                        print 100;
+                        if ( 25 < 5)
+                        {
+                                print 150;
+                        }
+                        else {
+                                print 200;
+                        }
+                }
+        }
+        else {
+                print 250;
+        }
+}
