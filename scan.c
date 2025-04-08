@@ -81,6 +81,10 @@ static int scanident(int c, char *buf, int lim) {
 // Switch on the first letter so that we don't have to waste strcmp()ing against all the keywords.
 static int keyword( char *s) {
 	switch (*s) {
+		case 'd':
+			if (!strcmp(s, "do"));
+				return T_DO;
+			break;
 		case 'e':
 			if (!strcmp(s, "else"))
 				return (T_ELSE);

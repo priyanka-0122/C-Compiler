@@ -98,6 +98,32 @@ struct ASTnode *while_statement(void) {
 	return (mkastnode(A_WHILE, condAST, NULL, bodyAST,0));
 }
 
+// Parse a DO WHILE statement and return its AST
+struct ASTnode *do_while_statement(void) {
+	struct ASTnode *condAST, *bodyAST;
+	
+	// Ensure we have 'do'
+	match(T_DO, "do");
+
+	// Get the AST for the compound
+	bodyAST = compound_statement();
+
+	// Ensure we have 'while' '('
+	match(T_WHILE, "while");
+	lparen();
+
+	// Parse the following expression and the ')' following. Ensure
+	// the tree's operation is a ecomparison
+	condAST = binexpr(0);
+	if (condAST->op < A_EQ || condAST->op > A_GE)
+		fatal("Bad comparison operator");
+	rparen();
+	semi();
+
+	// Build and return the AST for this statement
+	return (mkastnode(A_DO_WHILE, condAST, NULL, bodyAST, 0));
+}
+
 // Parse a compound statement and return its AST
 struct ASTnode *compound_statement(void) {
 	struct ASTnode *left = NULL;
@@ -122,6 +148,9 @@ struct ASTnode *compound_statement(void) {
       				break;
 			case T_WHILE:
 				tree = while_statement();
+				break;
+			case T_DO:
+				tree = do_while_statement();
 				break;
 			case T_RBRACE:
 				// When we hit a right curly bracket, skip past it an return the AST
