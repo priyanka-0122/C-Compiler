@@ -26,6 +26,12 @@ test4: comp input04
 	gcc -o out out.s
 	./out
 
+
+test5: comp input05
+	./comp input05
+	gcc -o out out.s
+	./out
+
 test6: comp input06
 	./comp input06
 	gcc -o out out.s
