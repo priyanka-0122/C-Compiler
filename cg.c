@@ -117,14 +117,16 @@ int cgsub(int r1, int r2) {
 int cgdiv(int r1, int r2) {
 	fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[r1]);	//dividend is loaded to %rax
 	fprintf(Outfile, "\tcqo\n");				//cqo is used to extend to eight bytes
-	fprintf(Outfile, "\tdivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax with the r2 and stores quotient in %rax
+	fprintf(Outfile, "\tdivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax with 
+								//the r2 and stores quotient in %rax
 	fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
 	free_register(r2);
 	return(r1);
 }
 
 void cgprintint(int r) {
-	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]); //Linux x86-64 expects te first arg to a function to be %rdi
+	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]); 	//Linux x86-64 expects te first arg to
+								// a function to be %rdi
 	fprintf(Outfile, "\tcall\tprintint\n");
 	free_register(r);
 }
@@ -140,7 +142,8 @@ void cgglobsym(char *sym) {
 	fprintf(Outfile, "\t.comm\t%s,8,8\n",sym);
 }
 
-// List of comparisons instructions in AST order: A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
+// List of comparisons instructions in AST order:
+// A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
 static char *cmplist[] = { "sete", "set", "setl", "setg", "setle", "setge"};
 
 // Compare two registers and set if trues.
@@ -167,7 +170,8 @@ void cgjump(int l) {
 	fprintf(Outfile, "\tjmp\tL%d\n", l);
 }
 
-//List of inverted jump instructions in AST order: A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
+// List of inverted jump instructions in AST order:
+// A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE
 static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 
 // Compare two registers and jump if false.

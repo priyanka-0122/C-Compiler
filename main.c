@@ -24,16 +24,14 @@ void main(int argc, char *argv[]) {
 	usage(argc, argv[0]);
 	init();	
 
-	Infile = fopen(argv[1], "r");
-	//Checking if the file is open or not
-	if (Infile == NULL) {
+	// Open up the input file
+	if ((Infile = fopen(argv[1], "r")) == NULL) {
 		fprintf(stderr, "Unable to open %s: %s\n",argv[1], strerror(errno));
 		exit(1);
 	}
 	
 	// Create the output file
-	Outfile = fopen("out.s", "w");
-	if (Outfile == NULL) {
+	if ((Outfile = fopen("out.s", "w")) == NULL) {
 		fprintf(stderr, "Unable to open %s: %s\n",argv[1], strerror(errno));
 		exit(1);
 	}
