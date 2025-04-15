@@ -1,0 +1,17 @@
+void func ()
+{
+	int i;
+	for (i = 5; i <= 11; i = i+1) {
+		print i;
+	}
+}
+
+void main ()
+{
+	int j;
+	for (j = 25; j >= 20; j = j-1)
+	{
+		print j;
+	}
+	func(10);
+}

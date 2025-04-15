@@ -4,6 +4,33 @@
 
 // Parsing of expressions
 
+// Parse a function call with a single expresison argument and return its AST
+struct ASTnode *funccall(void) {
+	struct ASTnode *tree;
+	int id;
+
+	// Check that the identifier has been defined, then make a leaf node for it.
+	// Add structural type test 
+	if ((id = findglob(Text)) == -1) {
+		fatals("Undeclared function", Text);
+	}
+
+	// Get the '('
+	lparen();
+
+	// Parse the following expression
+	tree = binexpr(0);
+
+	// Build the function call AST node. Store the function's return type
+	// as this node's type.
+	// Also record the function's symbol-id
+	tree = mkastunary(A_FUNCCALL, Gsym[id].type, tree, id);
+
+	// Get the ')'
+	rparen();
+	return tree;
+}
+
 // Parse a primary factor and return an AST node representing it.
 static struct ASTnode *primary(void) {
   	struct ASTnode *n;
@@ -20,6 +47,16 @@ static struct ASTnode *primary(void) {
 			break;
 		
 		case T_IDENT:
+			// This could be a variable or a function call. Scan in the next token to find out
+			scan(&Token);
+
+			// It's a '(', so a function call
+			if (Token.token == T_LPAREN)
+				return (funccall());
+
+			// Not a function call, so reject the new token
+			reject_token(&Token);
+
 			// Check that this identifier exists
 			id = findglob(Text);
 			if (id == -1)

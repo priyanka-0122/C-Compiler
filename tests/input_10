@@ -1,0 +1,10 @@
+
+void main()
+{
+int x;
+long y;
+y = 10;
+x = 300;
+y = x;
+print y;
+}

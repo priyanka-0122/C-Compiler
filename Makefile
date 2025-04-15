@@ -6,32 +6,32 @@ comp: $(SRC)
 clean:
 	rm -f comp *.o *.s out
 
-test: comp input01
-	./comp input01
-	gcc -o out out.s
+test:	comp tests/input01 lib/printint.c
+	./comp tests/input01
+	cc -o out out.s lib/printint.c
 	./out
 
-test2: comp input02
+test2:	comp input02 lib/printint.c
 	./comp input02
-	gcc -o out out.s
+	gcc -o out out.s lib/printint.c
 	./out
 
-test3: comp input03
+test3:	comp input03 lib/printint.c
 	./comp input03
-	gcc -o out out.s
+	gcc -o out out.s lib/printint.c
 	./out
 
-test4: comp input04
+test4:	comp input04 lib/printint.c
 	./comp input04
-	gcc -o out out.s
+	gcc -o out out.s lib/printint.c
 	./out
 
-test5: comp input05
+test5: comp input05 lib/printint.c
 	./comp input05
-	gcc -o out out.s
+	gcc -o out out.s lib/printint.c
 	./out
 
-test6: comp input06
+test6: comp input06 lib/printint.c
 	./comp input06
-	gcc -o out out.s
+	gcc -o out out.s lib/printint.c
 	./out
