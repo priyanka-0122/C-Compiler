@@ -1,4 +1,4 @@
-SRC= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c
+SRC= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
 
 comp: $(SRC)
 	gcc -o comp -g $(SRC)
@@ -25,7 +25,6 @@ test4: comp input04
 	./comp input04
 	gcc -o out out.s
 	./out
-
 
 test5: comp input05
 	./comp input05

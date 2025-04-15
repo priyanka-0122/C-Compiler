@@ -109,11 +109,11 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
   		case A_DIVIDE:
     			return (cgdiv(leftreg, rightreg));
   		case A_INTLIT:
-    			return (cgloadint(n->v.intvalue));
+    			return (cgloadint(n->v.intvalue, n->v.id));
   		case A_IDENT:
-    			return (cgloadglob(Gsym[n->v.id].name));
+    			return (cgloadglob(n->v.id));
   		case A_LVIDENT:
-    			return (cgstorglob(reg, Gsym[n->v.id].name));
+    			return (cgstorglob(reg, n->v.id));
   		case A_ASSIGN:
     			// The work has already been done, return the result
     			return (rightreg);
@@ -135,7 +135,10 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 				return (cgcompare_and_jump(n->op, leftreg, rightreg, reg));
 			else
 				return (cgcompare_and_set(n->op, leftreg, rightreg));
-  		default:
+  		case A_WIDEN:
+			// Widen the child's type to the parent's type
+			return (cgwiden(leftreg, n->left->type, n->type));
+		default:
     			fatald("Unknown AST operator", n->op);
   	}
 }
@@ -152,6 +155,6 @@ void genprintint(int reg) {
   cgprintint(reg);
 }
 
-void genglobsym(char *s) {
-  cgglobsym(s);
+void genglobsym(int id) {
+  cgglobsym(id);
 }

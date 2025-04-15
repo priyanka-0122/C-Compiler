@@ -81,13 +81,17 @@ static int scanident(int c, char *buf, int lim) {
 // Switch on the first letter so that we don't have to waste strcmp()ing against all the keywords.
 static int keyword( char *s) {
 	switch (*s) {
+		case 'c':
+			if (!strcmp(s, "char"))
+				return(T_CHAR);
+			break;
 		case 'e':
 			if (!strcmp(s, "else"))
 				return (T_ELSE);
 			break;
-		case 'p':
-			if (!strcmp(s, "print")) //return 0 if 	identical
-				return (T_PRINT);
+		case 'f':
+			if (!strcmp(s, "for"))
+				return T_FOR;
 			break;
 		case 'i':
 			if (!strcmp(s, "int"))
@@ -95,17 +99,17 @@ static int keyword( char *s) {
 			if (!strcmp(s, "if"))
 				return (T_IF);
 			break;
-		case 'w':
-			if (!strcmp(s, "while"))
-				return T_WHILE;
-			break;
-		case 'f':
-			if (!strcmp(s, "for"))
-				return T_FOR;
+		case 'p':
+			if (!strcmp(s, "print")) //return 0 if 	identical
+				return (T_PRINT);
 			break;
 		case 'v':
 			if (!strcmp(s, "void"))
 				return T_VOID;
+			break;
+		case 'w':
+			if (!strcmp(s, "while"))
+				return T_WHILE;
 			break;
 	}
 	return (0);

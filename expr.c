@@ -12,7 +12,11 @@ static struct ASTnode *primary(void) {
 	switch (Token.token) {
   		case T_INTLIT:
 			// For an INTLIT token, make a leaf AST node for it
-    			n = mkastleaf(A_INTLIT, Token.intvalue);
+			// Make it a P_CHAR if it's within the P_CHAR range
+			if ((Token.intvalue) >= 0 && (Token.intvalue < 256))
+    				n = mkastleaf(A_INTLIT, P_CHAR, Token.intvalue);
+			else
+				n = mkastleaf(A_INTLIT, P_INT, Token.intvalue);
 			break;
 		
 		case T_IDENT:
@@ -22,7 +26,7 @@ static struct ASTnode *primary(void) {
 				fatals("Unknown variable", Text);
 		
 			// Make a leaf AST node for it
-			n = mkastleaf(A_IDENT, id);
+			n = mkastleaf(A_IDENT, Gsym[id].type, id);
 			break;
   
 		default:
@@ -59,34 +63,48 @@ static int op_precedence(int tokentype) {
 
 // Return an AST tree whose root is a binary operator. Parameter ptp is the previous token's precedence.
 struct ASTnode *binexpr(int ptp) {
-  struct ASTnode *left, *right;
-  int tokentype;
+	struct ASTnode *left, *right;
+	int lefttype, righttype;
+	int tokentype;
 
-  // Get the integer literal on the left. Fetch the next token at the same time.
-  left = primary();
+	// Get the primary tree on the left. Fetch the next token at the same time.
+  	left = primary();
 
-  // If we hit a semicolon, return just the left node
-  tokentype = Token.token;
-  if (tokentype == T_SEMI || tokentype == T_RPAREN)
-    return (left);
+  	// If we hit a semicolon or ')', return just the left node
+  	tokentype = Token.token;
+  	if (tokentype == T_SEMI || tokentype == T_RPAREN)
+    		return (left);
 
-  // While the precedence of this token is more than that of the previous token precedence
-  while (op_precedence(tokentype) > ptp) {
-    // Fetch in the next integer literal
-    scan(&Token);
+  	// While the precedence of this token is more than that of the previous token precedence
+  	while (op_precedence(tokentype) > ptp) {
+    		// Fetch in the next integer literal
+    		scan(&Token);
 
-    // Recursively call binexpr() with the precedence of our token to build a sub-tree
-    right = binexpr(OpPrec[tokentype]);
+    		// Recursively call binexpr() with the precedence of our token to build a sub-tree
+    		right = binexpr(OpPrec[tokentype]);
 
-    // Join that sub-tree with ours. Convert the token into an AST operation at the same time.
-    left = mkastnode(arithop(tokentype), left, NULL, right, 0);
+    		// Ensure the two types are compatible
+    		lefttype = left->type;
+    		righttype = right->type;
+    		if (!type_compatible(&lefttype, &righttype, 0))
+ 			fatal("Incompatible types");
 
-    // Update the details of the current token. If we hit a semicolon, return just the left node
-    tokentype = Token.token;
-    if (tokentype == T_SEMI || tokentype == T_RPAREN)
-      return (left);
-  }
+		// Widen either side if required, type vars are A_WIDEN now
+		if (lefttype)
+			left = mkastunary(lefttype, right->type, left, 0);
+		if (righttype)
+			right = mkastunary(righttype, left->type,right, 0);
 
-  // Return the tree we have when the precedence is the same or lower
-  return (left);
+
+    		// Join that sub-tree with ours. Convert the token into an AST operation at the same time.
+    		left = mkastnode(arithop(tokentype), left->type, left, NULL, right, 0);
+
+    		// Update the details of the current token. If we hit a semicolon, return just the left node
+    		tokentype = Token.token;
+    		if (tokentype == T_SEMI || tokentype == T_RPAREN)
+      			return (left);
+  	}
+
+  	// Return the tree we have when the precedence is the same or lower
+  	return (left);
 }
