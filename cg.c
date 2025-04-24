@@ -210,7 +210,6 @@ void cgfuncpostamble(struct symtable *sym) {
 int cgloadint(int value, int type) {
 	// Get a new register
 	int r = alloc_register();
-
 	// Print out the code to initialise it
 	fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
 	return (r);

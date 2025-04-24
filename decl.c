@@ -463,11 +463,15 @@ static struct symtable *function_declaration(char *funcname, int type,
 	// and the compound statement sub-tree
 	tree = mkastunary(A_FUNCTION, type, tree, oldfuncsym, endlabel);
 
-	// Generate the assembly code for it
+	// Do optimisations on the AST tree
+	tree = optimise(tree);
+
+	// Dump the AST tree if requested
 	if (O_dumpAST) {
 		dumpAST(tree, NOLABEL, 0);
 		fprintf(stdout, "\n\n");
 	}
+	// Generate the assembly code for it
 	genAST(tree, NOLABEL, NOLABEL, NOLABEL, 0);
 
 	// Now free the symbols associated with this function

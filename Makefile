@@ -4,11 +4,14 @@ INCDIR=/tmp/include
 BINDIR=/tmp
 
 HSRCS= data.h decl.h defs.h
-SRCS= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
+SRCS= cg.c decl.c expr.c gen.c main.c misc.c \
+	opt.c scan.c stmt.c sym.c tree.c types.c
 
-SRCN= cgn.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
+SRCN= cgn.c decl.c expr.c gen.c main.c misc.c \
+	opt.c scan.c stmt.c sym.c tree.c types.c
 
-ARMSRCS= cg_arm.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
+ARMSRCS= cg_arm.c decl.c expr.c gen.c main.c misc.c \
+	opt.c scan.c stmt.c sym.c tree.c types.c
 
 comp: $(SRCS) $(HSRCS)
 	cc -o comp -g -Wall -DINCDIR=\"$(INCDIR)\" $(SRCS)

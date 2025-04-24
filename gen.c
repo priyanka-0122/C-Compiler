@@ -23,8 +23,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	if (n->right)
 		Lend = genlabel();
 
-	// Generate the condition code followed
-	// by a jump to the false label.
+	// Generate the condition code followed by a jump to the false label.
 	// We cheat by sending the Lfalse label as a register.
 	genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);		// Condition and jump to false
 	genfreeregs();

@@ -193,7 +193,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			fprintf(stdout, "A_SWITCH\n");
 			return;
 		case A_CAST:
-			fprintf(stdout, "A_CAST %d\n", n->type);
+			// fprintf(stdout, "A_CAST %d\n", n->type);
 			return;
 		case A_ASPLUS:
 			fprintf(stdout, "A_ASPLUS\n");
