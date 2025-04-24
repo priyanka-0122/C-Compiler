@@ -48,7 +48,8 @@ static struct ASTnode *funccall(void) {
 	struct ASTnode *tree;
 	struct symtable *funcptr;
 
-	// Check that the identifier has been defined, then make a leaf node for it.
+	// Check that the identifier has been defined as a function,
+	// then make a leaf node for it.
 	if ((funcptr = findsymbol(Text)) == NULL || funcptr->stype != S_FUNCTION) {
 		fatals("Undeclared function", Text);
 	}
@@ -152,7 +153,8 @@ static struct ASTnode *member_access(int withpointer) {
 	// Build an A_INTLIT node with the offset
 	right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
 
-	// Add the member's offset to the base of the struct and dereference it. Still an lvalue at this point
+	// Add the member's offset to the base of the struct/union
+	// and dereference it. Still an lvalue at this point
 	left = mkastnode(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
 	left = mkastunary(A_DEREF, m->type, left, NULL, 0);
 	return (left);
@@ -216,12 +218,13 @@ static struct ASTnode *postfix(void) {
 static struct ASTnode *primary(void) {
 	struct ASTnode *n;
 	int id;
+	int type=0;
 
 	switch (Token.token) {
 		case T_INTLIT:
 			// For an INTLIT token, make a leaf AST node for it.
 			// Make it a P_CHAR if it's within the P_CHAR range
-			if ((Token.intvalue) >= 0 && (Token.intvalue < 256))
+			if (Token.intvalue >= 0 && Token.intvalue < 256)
 				n = mkastleaf(A_INTLIT, P_CHAR, NULL, Token.intvalue);
 			else
 				n = mkastleaf(A_INTLIT, P_INT, NULL, Token.intvalue);
@@ -238,11 +241,40 @@ static struct ASTnode *primary(void) {
 			return (postfix());
 		
 		case T_LPAREN:
-			// Beginning of a parethesised expression, skip the '('. Scan in the expression
-			// and the right parenthesis
+			// Beginning of a parenthesised expression, skip the '('.
 			scan(&Token);
-			n = binexpr(0);
-			rparen();
+
+			// If the token after is a type identifier, this is a cast expression
+			switch (Token.token) {
+				case T_IDENT:
+					// We have to see if the identifier matches a typedef.
+					// If not, treat it as an expression.
+					if (findtypedef(Text) == NULL) {
+						n = binexpr(0);
+						break;
+					}
+				case T_VOID:
+				case T_CHAR:
+				case T_INT:
+				case T_LONG:
+				case T_STRUCT:
+				case T_UNION:
+				case T_ENUM:
+					// Get the type inside the parentheses
+					type= parse_cast();
+					// Skip the closing ')' and then parse the following expression
+					rparen();
+				default:
+					n = binexpr(0); // Scan in the expression
+			}
+
+			// We now have at least an expression in n, and possibly a non-zero type in type
+			// if there was a cast. Skip the closing ')' if there was no cast.
+			if (type == 0)
+				rparen();
+			else
+				// Otherwise, make a unary AST node for the cast
+				n= mkastunary(A_CAST, type, n, NULL, 0);
 			return (n);
 
 		default:
@@ -259,7 +291,7 @@ static int binastop(int tokentype) {
 	if (tokentype > T_EOF && tokentype <= T_SLASH)
 		return (tokentype);
 	fatald("Syntax error, token", tokentype);
-	return (0);		// Keep -Wall happy
+	return (0);			// Keep -Wall happy
 }
 
 // Return true if a token is right-associative, false otherwise.
@@ -269,8 +301,8 @@ static int rightassoc(int tokentype) {
 	return (0);
 }
 
-// Operator precedence for each token
-// Must match up with the order of tokens in defs.h
+// Operator precedence for each token. Must
+// match up with the order of tokens in defs.h
 static int OpPrec[] = { 0,		// T_EOF, 
 			10, 20, 30,	// T_ASSIGN, T_LOGOR, T_LOGAND
 			40, 50, 60,	// T_OR, T_XOR, T_AMPER

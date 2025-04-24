@@ -11,7 +11,7 @@ static void enum_declaration(void);
 
 // Parse the current token and return a primitive type enum value, a pointer to any composite type
 // and possibly modify the class of the type.
-static int parse_type(struct symtable **ctype, int *class) {
+int parse_type(struct symtable **ctype, int *class) {
 	int type, exstatic = 1;
 
 	// See if the class has been changed to extern (later, static)
@@ -82,7 +82,7 @@ static int parse_type(struct symtable **ctype, int *class) {
 
 // Given a type parsed by parse_type(), scan in any following
 // '*' tokens and return the new type
-static int parse_stars(int type) {
+int parse_stars(int type) {
 
 	while (1) {
 		if (Token.token != T_STAR)
@@ -93,6 +93,20 @@ static int parse_stars(int type) {
 	return (type);
 }
 
+// Parse a type which appears inside a cast
+int parse_cast(void) {
+	int type, class;
+	struct symtable *ctype;
+
+	// Get the type inside the parentheses
+	type= parse_stars(parse_type(&ctype, &class));
+
+	// Do some error checking. I'm sure more can be done
+	if (type == P_STRUCT || type == P_UNION || type == P_VOID)
+		fatal("Cannot cast to a struct, union or void type");
+	return(type);
+}
+
 // Given a type, check that the latest token is a literal of that type.
 // If an integer literal, return this value. If a string literal, return the
 // label number of the string. 
@@ -100,17 +114,20 @@ static int parse_stars(int type) {
 int parse_literal(int type) {
 
 	// We have a string literal. Store in memory and return the label
-	if ((type == pointer_to(P_CHAR)) && (Token.token == T_STRLIT))
+	if (Token.token == T_STRLIT) {
+	if (type == pointer_to(P_CHAR) || type == P_NONE)
 		return(genglobstr(Text));
+	}
 
+	// We have an integer literal. Do some range checking.
 	if (Token.token == T_INTLIT) {
 		switch(type) {
 			case P_CHAR:
 				if (Token.intvalue < 0 || Token.intvalue > 255)
 					fatal("Integer literal value too big for char type");
+			case P_NONE:
 			case P_INT:
-			case P_LONG:
-				break;
+			case P_LONG: break;
 			default:
 				fatal("Type mismatch: integer literal vs. variable");
 		}
@@ -125,6 +142,7 @@ static struct symtable *scalar_declaration(char *varname, int type,
 					   struct ASTnode **tree) {
 	struct symtable *sym=NULL;
 	struct ASTnode *varnode, *exprnode;
+	int casttype;
 	*tree= NULL;
 
 	// Add this as a known scalar
@@ -153,6 +171,22 @@ static struct symtable *scalar_declaration(char *varname, int type,
 
 		// Globals must be assigned a literal value
 		if (class == C_GLOBAL) {
+			// If there is a cast
+			if (Token.token == T_LPAREN) {
+				// Get the type in the cast
+				scan(&Token);
+				casttype= parse_cast();
+				rparen();
+
+				// Check that the two types are compatible. Change
+				// the new type so that the literal parse below works.
+				// A 'void *' casstype can be assigned to any pointer type.
+				if (casttype == type || (casttype== pointer_to(P_VOID) && ptrtype(type)))
+					type= P_NONE;
+				else
+					fatal("Type mismatch");
+			}
+
 			// Create one initial value for the variable and
 			// parse this value
 			sym->initlist= (int *)malloc(sizeof(int));
@@ -196,6 +230,7 @@ static struct symtable *array_declaration(char *varname, int type,
 	int maxelems;			// The maximum number of elements in the init list
 	int *initlist;			// The list of initial elements
 	int i=0, j;
+	int casttype, newtype;
 
 	// Skip past the '['
 	scan(&Token);
@@ -243,11 +278,30 @@ static struct symtable *array_declaration(char *varname, int type,
 
 		// Loop getting a new literal value from the list
 		while (1) {
+			// Get the original type
+			newtype= type;
 
 			// Check we can add the next value, then parse and add it
 			if (nelems != -1 && i == maxelems)
 				fatal("Too many values in initialisation list");
-			initlist[i++]= parse_literal(type);
+
+			if (Token.token == T_LPAREN) {
+				// Get the type in the cast
+				scan(&Token);
+				casttype= parse_cast();
+				rparen();
+
+				// Check that the two types are compatible. Change
+				// the new type so that the literal parse below works.
+				// A 'void *' casstype can be assigned to any pointer type.
+				if (casttype == type || (casttype== pointer_to(P_VOID) && ptrtype(type)))
+					newtype= P_NONE;
+				else
+					fatal("Type mismatch");
+				newtype= P_NONE;
+			}
+
+			initlist[i++]= parse_literal(newtype);
 			scan(&Token);
 
 			// Increase the list size if the original size was
@@ -267,7 +321,8 @@ static struct symtable *array_declaration(char *varname, int type,
 			comma();
 		}
 
-		// Zero any unused elements in the initlist. Attach the list to the symbol table entry
+		// Zero any unused elements in the initlist.
+		// Attach the list to the symbol table entry
 		for (j = i; j < sym->nelems; j++)
 			initlist[j] = 0;
 		if (i > nelems)
@@ -340,26 +395,29 @@ static struct symtable *function_declaration(char *funcname, int type,
 	struct symtable *oldfuncsym, *newfuncsym = NULL;
 	int endlabel, paramcnt;
 
-	// Text has the identifier's name. If this exists and is a function, get the id.
-	// Otherwise, set oldfuncsym to NULL
+	// Text has the identifier's name. If this exists and is a
+	// function, get the id. Otherwise, set oldfuncsym to NULL.
 	if ((oldfuncsym = findsymbol(funcname)) != NULL)
 		if (oldfuncsym->stype != S_FUNCTION)
 			oldfuncsym = NULL;
 
-	// If this is a new function declaration, get a label id for the end label, add the
-	// function to the symbol table
+	// If this is a new function declaration, get a
+	// label-id for the end label, and add the function
+	// to the symbol table,
 	if (oldfuncsym == NULL) {
 		endlabel = genlabel();
 		// Assumtion: functions only return scalar types, so NULL below
 		newfuncsym = addglob(funcname, type, NULL, S_FUNCTION, C_GLOBAL, 0, endlabel);
 	}
 
-	// Scan in the '(' and any parameters and ')'. Pass in any existing function prototype pointer
+	// Scan in the '(', any parameters and the ')'.
+	// Pass in any existing function prototype pointer
 	lparen();
 	paramcnt = param_declaration_list(oldfuncsym, newfuncsym);
 	rparen();
 
-	// If this is a new function declaration, update the function symbol entry with the number of parameters.
+	// If this is a new function declaration, update the
+	// function symbol entry with the number of parameters.
 	// Also copy the parameter list into the function's node.
 	if (newfuncsym) {
 		newfuncsym->nelems = paramcnt;
@@ -373,11 +431,12 @@ static struct symtable *function_declaration(char *funcname, int type,
 	if (Token.token == T_SEMI)
 		return (oldfuncsym);
 
-	// This is not just a prototype. Set the Functionid global to the function's symbol pointer
+	// This is not just a prototype. Set the Functionid
+	// global to the function's symbol pointer
 	Functionid = oldfuncsym;
 
-	// Get the AST tree for the compound statement
-	// that we have parsed no loops yet
+	// Get the AST tree for the compound statement and mark
+	// that we have parsed no loops or switches yet
 	Looplevel = 0;
 	Switchlevel = 0;
 	lbrace();
@@ -391,7 +450,8 @@ static struct symtable *function_declaration(char *funcname, int type,
 		if (tree == NULL)
 			fatal("No statements in function with non-void type");
 
-		// Check that the last AST operation in the compound statement was a return statement
+		// Check that the last AST operation in the
+		// compound statement was a return statement
 		finalstmt = (tree->op == A_GLUE) ? tree->right : tree;
 		if (finalstmt == NULL || finalstmt->op != A_RETURN)
 			fatal("No return for function with non-void type");
@@ -519,7 +579,7 @@ static struct symtable *composite_declaration(int type) {
 // Parse an enum declaration
 static void enum_declaration(void) {
 	struct symtable *etype = NULL;
-	char *name;
+	char *name= NULL;
 	int intval = 0;
 
 	// Skip the enum keyword.
@@ -674,8 +734,8 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 	struct ASTnode *tree;
 	*gluetree= NULL;
 
-	// Get the initial type. If -1, it was a composite type definition, return this
-
+	// Get the initial type. If -1, it was
+	// a composite type definition, return this
 	if ((inittype = parse_type(ctype, &class)) == -1)
 		return (inittype);
 
@@ -694,7 +754,8 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 			return (type);
 		}
 
-		// Glue any AST tree from a local declaration to build a sequence of assignments to perform
+		// Glue any AST tree from a local declaration
+		// to build a sequence of assignments to perform
 		if (*gluetree== NULL)
 			*gluetree= tree;
 		else

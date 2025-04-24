@@ -517,8 +517,9 @@ void cgglobsym(struct symtable *node) {
 				fprintf(Outfile, "\t.long\t%d\n", initvalue);
 				break;
 			case 8:
-				// Generate the pointer to a string literal
-				if (node->initlist != NULL && type == pointer_to(P_CHAR))
+				// Generate the pointer to a string literal. Treat a zero value
+				// as actually zero, not the label L0
+				if (node->initlist != NULL && type == pointer_to(P_CHAR) && initvalue != 0)
 					fprintf(Outfile, "\t.quad\tL%d\n", initvalue);
 				else
 					fprintf(Outfile, "\t.quad\t%d\n", initvalue);

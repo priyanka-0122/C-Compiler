@@ -70,15 +70,22 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 		if (rsize > lsize)
 			return (mkastunary(A_WIDEN, rtype, tree, NULL, 0));
 	}
-	// For pointers on the left
-	if (ptrtype(ltype)) {
-		// OK is same type on right and not doing a binary op
-		if (op == 0 && ltype == rtype)
+
+	// For pointers
+	if (ptrtype(ltype) && ptrtype(rtype)) {
+		// We can compare them
+		if (op >= A_EQ && op <= A_GE)
+			return(tree);
+
+		// A comparison of the same type for a non-binary operation is OK,
+		// or when the left tree is of  `void *` type.
+		if (op == 0 && (ltype == rtype || ltype == pointer_to(P_VOID)))
 			return (tree);
 	}
+
 	// We can scale only on A_ADD or A_SUBTRACT operation
 	if (op == A_ADD || op == A_SUBTRACT) {
-		
+
 		// Left is int type, right is pointer type and the size of the original type is
 		// >=1: scale the left
 		if (inttype(ltype) && ptrtype(rtype)) {
@@ -86,10 +93,9 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 			if (rsize > 1)
 				return (mkastunary(A_SCALE, rtype, tree, NULL, rsize));
 			else
-				return (tree);	// Size 1, no need to scale
+				return (tree);		// Size 1, no need to scale
 		}
 	}
-	
 	// If we get here, the types are not compatible
   	return (NULL);
 }
