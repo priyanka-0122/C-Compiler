@@ -18,7 +18,6 @@ struct ASTnode *if_statement(void) {
 
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
-//		fatal("Bad comparison operator");
 	rparen();
 
 	// Get the AST for the compound statement
@@ -46,7 +45,6 @@ struct ASTnode *while_statement(void) {
 	condAST = binexpr(0);
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
-//		fatal("Bad comparison operator");
 	rparen();
 
 	// Get the AST for the compound statement
@@ -74,7 +72,6 @@ static struct ASTnode *for_statement(void) {
 	condAST = binexpr(0);
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, 0);
-//		fatal("Bad operator");
 	semi();
 
 	// Get the post_op statement and the ')'
@@ -85,9 +82,7 @@ static struct ASTnode *for_statement(void) {
 	bodyAST = compound_statement();
 
 	// For now, all four sub-trees have to be non-NULL. Later on, we'll change the semantics for
-	// when some are missing
-	
-	// Glue the compound statement and the postop tree
+	// when some are missing. Glue the compound statement and the postop tree
 	tree = mkastnode(A_GLUE, P_NONE, bodyAST, NULL, postopAST, 0);
 	
 	// Make a WHILE loop with the condition and this new body
@@ -102,7 +97,7 @@ static struct ASTnode *return_statement(void) {
 	struct ASTnode *tree;
 
 	// Can't return a value if function return P_VOID
-	if (Gsym[Functionid].type == P_VOID)
+	if (Symtable[Functionid].type == P_VOID)
 		fatal("Can't return from a void function");
 
 	// Ensure we have 'return' '('
@@ -113,7 +108,7 @@ static struct ASTnode *return_statement(void) {
 	tree = binexpr(0);
 
 	// Ensure this is compatible with the function's type
-	tree = modify_type(tree, Gsym[Functionid].type, 0);
+	tree = modify_type(tree, Symtable[Functionid].type, 0);
 	if (tree == NULL)
 		fatal("Incompatible type to return");
 
@@ -137,7 +132,7 @@ static struct ASTnode *single_statement(void) {
       			// XXX: These are globals at present.
       			type = parse_type();
       			ident();
-      			var_declaration(type);
+      			var_declaration(type, 1);
 			return (NULL);			// No AST generated here
 		case T_IF:
 			return (if_statement());

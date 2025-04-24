@@ -3,7 +3,7 @@
 #include<stdlib.h>
 #include<ctype.h>
 
-#define TEXTLEN		512 //Length of symbols in input
+#define TEXTLEN		512 	//Length of symbols in input
 #define NSYMBOLS	1024	//Number of symbol table entries
 
 //Token structure
@@ -88,11 +88,19 @@ struct ASTnode {
 #define NOREG	-1	// Use NOREG when the AST generation functions have no register to return
 #define NOLABEL	 0	// Use NOLABEL when we have no label to pass to genAST()
 
+// Storage classes
+enum {
+	C_GLOBAL = 1,	// Globally visibke symbol
+	C_LOCAL		// Locally visible symbole
+};
+
 //Symbol table structure
 struct symtable {
 	char *name;	// Name of a symbol
 	int type;	// Primitive type of the symbol
 	int stype;	// Structural type of the symbol
+	int class;	// Storage class for the symbol
 	int endlabel;	// For S_FUNCTIONs, the end label
 	int size;	// Number of element in the symbol
+	int posn;	// For locals, the negative offset from the stack base pointer
 };

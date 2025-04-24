@@ -1,8 +1,7 @@
-void main()
+int main()
 {
-        int a ;
-        int c;
-        int d;
-        c = 5;
-        d = 5 = c;
+  long y;
+  long x;
+  x= 10; y= 20;
+  return(0);
 }

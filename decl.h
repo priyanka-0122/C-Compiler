@@ -6,6 +6,7 @@ void cgfuncpreamble(int id);
 void cgfuncpostamble(int id);
 int cgloadint(int value, int type);
 int cgloadglob(int id, int op);
+int cgloadlocal(int id, int op);
 int cgloadglobstr(int id);
 int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
@@ -15,6 +16,7 @@ int cgshlconst(int r, int val);
 void cgprintint(int r);
 int cgcall(int r, int id);
 int cgstorglob(int r, int id);
+int cgstorlocal(int r, int id);
 void cgglobsym(int id);
 void cgglobstr(int l, char *strvalue);
 int cgcompare_and_set(int ASTop, int r1, int r2);
@@ -36,10 +38,12 @@ int cgor(int r1, int r2);
 int cgxor(int r1, int r2);
 int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
+void cgresetlocals(void);
+int cggetlocaloffset(int type, int isparam, int size);
 
 //decl.c
 int parse_type(void);
-void var_declaration(int type);
+void var_declaration(int type, int islocal);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
@@ -58,6 +62,8 @@ void genglobsym(int id);
 int genglobstr(char *strvalue);
 int genprimsize(int type);
 void genreturn(int reg, int id);
+void genresetlocals(void);
+int gengetlocaloffset(int type, int isparam, int size);
 
 //misc.c
 void match(int t, char *what);
@@ -81,7 +87,10 @@ struct ASTnode *compound_statement(void);
 
 //sym.c
 int findglob(char *s);
+int findlocl(char *s);
+int findsymbol(char *s);
 int addglob(char *name, int type, int stype, int endlabel, int size);
+int addlocl(char *name, int type, int stype, int endlabel, int size);
 
 //tree.c
 struct ASTnode *mkastnode (int op, int type, struct ASTnode *left, struct ASTnode *mid, struct ASTnode *right, int intvalue);

@@ -49,7 +49,6 @@ void fatal(char *s) {
 	exit(1);
 }
 
-
 void fatals(char *s1, char *s2) {
 	fprintf(stderr, "%s:%s on line %d\n", s1, s2, Line);
 	exit(1);

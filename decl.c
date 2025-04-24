@@ -46,6 +46,8 @@ struct ASTnode *function_declaration(int type) {
 	nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
 	Functionid = nameslot;
 
+	genresetlocals();	// Reset position of new locals
+
 	// Scan in the parantheses
 	lparen();
 	rparen();
@@ -73,8 +75,7 @@ struct ASTnode *function_declaration(int type) {
 
 // Parse the declaration of a list of variables.
 // The identifier has been scanned & we have the type
-void var_declaration(int type) {
-  	int id;
+void var_declaration(int type, int islocal) {
 
 	// Text now has the identifier's name. If the next token is a '['
 	if (Token.token == T_LBRACKET) {
@@ -85,19 +86,25 @@ void var_declaration(int type) {
 		if (Token.token == T_INTLIT) {
 			// Add this as a known array and generate its apace in assembly.
 			// We treat the array as a pointer to its elements' type
-			id = addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
-			genglobsym(id);
+			if (islocal) {
+				addlocl(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+			} else {
+				addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+			}
 		}
 	
 		// Ensure we have a following ']'
 		scan(&Token);
 		match(T_RBRACKET, "]");
-	} else {	
+
+	} else {
     		while(1) {
-			// Text now has the identifier's name. Add it as a known identifier
-    			// and generate its space in assembly
-    			id = addglob(Text, type, S_VARIABLE, 0, 1);
-    			genglobsym(id);
+			// Add this as a known scalar and generate its space in assembly
+			if (islocal) {
+				addlocl(Text, type, S_VARIABLE, 0, 1);
+			} else {
+				addglob(Text, type, S_VARIABLE, 0, 1);
+			}
 
 			// If the next token is a semicolon, skip it and return.
 			if (Token.token == T_SEMI) {
@@ -141,7 +148,7 @@ void global_declarations(void) {
 		} else {
 
 			// Parse the global variable declaration
-			var_declaration(type) ;
+			var_declaration(type, 0);
 		}
 	
 		// Stop when we have reached EOF
