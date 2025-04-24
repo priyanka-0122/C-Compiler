@@ -85,7 +85,7 @@ int cgloadglob(int id) {
 			fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
 			break;
 		case P_INT:
-			fprintf(Outfile, "\tmovzb\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+			fprintf(Outfile, "\tmovl\t%s(\%%rip), %s\n", Gsym[id].name, dreglist[r]);
 			break;
 		case P_LONG:
 		case P_CHARPTR:
@@ -294,11 +294,29 @@ int cgderef(int r, int type) {
 			fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
 			break;
 		case P_INTPTR:
-			fprintf(Outfile, "\tmovzb\t(%s), %s\n", reglist[r], reglist[r]);
+			fprintf(Outfile, "\tmovl\t(%s), %s\n", reglist[r], dreglist[r]);
 			break;
 		case P_LONGPTR:
-			fprintf(Outfile, "\tmovzb\t(%s), %s\n", reglist[r], reglist[r]);
+			fprintf(Outfile, "\tmovq\t(%s), %s\n", reglist[r], reglist[r]);
 			break;
 	}
 	return (r);
+}
+
+// Store through a dereferenced pointer
+int cgstorderef(int r1, int r2, int type) {
+  	switch (type) {
+    		case P_CHAR:
+      			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+      			break;
+    		case P_INT:
+      			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+      			break;
+    		case P_LONG:
+      			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+      			break;
+    		default:
+      			fatald("Can't cgstoderef on type:", type);
+  	}
+  	return (r1);
 }

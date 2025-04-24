@@ -1,22 +1,8 @@
-int a;
-
-int add()
+void main()
 {
-	int b;
-	b = 10;
-	b = b + a;
-	printint(b);
-	return(b);
-}
-
-int main() {
-	int b;
-	b = 3;
-	a = 5;
-	b = b + a;
-	printint(b);
-	b = add(b) + b;
-	printint(b);
-	printint(a);
-	return (0);
+        int a ;
+        int c;
+        int d;
+        c = 5;
+        d = 5 = c;
 }

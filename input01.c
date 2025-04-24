@@ -1,24 +1,19 @@
-int a;
-
-int add()
+char d;
+int main()
 {
-	int b;
-	int a;
+	int a, b, c;
 	a = 2;
-	b = 10;
-	b = b + a;
-	printint(b);
-	return(b);
-}
+	b = c = a;
 
-int main() {
-	int b;
-	b = 3;
-	a = 5;
-	b = b + a;
-	printint(b);
-	b = add(b) + b;
-	printint(b);
-	printint(a);
+	printint (a);
+	printint (b);
+	printint (c);
+	printint (d);
+
+	a = 20;
+        d = a;
+
+	printint (a);
+	printint (d);
 	return (0);
 }

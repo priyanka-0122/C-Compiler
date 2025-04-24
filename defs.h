@@ -17,6 +17,7 @@ enum {
         T_EOF,
 
 	// Binary Operator
+	T_ASSIGN,
 	T_PLUS, T_MINUS, T_STAR, T_SLASH,
 
 	// Comparison operator
@@ -26,21 +27,23 @@ enum {
 	T_VOID, T_CHAR, T_INT, T_LONG,
 
 	// Structural tokens
-	T_INTLIT, T_SEMI, T_ASSIGN, T_IDENT,
+	T_INTLIT, T_SEMI, T_IDENT,
 	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
 	T_AMPER, T_LOGAND, T_COMMA,
 	// Keywords
-	T_PRINT, T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN
+	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN
 };
 	
 // AST node types
 enum {
-	A_ADD=1, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,
+	A_ASSIGN= 1, A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,
 	A_EQ, A_NE, A_LT, A_GT, A_LE, A_GE,
 	A_INTLIT,
-	A_IDENT, A_LVIDENT, A_ASSIGN, A_PRINT, A_GLUE,
-	A_IF, A_WHILE, A_FUNCTION, A_WIDEN, A_RETURN,
-	A_FUNCCALL, A_DEREF, A_ADDR, A_SCALE
+	A_IDENT, A_GLUE,
+	A_IF, A_WHILE, A_FUNCTION,
+	A_WIDEN,
+	A_RETURN, A_FUNCCALL,
+	A_DEREF, A_ADDR, A_SCALE
 };
 
 // Primitive types
@@ -58,6 +61,7 @@ enum {
 struct ASTnode {
 	int op;				// Operation to be performed on this tree
 	int type;			// Type of any expression this tree generates
+	int rvalue;			// True if the node is an rvalue
 	struct ASTnode *left;		// Left child tree
 	struct ASTnode *mid;		// Middle child tree
 	struct ASTnode *right;		// Right child tree
@@ -70,6 +74,7 @@ struct ASTnode {
 };
 
 #define NOREG	-1	// Use NOREG when the AST generation functions have no register to return
+#define NOLABEL	 0	// Use NOLABEL when we have no label to pass to genAST()
 
 //Symbol table structure
 struct symtable {

@@ -61,7 +61,7 @@ int value_at(int type) {
 }
 
 // Given an AST tree and a type which we wnat it to become, possibly modify the tree by widening or
-// scaling so that it is compatible with this typ. Return the original tree if no changes occured,
+// scaling so that it is compatible with this type. Return the original tree if no changes occured,
 // a modified tree, or NULL if the tree is not compatible with the guven type. If this will be part
 // of a binary operation, the AST op is not zero
 struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {

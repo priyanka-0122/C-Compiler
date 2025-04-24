@@ -24,6 +24,7 @@ int cgprimsize(int type);
 void cgreturn(int reg, int id);
 int cgaddress(int id);
 int cgderef(int r, int type);
+int cgstorderef(int r1, int r2, int type);
 
 //decl.c
 int parse_type(void);
@@ -74,6 +75,7 @@ int addglob(char *name, int type, int stype, int endlabel);
 struct ASTnode *mkastnode (int op, int type, struct ASTnode *left, struct ASTnode *mid, struct ASTnode *right, int intvalue);
 struct ASTnode *mkastleaf(int op, int type, int intvalue);
 struct ASTnode *mkastunary(int op, int type, struct ASTnode *left, int intvalue);
+void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
 //types.c
 int type_compatible(int *left, int *right, int onlyright);

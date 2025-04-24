@@ -9,7 +9,7 @@ int genlabel(void) {
 }
 
 // Generate the code for an IF statement and an optional ELSE clause
-static int genIFAST(struct ASTnode *n) {
+static int genIF(struct ASTnode *n) {
 	int Lfalse, Lend;
 
 	// Generate two label: one for the false compound, and the other one for the end of the overall
@@ -24,7 +24,7 @@ static int genIFAST(struct ASTnode *n) {
 	genfreeregs();
 
 	// Generate the true compound statement
-	genAST(n->mid, NOREG, n->op);		// Statements after 'if'
+	genAST(n->mid, NOLABEL, n->op);		// Statements after 'if'
 	genfreeregs();
 
 	// If there is an optional ELSE clause, generate the jump to skip to the end
@@ -36,7 +36,7 @@ static int genIFAST(struct ASTnode *n) {
 
 	// Optional ELSE clause: generate the false compound statement and the end label
 	if (n->right) {
-		genAST(n->right, NOREG, n->op);		// Statements after 'else'
+		genAST(n->right, NOLABEL, n->op);		// Statements after 'else'
 		genfreeregs();
 		cglabel(Lend);				// Lend: label
 	}
@@ -59,7 +59,7 @@ static int genWHILE(struct ASTnode *n) {
 	genfreeregs();
 	
 	// Generate the compund statement for the body
-	genAST(n->right, NOREG, n->op);
+	genAST(n->right, NOLABEL, n->op);
 	genfreeregs();
 
 	// Finally output the jump back to the condition, and the end label
@@ -68,27 +68,27 @@ static int genWHILE(struct ASTnode *n) {
 	return (NOREG);
 }
 
-// Given an AST, generate assembly code recursively. Return the register id
-// with the tree's final value
-int genAST(struct ASTnode *n, int reg, int parentASTop) {
+// Given an AST, an optional label, and the AST op of the parent, generate assembly code recursively.
+// Return the register id with the tree's final value
+int genAST(struct ASTnode *n, int label, int parentASTop) {
 	int leftreg, rightreg;
 
   	switch (n->op) {
 		case A_IF:
-			return(genIFAST(n));
+			return(genIF(n));
 		case A_WHILE:
 			return (genWHILE(n));
 		case A_GLUE:
 			// Do each child statement, and free the registers after each child
-			genAST (n->left, NOREG, n->op);
+			genAST (n->left, NOLABEL, n->op);
 			genfreeregs();
-			genAST(n->right, NOREG, n->op);
+			genAST(n->right, NOLABEL, n->op);
 			genfreeregs();
 			return (NOREG);
 		case A_FUNCTION:
 			// Generate the function's preamble before the code
 			cgfuncpreamble(n->v.id);
-			genAST(n->left, NOREG, n->op);
+			genAST(n->left, NOLABEL, n->op);
 			cgfuncpostamble(n->v.id);
 			return (NOREG);
 	}
@@ -96,9 +96,9 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 	// General AST node handling below.
 	// Get the left and right sub-tree values
 	if (n->left)
-		leftreg = genAST(n->left, NOREG, n->op);
+		leftreg = genAST(n->left, NOLABEL, n->op);
 	if (n->right)
-		rightreg = genAST(n->right, leftreg, n->op);
+		rightreg = genAST(n->right, NOLABEL, n->op);
 	switch (n->op) {
   		case A_ADD:
     			return (cgadd(leftreg, rightreg));
@@ -108,20 +108,6 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
     			return (cgmul(leftreg, rightreg));
   		case A_DIVIDE:
     			return (cgdiv(leftreg, rightreg));
-  		case A_INTLIT:
-    			return (cgloadint(n->v.intvalue, n->v.id));
-  		case A_IDENT:
-    			return (cgloadglob(n->v.id));
-  		case A_LVIDENT:
-    			return (cgstorglob(reg, n->v.id));
-  		case A_ASSIGN:
-    			// The work has already been done, return the result
-    			return (rightreg);
-		case A_PRINT:
-			// Print the left-child's value and return no register
-			genprintint(leftreg);
-			genfreeregs();
-			return (NOREG);
 		case A_EQ:
 		case A_NE:
 		case A_LT:
@@ -132,9 +118,27 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 			// followed by a jump. Otherwise, compare registers and set one to
 			// 1 or 0 based on the comparison.
 			if (parentASTop == A_IF || parentASTop == A_WHILE)
-				return (cgcompare_and_jump(n->op, leftreg, rightreg, reg));
+				return (cgcompare_and_jump(n->op, leftreg, rightreg, label));
 			else
 				return (cgcompare_and_set(n->op, leftreg, rightreg));
+  		case A_INTLIT:
+    			return (cgloadint(n->v.intvalue, n->v.id));
+  		case A_IDENT:
+			// Load our value if we are an rvalue or we are being dereferenced
+			if (n->rvalue || parentASTop == A_DEREF)
+				return (cgloadglob(n->v.id));
+			else
+				return (NOREG);
+  		case A_ASSIGN:
+			// Are we assigning to an identifier or through a pointer
+			switch (n->right->op) {
+				case A_IDENT:
+					return (cgstorglob(leftreg, n->right->v.id));
+				case A_DEREF:
+					return (cgstorderef(leftreg, rightreg, n->right->type));
+				default: 
+					fatald("Can't A_ASSIGN in genAST(), op", n->op);
+			}
   		case A_WIDEN:
 			// Widen the child's type to the parent's type
 			return (cgwiden(leftreg, n->left->type, n->type));
@@ -146,7 +150,12 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 		case A_ADDR:
 			return (cgaddress(n->v.id));
 		case A_DEREF:
-			return (cgderef(leftreg, n->left->type));
+			//return (cgderef(leftreg, n->left->type));
+			// If we are an rvalue, dereference to get the value we point at otherwise leave it for A_ASSIGN to store through the pointer
+			if (n->rvalue)
+				return (cgderef(leftreg, n->left->type));
+			else
+				return (leftreg);
 		case A_SCALE:
 			// Small optimisation: use shift if the scale value is a known
 			// power of two
