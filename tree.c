@@ -2,6 +2,8 @@
 #include "data.h"
 #include "decl.h"
 
+// AST tree functions
+
 // Build and return a generic AST node
 struct ASTnode *mkastnode(int op, int type,
 			struct ASTnode *left,
@@ -10,7 +12,7 @@ struct ASTnode *mkastnode(int op, int type,
 			struct symtable *sym, int intvalue) {
 	struct ASTnode *n;
 	
-	//Calloc a new ASTnode
+	// Calloc a new ASTnode
 	n = (struct ASTnode *)calloc(1, sizeof(struct ASTnode));
 	if (n == NULL) {
 		fprintf(stderr, "Unable to calloc a node in mkastnode()");
@@ -174,6 +176,12 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			return;
 		case A_NEGATE:
 			fprintf(stdout, "A_NEGATE\n");
+			return;
+		case A_BREAK:
+			fprintf(stdout, "A_BREAK\n");
+			return;
+		case A_CONTINUE:
+			fprintf(stdout, "A_CONTINUE\n");
 			return;
     		default:
       			fatald("Unknown dumpAST operator", n->op);

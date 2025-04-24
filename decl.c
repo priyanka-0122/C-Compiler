@@ -266,6 +266,8 @@ struct ASTnode *function_declaration(int type) {
 	Functionid = oldfuncsym;
 
 	// Get the AST tree for the compound statement
+	// that we have parsed no loops yet
+	Looplevel= 0;
 	tree = compound_statement();
 
 	// If the function type isn't P_VOID ..
@@ -393,7 +395,8 @@ static void enum_declaration(void) {
 		if (etype == NULL)
 			fatals("undeclared enum type:", name);
 		return;
-  }
+	}
+
 	// We do have an LBRACE. Skip it
 	scan(&Token);
 
@@ -449,6 +452,9 @@ int typedef_declaration(struct symtable **ctype) {
 
 	// Get the actual type following the keyword
 	type = parse_type(ctype, &class);
+
+	if (class != 0)
+		fatal("Can't have extern in a typedef declaration");
 
 	// See if the typedef identifier already exists
 	if (findtypedef(Text) != NULL)
@@ -512,7 +518,7 @@ void global_declarations(void) {
 				dumpAST(tree, NOLABEL, 0);
 				fprintf(stdout, "\n\n");
 			}
-			genAST(tree, NOLABEL, 0);
+			genAST(tree, NOLABEL, NOLABEL, NOLABEL, 0);
 			
 			// Now free the symbola associated with this function
 			freeloclsyms();

@@ -2,6 +2,8 @@
 #include "data.h"
 #include "decl.h"
 
+// Code generator for x86-64
+
 // Flag to say which section were are outputting in to
 enum { no_seg, text_seg, data_seg } currSeg = no_seg;
 
@@ -19,7 +21,7 @@ void cgdataseg() {
 	}
 }
 
-// Given a P_XXX type value, return the size of a primitive type in bytes.
+// Given a scalar type value, return the size of the type in bytes.
 int cgprimsize(int type) {
 	if (ptrtype(type))
 		return (8);
@@ -32,8 +34,8 @@ int cgprimsize(int type) {
 			return (8);
 		default:
 			fatald("Bad type in cgprimsize:", type);
-  }
-  return (0);                   // Keep -Wall happy~
+	}
+  return (0);                   // Keep -Wall happy
 }
 
 // Given a scalar type, an existing memory offset (which hasn't been allocated to anything yet)
@@ -56,8 +58,6 @@ int cgalign(int type, int offset, int direction) {
 
 	// Here we have an int or a long. Align it on a 4-byte offset I put the generic code here so it can be reused elsewhere.
 	alignment= 4;
-	//if ((type != P_CHAR) && (offset % 4 != 0))
-	//	offset = offset + (offset % 4);
 	offset = (offset + direction * (alignment-1)) & ~(alignment-1);
 	return (offset);
 }
@@ -401,11 +401,11 @@ void cgcopyarg(int r, int argposn) {
   // If this is above the sixth argument, simply push the register on the stack. We rely on being called with
   // successive arguments in the correct order for x86-64
   	if (argposn > 6) {
-    		fprintf(Outfile, "\tpushq\t%s\n", reglist[r]);
-  	} else {
-    	// Otherwise, copy the value into one of the six registers used to hold parameter values
-    		fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
-            	reglist[FIRSTPARAMREG - argposn + 1]);
+		fprintf(Outfile, "\tpushq\t%s\n", reglist[r]);
+	} else {
+		// Otherwise, copy the value into one of the six registers used to hold parameter values
+		fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
+			reglist[FIRSTPARAMREG - argposn + 1]);
   	}
 }
 
@@ -432,7 +432,6 @@ int cgstorglob(int r, struct symtable *sym) {
 		}
 	return (r);
 }
-
 
 // Store a register's value into a local variable
 int cgstorlocal(int r, struct symtable *sym) {
@@ -531,7 +530,7 @@ void cgjump(int l) {
 	fprintf(Outfile, "\tjmp\tL%d\n", l);
 }
 
-// List of inverted jump instructions in AST order:
+// List of inverted jump instructions, in AST order:
 //			       A_EQ, A_NE,  A_LT,  A_GT, A_LE, A_GE
 static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 

@@ -1,1 +1,1 @@
-undeclared enum type::fred on line 1
+undeclared enum type::fred on line 1 of input76.c

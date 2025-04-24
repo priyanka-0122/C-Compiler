@@ -413,7 +413,7 @@ struct ASTnode *binexpr(int ptp) {
   	// While the precedence of this token is more than that of the previous token precedence,
 	// or it's right associative and equal to the previous token's precedence
   	while ((op_precedence(tokentype) > ptp) ||
-	       (rightassoc(tokentype) && op_precedence(tokentype) == ptp)) {
+		(rightassoc(tokentype) && op_precedence(tokentype) == ptp)) {
     		// Fetch in the next integer literal
     		scan(&Token);
 

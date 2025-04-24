@@ -32,7 +32,10 @@ installn: compn
 	chmod +x $(BINDIR)/compn
 
 clean:
-	rm -f comp comp_arm compn *.i *.s *.o *.out out
+	rm -f comp comp_arm compn *.o *.out out
+
+clean_assem:
+	rm *.s
 
 test: install tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)

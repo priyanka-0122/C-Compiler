@@ -2,6 +2,8 @@
 #include "data.h"
 #include "decl.h"
 
+// Symbol table functions
+
 // Append a node to the singly-linked list pointed to by head or tail
 void appendsym(struct symtable **head, struct symtable **tail,
 	       struct symtable *node) {
@@ -70,7 +72,7 @@ struct symtable *addlocl(char *name, int type, struct symtable *ctype,
 
 // Add a symbol to the parameter list
 struct symtable *addparm(char *name, int type, struct symtable *ctype,
-			int stype, int size) {
+			 int stype, int size) {
 	struct symtable *sym = newsym(name, type, ctype, stype, C_PARAM, size, 0);
 	appendsym(&Parmhead, &Parmtail, sym);
 	return (sym);

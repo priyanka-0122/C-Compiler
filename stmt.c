@@ -2,6 +2,9 @@
 #include "data.h"
 #include "decl.h"
 
+// Parsing of statements
+
+// Prototypes
 static struct ASTnode *single_statement(void);
 
 // Parse an If statement including any optional ELSE clause and return its AST
@@ -34,7 +37,7 @@ struct ASTnode *if_statement(void) {
 }
 
 // Parse a WHILE statement and return its AST
-struct ASTnode *while_statement(void) {
+static struct ASTnode *while_statement(void) {
 	struct ASTnode *condAST, *bodyAST;
 
 	// Ensure we have 'while' '('
@@ -48,8 +51,11 @@ struct ASTnode *while_statement(void) {
 	rparen();
 
 	// Get the AST for the compound statement
+	// Update the loop depth in the process
+	Looplevel++;
 	bodyAST = compound_statement();
-	
+	Looplevel--;
+
 	// Build and return the AST for this statement
 	return (mkastnode(A_WHILE, P_NONE, condAST, NULL, bodyAST, NULL, 0));
 }
@@ -79,7 +85,10 @@ static struct ASTnode *for_statement(void) {
 	rparen();
 
 	// Get the compound statement which is the body
+	// Update the loop depth in the process
+	Looplevel++;
 	bodyAST = compound_statement();
+	Looplevel--;
 
 	// For now, all four sub-trees have to be non-NULL. Later on, we'll change the semantics for
 	// when some are missing. Glue the compound statement and the postop tree
@@ -96,7 +105,7 @@ static struct ASTnode *for_statement(void) {
 static struct ASTnode *return_statement(void) {
 	struct ASTnode *tree;
 
-	// Can't return a value if function return P_VOID
+	// Can't return a value if function returns P_VOID
 	if (Functionid->type == P_VOID)
 		fatal("Can't return from a void function");
 
@@ -120,9 +129,27 @@ static struct ASTnode *return_statement(void) {
 	return (tree);
 }
 
+// Parse a break statement and return its AST
+static struct ASTnode *break_statement(void) {
+
+	if (Looplevel == 0)
+		fatal("no loop to break out from");
+	scan(&Token);
+	return (mkastleaf(A_BREAK, 0, NULL, 0));
+}
+
+// Parse a continue statement and return its AST
+static struct ASTnode *continue_statement(void) {
+
+	if (Looplevel == 0)
+		fatal("no loop to continue to");
+	scan(&Token);
+	return (mkastleaf(A_CONTINUE, 0, NULL, 0));
+}
+
 // Parse a single statement and return its AST
 static struct ASTnode *single_statement(void) {
-	int type, class= C_LOCAL;
+	int type, class = C_LOCAL;
 	struct symtable *ctype;
 
 	switch (Token.token) {
@@ -155,6 +182,10 @@ static struct ASTnode *single_statement(void) {
 			return (for_statement());
 		case T_RETURN:
 			return (return_statement());
+		case T_BREAK:
+			return (break_statement());
+		case T_CONTINUE:
+			return (continue_statement());
 		default:
 			// For now, see if this is an expression.
 			// This catches assignement statements.
@@ -168,15 +199,18 @@ struct ASTnode *compound_statement(void) {
 	struct ASTnode *left = NULL;
 	struct ASTnode *tree;
 
-	//Require a left curly bracket
+	// Require a left curly bracket
 	lbrace();
-	while (1) {	
+
+	while (1) {
 		// Parse a single statement
 		tree = single_statement();
 	
 		// Some statements must be followed by a semicolon
 		if (tree != NULL && (tree->op == A_ASSIGN ||
-			 	     tree->op == A_RETURN || tree->op == A_FUNCCALL))
+			 	     tree->op == A_RETURN ||
+				     tree->op == A_FUNCCALL ||
+				     tree->op == A_BREAK || tree->op == A_CONTINUE))
 			semi();
 
 		// For each new tree, either save it in left if left is empty, or glue the left and the 
@@ -185,7 +219,7 @@ struct ASTnode *compound_statement(void) {
 			if (left == NULL)
 				left = tree;
 			else
-				left = mkastnode( A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
+				left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
 		}
 		
 		// When we hit a right curly bracket, skip past it and return the AST

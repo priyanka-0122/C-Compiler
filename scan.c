@@ -23,7 +23,6 @@ static int next(void) {
 	}
 
 	c = fgetc(Infile);				// Read from input file
-	//printf("%d ",(int)c);
 
 	while (c == '#') {				// We've hit a pre-processor statement
 		scan(&Token);				// Get the line number into l
@@ -162,9 +161,15 @@ static int scanident(int c, char *buf, int lim) {
 // Switch on the first letter so that we don't have to waste strcmp()ing against all the keywords.
 static int keyword( char *s) {
 	switch (*s) {
+		case 'b':
+			if (!strcmp(s, "break"))
+				return (T_BREAK);
+			break;
 		case 'c':
 			if (!strcmp(s, "char"))
 				return(T_CHAR);
+			if (!strcmp(s, "continue"))
+				return (T_CONTINUE);
 			break;
 		case 'e':
 			if (!strcmp(s, "else"))
@@ -224,8 +229,8 @@ void reject_token(struct token *t) {
 	Rejtoken = t;
 }
 
-//Scan and return the next token found in the input.
-//Return 1 if the token is valid, 0 if no tokens left.
+// Scan and return the next token found in the input.
+// Return 1 if the token is valid, 0 if no tokens left.
 int scan(struct token *t) {
 	int c, tokentype;
 
@@ -233,7 +238,7 @@ int scan(struct token *t) {
 	if (Rejtoken != NULL) {
 		t = Rejtoken;
 		Rejtoken = NULL;
-		return 1;
+		return (1);
 	}
 	
 	// Skip whitespace
@@ -302,7 +307,7 @@ int scan(struct token *t) {
 			t->token = T_DOT;
 			break;
 		case '=':
-			if ((c =next()) == '=') {
+			if ((c = next()) == '=') {
 				t->token = T_EQ;
 			} else {
 				putback(c);
@@ -372,7 +377,7 @@ int scan(struct token *t) {
 				t->token = T_INTLIT;
 				break;
 			}
-			else if (isalpha(c) || '_' ==c) {
+			else if (isalpha(c) || '_' == c) {
 				//Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
 
@@ -388,6 +393,6 @@ int scan(struct token *t) {
 			// The character isn't part of any recognised token, error
 			fatalc("Unrecognised character", c);
 	}
-	//We found a token
+	// We found a token
 	return (1);
 }
