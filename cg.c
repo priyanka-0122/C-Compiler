@@ -32,8 +32,8 @@ int cgprimsize(int type) {
 			return (8);
 		default:
 			fatald("Bad type in cgprimsize:", type);
-  }
-  return (0);                   // Keep -Wall happy~
+	}
+	return (0);                   // Keep -Wall happy~
 }
 
 // Given a scalar type, an existing memory offset (which hasn't been allocated to anything yet)
@@ -56,8 +56,6 @@ int cgalign(int type, int offset, int direction) {
 
 	// Here we have an int or a long. Align it on a 4-byte offset I put the generic code here so it can be reused elsewhere.
 	alignment= 4;
-	//if ((type != P_CHAR) && (offset % 4 != 0))
-	//	offset = offset + (offset % 4);
 	offset = (offset + direction * (alignment-1)) & ~(alignment-1);
 	return (offset);
 }
@@ -398,8 +396,8 @@ int cgcall(struct symtable *sym, int numargs) {
 // parameter in preparation for a future function call. Note that argposn is 1, 2, 3, 4, ..., never zero.
 void cgcopyarg(int r, int argposn) {
 
-  // If this is above the sixth argument, simply push the register on the stack. We rely on being called with
-  // successive arguments in the correct order for x86-64
+	// If this is above the sixth argument, simply push the register on the stack. We rely on being called with
+	// successive arguments in the correct order for x86-64
   	if (argposn > 6) {
     		fprintf(Outfile, "\tpushq\t%s\n", reglist[r]);
   	} else {
@@ -623,9 +621,6 @@ int cgstorderef(int r1, int r2, int type) {
 		case 8:
 			fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
 			break;
-//		case P_LONG:
-//			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
-//			break;
 		default:
 			fatald("Can't cgstoderef on type:", type);
 	}

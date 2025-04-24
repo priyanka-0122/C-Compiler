@@ -21,7 +21,7 @@ enum {
 enum {
 	 T_EOF,
 
-	// Binary Operator
+	// Binary operators
 	T_ASSIGN, T_LOGOR, T_LOGAND,
 	T_OR, T_XOR, T_AMPER,
 	T_EQ, T_NE,
@@ -35,8 +35,9 @@ enum {
 	// Type keywords
 	T_VOID, T_CHAR, T_INT, T_LONG,
 
-	// Other Keywords
-	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN, T_STRUCT,
+	// Other keywords
+	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
+	T_STRUCT, T_UNION,
 	
 	// Structural tokens
 	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
@@ -52,8 +53,7 @@ struct token {
 	int intvalue;	// For T_INTLIT, the integer value
 };
 
-// AST node types. The first few line up
-// with the related tokens
+// AST node types. The first few line up with the related tokens
 enum {
 	A_ASSIGN= 1, A_LOGOR, A_LOGAND,
 	A_OR, A_XOR, A_AND,
@@ -74,8 +74,9 @@ enum {
 // Primitive types. The bottom 4 bits is an integer value that represents the level
 // of indirection, e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum {
-	P_NONE, P_VOID = 16, P_CHAR = 32, P_INT = 48, P_LONG = 64,
-	P_STRUCT=80
+	P_NONE,
+	P_VOID = 16, P_CHAR = 32, P_INT = 48, P_LONG = 64,
+	P_STRUCT=80, P_UNION=96
 };
 
 // Structural types
@@ -83,13 +84,13 @@ enum {
 	S_VARIABLE, S_FUNCTION, S_ARRAY
 };
 
-
 // Storage classes
 enum {
 	C_GLOBAL = 1,		// Globally visible symbol
 	C_LOCAL,		// Locally visible symbol
 	C_PARAM,		// Locally visible function parameter
 	C_STRUCT,		// A struct
+	C_UNION,		// A union
 	C_MEMBER		// Member of a struct or union
 };
 

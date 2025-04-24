@@ -158,7 +158,7 @@ struct ASTnode *compound_statement(void) {
 	struct ASTnode *left = NULL;
 	struct ASTnode *tree;
 
-	//Require a left curly bracket
+	// Require a left curly bracket
 	lbrace();
 	while (1) {	
 		// Parse a single statement

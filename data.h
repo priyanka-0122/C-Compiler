@@ -1,8 +1,7 @@
+// extern_ is a custom extension of extern
 #ifndef extern_
  #define extern_ extern
 #endif
-
-// extern_ is a custom extension of extern
 
 extern_ int Line;				// Current line number			
 extern_ int Putback;				// Character put back by scanner
@@ -19,6 +18,7 @@ extern_ struct symtable *Loclhead, *Locltail;		// Local variables
 extern_ struct symtable *Parmhead, *Parmtail;		// Local parameters
 extern_ struct symtable *Membhead, *Membtail;		// Temp list of struct/union members
 extern_ struct symtable *Structhead, *Structtail;	// List of struct types
+extern_ struct symtable *Unionhead, *Uniontail;		// List of union types
 
 // Command-line flags
 extern_ int O_dumpAST;		// If true, dump the AST trees

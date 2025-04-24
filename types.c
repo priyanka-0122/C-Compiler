@@ -29,11 +29,10 @@ int value_at(int type) {
 }
 
 // Given a type and a composite type pointer, return the size of this type in bytes
-
 int typesize(int type, struct symtable *ctype) {
-	if (type == P_STRUCT)
-		return(ctype->size);
-	return(genprimsize(type));
+	if (type == P_STRUCT || type == P_UNION)
+		return (ctype->size);
+	return (genprimsize(type));
 }
 
 // Given an AST tree and a type which we want it to become, possibly modify the tree by widening or
@@ -47,9 +46,9 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 	ltype = tree->type;
 
 	// XXX No idea on these yet
-	if (ltype == P_STRUCT)
+	if (ltype == P_STRUCT || ltype == P_UNION)
 		fatal("Don't know how to do this yet");
-	if (rtype == P_STRUCT)
+	if (rtype == P_STRUCT || rtype == P_UNION)
 		fatal("Don't know how to do this yet");
 
 	// Compare scalar int types
@@ -88,7 +87,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 			if (rsize > 1)
 				return (mkastunary(A_SCALE, rtype, tree, NULL, rsize));
 			else
-				return (tree);	//Size 1, no need to scale
+				return (tree);	// Size 1, no need to scale
 		}
 	}
 	
