@@ -90,7 +90,7 @@ static int gen_funccall(struct ASTnode *n) {
   	}
 
   	// Call the function, clean up the stack (based on numargs), and return its result
-  	return (cgcall(n->id, numargs));
+  	return (cgcall(n->sym, numargs));
 }
 
 // Given an AST, an optional label, and the AST op of the parent, generate assembly code recursively.
@@ -114,9 +114,9 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 			return (NOREG);
 		case A_FUNCTION:
 			// Generate the function's preamble before the code
-			cgfuncpreamble(n->id);
+			cgfuncpreamble(n->sym);
 			genAST(n->left, NOLABEL, n->op);
-			cgfuncpostamble(n->id);
+			cgfuncpostamble(n->sym);
 			return (NOREG);
 	}
 	
@@ -161,14 +161,14 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
   		case A_INTLIT:
     			return (cgloadint(n->intvalue, n->type));
 		case A_STRLIT:
-			return (cgloadglobstr(n->id));
+			return (cgloadglobstr(n->intvalue));
   		case A_IDENT:
 			// Load our value if we are an rvalue or we are being dereferenced
 			if (n->rvalue || parentASTop == A_DEREF) {
-				if (Symtable[n->id].class == C_GLOBAL) {
-					return (cgloadglob(n->id, n->op));
+				if (n->sym->class == C_GLOBAL) {
+					return (cgloadglob(n->sym, n->op));
 				} else {
-					return (cgloadlocal(n->id, n->op));
+					return (cgloadlocal(n->sym, n->op));
 				}
 			} else
 				return (NOREG);
@@ -176,10 +176,10 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 			// Are we assigning to an identifier or through a pointer
 			switch (n->right->op) {
 				case A_IDENT:
-					if (Symtable[n->right->id].class == C_GLOBAL) {
-						return (cgstorglob(leftreg, n->right->id));
+					if (n->right->sym->class == C_GLOBAL) {
+						return (cgstorglob(leftreg, n->right->sym));
 					} else {
-						return (cgstorlocal(leftreg, n->right->id));
+						return (cgstorlocal(leftreg, n->right->sym));
 					}
 				case A_DEREF:
 					return (cgstorderef(leftreg, rightreg, n->right->type));
@@ -195,7 +195,7 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 		case A_FUNCCALL:
 			return (gen_funccall(n));
 		case A_ADDR:
-			return (cgaddress(n->id));
+			return (cgaddress(n->sym));
 		case A_DEREF:
 			// If we are an rvalue, dereference to get the value we point at otherwise leave it for A_ASSIGN to store through the pointer
 			if (n->rvalue)
@@ -220,18 +220,18 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 		case A_POSTDEC:
       			// Load the variable's value into a register, then increment it
 			// Load the variable's value into a register, then decrement it
-			if (Symtable[n->id].class == C_GLOBAL)
-				return (cgloadglob(n->id, n->op));
+			if (n->sym->class == C_GLOBAL)
+				return (cgloadglob(n->sym, n->op));
 			else
-				return (cgloadlocal(n->id, n->op));		
+				return (cgloadlocal(n->sym, n->op));		
 		case A_PREINC:
 		case A_PREDEC:
 			// Load and increment the variable's value into a register
 			// Load and decrement the variable's value into a register
-			if (Symtable[n->id].class == C_GLOBAL)
-				return (cgloadglob(n->left->id, n->op));
+			if (n->left->sym->class == C_GLOBAL)
+				return (cgloadglob(n->left->sym, n->op));
 			else
-				return (cgloadlocal(n->left->id, n->op));
+				return (cgloadlocal(n->left->sym, n->op));
 		case A_NEGATE:
 			return (cgnegate(leftreg));
 		case A_INVERT:
@@ -260,8 +260,8 @@ void genfreeregs() {
   	freeall_registers();
 }
 
-void genglobsym(int id) {
-  	cgglobsym(id);
+void genglobsym(struct symtable *node) {
+  	cgglobsym(node);
 }
 
 int genglobstr(char *strvalue) {
@@ -272,4 +272,8 @@ int genglobstr(char *strvalue) {
 
 int genprimsize(int type) {
 	return (cgprimsize(type));
+}
+
+int genalign(int type, int offset, int direction) {
+	return (cgalign(type, offset, direction));
 }

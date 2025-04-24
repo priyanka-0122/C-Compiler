@@ -2,6 +2,7 @@
 #include "data.h"
 #include "decl.h"
 
+// Types and type handling
 // Return true if a type is an int type of any size, false otherwise
 int inttype(int type) {
 	return ((type & 0xf) == 0);
@@ -26,6 +27,14 @@ int value_at(int type) {
 	return (type - 1);
 }
 
+// Given a type and a composite type pointer, return the size of this type in bytes
+
+int typesize(int type, struct symtable *ctype) {
+	if (type == P_STRUCT)
+		return(ctype->size);
+	return(genprimsize(type));
+}
+
 // Given an AST tree and a type which we want it to become, possibly modify the tree by widening or
 // scaling so that it is compatible with this type. Return the original tree if no changes occured,
 // a modified tree, or NULL if the tree is not compatible with the guven type. If this will be part
@@ -36,26 +45,31 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 
 	ltype = tree->type;
 
+	// XXX No idea on these yet
+	if (ltype == P_STRUCT)
+		fatal("Don't know how to do this yet");
+	if (rtype == P_STRUCT)
+		fatal("Don't know how to do this yet");
+
 	// Compare scalar int types
 	if (inttype(ltype) && inttype(rtype)) {
 
-  		// Both types same, nothing to do
-  		if (ltype == rtype)
-			return (tree);
+    // Both types same, nothing to do
+  	if (ltype == rtype)
+		  return (tree);
 
 		// Get the sizes for each type
-  		lsize = genprimsize(ltype);
-  		rsize = genprimsize(rtype);
+  	lsize = typesize(ltype, NULL);	// XXX Fix soon
+  	rsize = typesize(rtype, NULL);	// XXX Fix soon
 
 		// Tree's size is too big
 		if (lsize > rsize)
-			return (NULL);
+		  return (NULL);
 
 		// Widen to the right
 		if (rsize > lsize)
-			return(mkastunary(A_WIDEN, rtype, tree, 0));
-	}
-
+		  return (mkastunary(A_WIDEN, rtype, tree, NULL, 0));
+  }
 	// For pointers on the left
 	if (ptrtype(ltype)) {
 		// OK is same type on right and not doing a binary op
@@ -71,7 +85,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 		if (inttype(ltype) && ptrtype(rtype)) {
 			rsize = genprimsize(value_at(rtype));
 			if (rsize > 1)
-				return (mkastunary(A_SCALE, rtype, tree, rsize));
+				return (mkastunary(A_SCALE, rtype, tree, NULL, rsize));
 			else
 				return (tree);	//Size 1, no need to scale
 		}

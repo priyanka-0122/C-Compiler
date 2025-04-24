@@ -4,8 +4,7 @@
 #include <ctype.h>
 
 enum {
-	TEXTLEN=512,     //Length of symbols in input
-	NSYMBOLS=1024    //Number of symbol table entries
+	TEXTLEN=512     // Length of identifiers in input
 };
 
 // Commands and default filenames
@@ -37,7 +36,7 @@ enum {
 	T_VOID, T_CHAR, T_INT, T_LONG,
 
 	// Other Keywords
-	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
+	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN, T_STRUCT,
 	
 	// Structural tokens
 	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
@@ -48,8 +47,8 @@ enum {
 
 // Token structure
 struct token {
-	int token;	// Token type, from the below enum list
-	int intvalue;	// For T_INITLIT, the integer value
+	int token;	// Token type, from the enum list above
+	int intvalue;	// For T_INTLIT, the integer value
 };
 
 // AST node types. The first few line up
@@ -74,29 +73,8 @@ enum {
 // Primitive types. The bottom 4 bits is an integer value that represents the level
 // of indirection, e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum {
-	P_NONE, P_VOID=16, P_CHAR=32, P_INT=48, P_LONG=64
-	// ,P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
-};
-
-// Abstract Syntax Tree structure
-struct ASTnode {
-	int op;				// "Operation" to be performed on this tree
-	int type;			// Type of any expression this tree generates
-	int rvalue;			// True if the node is an rvalue
-	struct ASTnode *left;		// Left child tree
-	struct ASTnode *mid;		// Middle child tree
-	struct ASTnode *right;		// Right child tree
-	
-	union {				// For A_INTLIT, the integer value
-		int intvalue;		// For A_IDENT, the symbol slot number
-		int id;			// For A_FUNCTION, the symbol slot number
-		int size;		// For A_SCALE, the size to scale by
-	};				// For A_FUNCCALL, the symbol slot number
-};
-
-enum {
-	NOREG= -1,	// Use NOREG when the AST generation functions have no register to return
-	NOLABEL= 0	// Use NOLABEL when we have no label to pass to genAST()
+	P_NONE, P_VOID = 16, P_CHAR = 32, P_INT = 48, P_LONG = 64,
+	P_STRUCT=80
 };
 
 // Structural types
@@ -107,26 +85,49 @@ enum {
 
 // Storage classes
 enum {
-	C_GLOBAL = 1,	// Globally visible symbol
-	C_LOCAL,	// Locally visible symbol
-	C_PARAM		// Locally visible function parameter
+	C_GLOBAL = 1,		// Globally visible symbol
+	C_LOCAL,		// Locally visible symbol
+	C_PARAM,		// Locally visible function parameter
+	C_STRUCT,		// A struct
+	C_MEMBER		// Member of a struct or union
 };
 
 // Symbol table structure
 struct symtable {
-	char *name;		// Name of a symbol
-	int type;		// Primitive type for the symbol
-	int stype;		// Structural type for the symbol
-	int class;		// Storage class for the symbol
+	char *name;			// Name of a symbol
+	int type;			// Primitive type for the symbol
+	struct symtable *ctype;		// If struct/union, ptr to that type
+	int stype;			// Structural type for the symbol
+	int class;			// Storage class for the symbol
 	union {
-		int size;	// Number of elements in the symbol
-		int endlabel;	// For S_FUNCTIONs, the end label
+		int size;		// Number of elements in the symbol
+		int endlabel;		// For functions, the end label
 	};
 	union {
 		int nelems;	// For functions, # of params
-		int posn;	// For locals, either the negative offset from the stack base
-				// pointer, or register id
+		int posn;	// For locals, the negative offset from the stack base
+				// pointer
 	};
 	struct symtable *next;		// Next symbol in one list
 	struct symtable *member;	// First member of a function, struct, union or enum
+};
+
+// Abstract Syntax Tree structure
+struct ASTnode {
+	int op;				// "Operation" to be performed on this tree
+	int type;			// Type of any expression this tree generates
+	int rvalue;			// True if the node is an rvalue
+	struct ASTnode *left;		// Left child tree
+	struct ASTnode *mid;		// Middle child tree
+	struct ASTnode *right;		// Right child tree
+	struct symtable *sym;		// For many AST nodes, the pointer to the symbol in the symbol table
+	union {				// For A_INTLIT, the integer value
+		int intvalue;		// For A_IDENT, the symbol slot number
+		int size;		// For A_SCALE, the size to scale by
+	};
+};
+
+enum {
+	NOREG= -1,	// Use NOREG when the AST generation functions have no register to return
+	NOLABEL= 0	// Use NOLABEL when we have no label to pass to genAST()
 };
