@@ -114,17 +114,19 @@ enum {
 
 // Symbol table structure
 struct symtable {
-	char *name;	// Name of a symbol
-	int type;	// Primitive type for the symbol
-	int stype;	// Structural type for the symbol
-	int class;	// Storage class for the symbol
+	char *name;		// Name of a symbol
+	int type;		// Primitive type for the symbol
+	int stype;		// Structural type for the symbol
+	int class;		// Storage class for the symbol
 	union {
 		int size;	// Number of elements in the symbol
 		int endlabel;	// For S_FUNCTIONs, the end label
 	};
 	union {
-	int nelems;	// For functions, # of params
-	int posn;	// For locals, either the negative offset from the stack base
-			// pointer, or register id
+		int nelems;	// For functions, # of params
+		int posn;	// For locals, either the negative offset from the stack base
+				// pointer, or register id
 	};
+	struct symtable *next;		// Next symbol in one list
+	struct symtable *member;	// First member of a function, struct, union or enum
 };
