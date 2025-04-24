@@ -100,15 +100,15 @@ void fatalc(char *s, int c);
 void appendsym(struct symtable **head, struct symtable **tail,
 	       struct symtable *node);
 struct symtable *newsym(char *name, int type, struct symtable *ctype, int stype, int class,
-			int size, int posn);
-struct symtable *addglob(char *name, int type, struct symtable *ctype, int stype, int class, int size);
-struct symtable *addlocl(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addparm(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addstruct(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addunion(char *name, int type, struct symtable *ctype, int stype, int size);
-struct symtable *addmemb(char *name, int type, struct symtable *ctype, int stype, int size);
+			int nelems, int posn);
+struct symtable *addglob(char *name, int type, struct symtable *ctype, int stype, int class, int nelems, int posn);
+struct symtable *addlocl(char *name, int type, struct symtable *ctype, int stype, int nelems);
+struct symtable *addparm(char *name, int type, struct symtable *ctype, int stype);
+struct symtable *addstruct(char *name);
+struct symtable *addunion(char *name);
+struct symtable *addmemb(char *name, int type, struct symtable *ctype, int stype, int nelems);
 struct symtable *addenum(char *name, int class, int value);
-struct symtable *addtypedef(char *name, int type, struct symtable *ctype, int stype, int size);
+struct symtable *addtypedef(char *name, int type, struct symtable *ctype);
 struct symtable *findglob(char *s);
 struct symtable *findlocl(char *s);
 struct symtable *findsymbol(char *s);

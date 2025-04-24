@@ -114,15 +114,14 @@ struct symtable {
 	struct symtable *ctype;		// If struct/union, ptr to that type
 	int stype;			// Structural type for the symbol
 	int class;			// Storage class for the symbol
+	int size;			// Total size in bytes of this symbol
+	int nelems;			// Functions: # params. Arrays: # elements
 	union {
-		int size;		// Number of elements in the symbol
 		int endlabel;		// For functions, the end label
-	};
-	union {
-		int nelems;		// For functions, # of params
 		int posn;		// For locals, the negative offset
 					// from the stack base pointer
 	};
+	int *initlist;			// List of initial values
 	struct symtable *next;		// Next symbol in one list
 	struct symtable *member;	// First member of a function, struct, union or enum
 };
@@ -132,12 +131,12 @@ struct ASTnode {
 	int op;				// "Operation" to be performed on this tree
 	int type;			// Type of any expression this tree generates
 	int rvalue;			// True if the node is an rvalue
-	struct ASTnode *left;		// Left child tree
-	struct ASTnode *mid;		// Middle child tree
-	struct ASTnode *right;		// Right child tree
-	struct symtable *sym;		// For many AST nodes, the pointer to the symbol in the symbol table
-	union {				// For A_INTLIT, the integer value
-		int intvalue;		// For A_IDENT, the symbol slot number
+	struct ASTnode *left;		// Left, middle and right child trees
+	struct ASTnode *mid;
+	struct ASTnode *right;
+	struct symtable *sym;		// For many AST nodes, the pointer to
+	union {				// the symbol in the symbol table
+		int intvalue;		// For A_INTLIT, the integer value
 		int size;		// For A_SCALE, the size to scale by
 	};
 };

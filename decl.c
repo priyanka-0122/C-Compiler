@@ -9,9 +9,8 @@ static int typedef_declaration(struct symtable **ctype);
 static int type_of_typedef(char *name, struct symtable **ctype);
 static void enum_declaration(void);
 
-// Parse the current token and return a primitive type enum value and a pointer to any composite type.
-// also scan in the next token
-
+// Parse the current token and return a primitive type enum value, a pointer to any composite type
+// and possibly modify the class of the type.
 static int parse_type(struct symtable **ctype, int *class) {
 	int type, exstatic = 1;
 
@@ -27,6 +26,7 @@ static int parse_type(struct symtable **ctype, int *class) {
 		}
 	}
 
+	// Now work on the actual type keyword
 	switch (Token.token) {
 		case T_VOID:
 			type = P_VOID;
@@ -46,7 +46,7 @@ static int parse_type(struct symtable **ctype, int *class) {
 			break;
 
 		// For the following, if we have a ';' after the
-		// parsing then there is no type, so return -1
+		// parsing then there is no type, so return -1.
 		// Example: struct x {int y; int z};
 		case T_STRUCT:
 			type = P_STRUCT;
@@ -93,56 +93,180 @@ static int parse_stars(int type) {
 	return (type);
 }
 
+// Given a type, check that the latest token is a literal of that type.
+// If an integer literal, return this value. If a string literal, return the
+// label number of the string. 
+// Do not scan the next token.
+int parse_literal(int type) {
+
+	// We have a string literal. Store in memory and return the label
+	if ((type == pointer_to(P_CHAR)) && (Token.token == T_STRLIT))
+		return(genglobstr(Text));
+
+	if (Token.token == T_INTLIT) {
+		switch(type) {
+			case P_CHAR:
+				if (Token.intvalue < 0 || Token.intvalue > 255)
+					fatal("Integer literal value too big for char type");
+			case P_INT:
+			case P_LONG:
+				break;
+			default:
+				fatal("Type mismatch: integer literal vs. variable");
+		}
+	} else 
+		fatal("Expecting an integer literal value");
+	return (Token.intvalue);
+}
+
 static struct symtable *scalar_declaration(char *varname, int type,
 					   struct symtable *ctype,
 					   int class) {
+	struct symtable *sym = NULL;
 
 	// Add this as a known scalar
 	switch (class) {
 		case C_EXTERN:
 		case C_GLOBAL:
-			return (addglob(varname, type, ctype, S_VARIABLE, class, 1));
+			sym = addglob(varname, type, ctype, S_VARIABLE, class, 1, 0);
 			break;
 		case C_LOCAL:
-			return (addlocl(varname, type, ctype, S_VARIABLE, 1));
+			sym = addlocl(varname, type, ctype, S_VARIABLE, 1);
 			break;
 		case C_PARAM:
-			return (addparm(varname, type, ctype, S_VARIABLE, 1));
+			sym = addparm(varname, type, ctype, S_VARIABLE);
 			break;
 		case C_MEMBER:
-			return (addmemb(varname, type, ctype, S_VARIABLE, 1));
+			sym = addmemb(varname, type, ctype, S_VARIABLE, 1);
 			break;
 	}
-	return (NULL);                // Keep -Wall happy
-}
 
-static struct symtable *array_declaration(char *varname, int type,
-					  struct symtable *ctype, int class) {
-	struct symtable *sym;
-	// Skip past the '['
-	scan(&Token);
+	// The variable is being initialised
+	if (Token.token == T_ASSIGN) {
+		// Only possible for a global or local
+		if (class != C_GLOBAL && class != C_LOCAL)
+			fatals("Variable can not be initialised", varname);
+		scan(&Token);
 
-	// Check we have an array size
-	if (Token.token == T_INTLIT) {
-		// Add this as a known array
-		// We treat the array as a pointer to its elements' type
-		switch (class) {
-			case C_EXTERN:
-			case C_GLOBAL:
-				sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class, Token.intvalue);
-				break;
-			case C_LOCAL:
-			case C_PARAM:
-			case C_MEMBER:
-				fatal("For now, declaration of non-global arrays is not implemented");
+		// Globals must be assigned a literal value
+		if (class == C_GLOBAL) {
+			// Create one initial value for the variable and
+			// parse this value
+			sym->initlist= (int *)malloc(sizeof(int));
+			sym->initlist[0]= parse_literal(type);
+			scan(&Token);
 		}
 	}
-	// Ensure we have a following ']'
-	scan(&Token);
-	match(T_RBRACKET, "]");
+
+	// Generate any global space
+	if (class == C_GLOBAL)
+		genglobsym(sym);
+
 	return (sym);
 }
 
+// Given the type, name and class of an variable, parse the size of the array,
+// if any. Then parse any initialisation value and allocate storage for it.
+// Return the variable's symbol table entry.
+static struct symtable *array_declaration(char *varname, int type,
+					  struct symtable *ctype, int class) {
+	struct symtable *sym;		// New symbol table entry
+	int nelems = -1;		// Assume the number of elements won't be given
+	int maxelems;			// The maximum number of elements in the init list
+	int *initlist;			// The list of initial elements
+	int i = 0, j;
+
+	// Skip past the '['
+	scan(&Token);
+
+	// See we have an array size
+	if (Token.token == T_INTLIT) {
+		if (Token.intvalue <= 0)
+			fatald("Array size is illegal", Token.intvalue);
+		nelems = Token.intvalue;
+		scan(&Token);
+	}
+
+	// Ensure we have a following ']'
+	match(T_RBRACKET, "]");
+
+		// Add this as a known array. We treat the
+		// array as a pointer to its elements' type
+		switch (class) {
+			case C_EXTERN:
+			case C_GLOBAL:
+				sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class, 0, 0);
+				break;
+			default:
+				fatal("For now, declaration of non-global arrays is not implemented");
+		}
+
+	// Array initialisation
+	if (Token.token == T_ASSIGN) {
+		if (class != C_GLOBAL)
+			fatals("Variable can not be initialised", varname);
+		scan(&Token);
+
+		// Get the following left curly bracket
+		match(T_LBRACE, "{");
+
+#define TABLE_INCREMENT 10
+
+		// If the array already has nelems, allocate that many elements
+		// in the list. Otherwise, start with TABLE_INCREMENT.
+		if (nelems != -1)
+			maxelems= nelems;
+		else
+			maxelems= TABLE_INCREMENT;
+		initlist= (int *)malloc(maxelems *sizeof(int));
+
+		// Loop getting a new literal value from the list
+		while (1) {
+
+			// Check we can add the next value, then parse and add it
+			if (nelems != -1 && i == maxelems)
+				fatal("Too many values in initialisation list");
+			initlist[i++]= parse_literal(type);
+			scan(&Token);
+
+			// Increase the list size if the original size was
+			// not set and we have hit the end of the current list
+			if (nelems == -1 && i == maxelems) {
+				maxelems += TABLE_INCREMENT;
+				initlist= (int *)realloc(initlist, maxelems *sizeof(int));
+			}
+
+			// Leave when we hit the right curly bracket
+			if (Token.token == T_RBRACE) {
+				scan(&Token);
+				break;
+			}
+
+			// Next token must be a comma, then
+			comma();
+		}
+
+		// Zero any unused elements in the initlist. Attach the list to the symbol table entry
+		for (j = i; j < sym->nelems; j++)
+			initlist[j] = 0;
+		if (i > nelems)
+			nelems = i;
+		sym->initlist= initlist;
+	}
+
+	// Set the size of the array and the number of elements
+	sym->nelems= nelems;
+	sym->size= sym->nelems * typesize(type, ctype);
+
+	// Generate any global space
+	if (class == C_GLOBAL)
+		genglobsym(sym);
+	return (sym);
+}
+
+// Given a pointer to the new function being declared and a possibly NULL pointer to the
+// function's previous declaration, parse a list of parameters and cross-check them against the
+// previous declaration. Return the count of parameters
 static int param_declaration_list(struct symtable *oldfuncsym,
 				  struct symtable *newfuncsym) {
 	int type, paramcnt = 0;
@@ -186,7 +310,7 @@ static int param_declaration_list(struct symtable *oldfuncsym,
 // function_declaration: type identifier '(' parameter_list ')' ;
 //      | type identifier '(' parameter_list ')' compound_statement   ;
 //
-// Parse the declaration of function. The identifier has been scanned & we have the type.
+// Parse the declaration of function.
 static struct symtable *function_declaration(char *funcname, int type,
 					     struct symtable *ctype,
 					     int class) {
@@ -205,7 +329,7 @@ static struct symtable *function_declaration(char *funcname, int type,
 	if (oldfuncsym == NULL) {
 		endlabel = genlabel();
 		// Assumtion: functions only return scalar types, so NULL below
-		newfuncsym = addglob(funcname, type, NULL, S_FUNCTION, C_GLOBAL, endlabel);
+		newfuncsym = addglob(funcname, type, NULL, S_FUNCTION, C_GLOBAL, 0, endlabel);
 	}
 
 	// Scan in the '(' and any parameters and ')'. Pass in any existing function prototype pointer
@@ -302,9 +426,9 @@ static struct symtable *composite_declaration(int type) {
 
 	// Build the composite type and skip the left brace
 	if (type == P_STRUCT)
-		ctype = addstruct(Text, P_STRUCT, NULL, 0, 0);
+		ctype = addstruct(Text);
 	else
-		ctype = addunion(Text, P_UNION, NULL, 0, 0);
+		ctype = addunion(Text);
 	scan(&Token);
 
 	// Scan in the list of members
@@ -392,7 +516,6 @@ static void enum_declaration(void) {
 			fatals("undeclared enum type:", name);
 		return;
 	}
-
 	// We do have an LBRACE. Skip it
 	scan(&Token);
 
@@ -459,7 +582,7 @@ static int typedef_declaration(struct symtable **ctype) {
 	type = parse_stars(type);
 
 	// It doesn't exist so add it to the typedef list
-	addtypedef(Text, type, *ctype, 0, 0);
+	addtypedef(Text, type, *ctype);
 	scan(&Token);
 	return (type);
 }
@@ -477,11 +600,6 @@ static int type_of_typedef(char *name, struct symtable **ctype) {
 	return (t->type);
 }
 
-static void array_initialisation(struct symtable *sym, int type,
-				 struct symtable *ctype, int class) {
-	fatal("No array initialisation yet!");
-}
-
 // Parse the declaration of a variable or function. The type and any following '*'s
 // have been scanned, and we have the identifier in the Token variable.
 // The class argument is the variable's class.
@@ -490,10 +608,7 @@ static struct symtable *symbol_declaration(int type, struct symtable *ctype,
 					   int class) {
 	struct symtable *sym = NULL;
 	char *varname = strdup(Text);
-	int stype = S_VARIABLE;
-	// struct ASTnode *expr = NULL;
 
-	// Assume it will be a scalar variable.
 	// Ensure that we have an identifier. 
 	// We copied it above so we can scan more tokens in, e.g.
 	// an assignment expression for a local variable.
@@ -519,35 +634,10 @@ static struct symtable *symbol_declaration(int type, struct symtable *ctype,
 	}
 
 	// Add the array or scalar variable to the symbol table
-	if (Token.token == T_LBRACKET) {
+	if (Token.token == T_LBRACKET)
 		sym = array_declaration(varname, type, ctype, class);
-		stype = S_ARRAY;
-	} else
+	else
 		sym = scalar_declaration(varname, type, ctype, class);
-
-	// The array or scalar variable is being initialised
-	if (Token.token == T_ASSIGN) {
-		// Not possible for a parameter or member
-		if (class == C_PARAM)
-			fatals("Initialisation of a parameter not permitted", varname);
-		if (class == C_MEMBER)
-			fatals("Initialisation of a member not permitted", varname);
-		scan(&Token);
-
-		// Array initialisation
-		if (stype == S_ARRAY)
-			array_initialisation(sym, type, ctype, class);
-		else {
-			fatal("Scalar variable initialisation not done yet");
-			// Variable initialisation
-			// if (class== C_LOCAL)
-			// Local variable, parse the expression
-			// expr= binexpr(0);
-			// else write more code!
-		}
-	}
-	// Generate the storage for the array or scalar variable. SOON.
-	// genstorage(sym, expr);
 	return (sym);
 }
 
@@ -558,7 +648,6 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2) {
 	struct symtable *sym;
 
 	// Get the initial type. If -1, it was a composite type definition, return this
-
 	if ((inittype = parse_type(ctype, &class)) == -1)
 		return (inittype);
 
