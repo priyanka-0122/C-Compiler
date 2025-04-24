@@ -13,9 +13,9 @@ extern_ FILE *Outfile;		// Output file
 extern_ char *Outfilename;      // Name of file we opened as Outfile
 extern_ struct token Token;	// Last token scanned
 extern_ char Text[TEXTLEN + 1];	// Last identifier scanned
-extern_ struct symtable Symtable[NSYMBOLS];	//Global symbol table
+extern_ struct symtable Symtable[NSYMBOLS];	// Global symbol table
 
-extern_ int O_dumpAST;
+extern_ int O_dumpAST;		// If true, dump the AST trees
 extern_ int O_keepasm;          // If true, keep any assembly files   
 extern_ int O_assemble;         // If true, assemble the assembly files
 extern_ int O_dolink;           // If true, link the object files     

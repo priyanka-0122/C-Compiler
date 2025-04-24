@@ -57,14 +57,13 @@ void freeloclsyms(void) {
 // + endlabel: if this is a function
 // + posn: Position information for local symbols
 static void updatesym(int slot, char *name, int type, int stype,
-                      int class, int endlabel, int size, int posn) {        
+                      int class, int size, int posn) {        
  	if (slot < 0 || slot >= NSYMBOLS)
     		fatal("Invalid symbol slot number in updatesym()");
   	Symtable[slot].name = strdup(name);
   	Symtable[slot].type = type;
   	Symtable[slot].stype = stype;
   	Symtable[slot].class = class;
-  	Symtable[slot].endlabel = endlabel;
   	Symtable[slot].size = size;
   	Symtable[slot].posn = posn;
 }
@@ -76,7 +75,7 @@ static void updatesym(int slot, char *name, int type, int stype,
 // + size: number of elements
 // + endlabel: if this is a function
 // Return the slot number in the symbol table
-int addglob(char *name, int type, int stype, int class, int endlabel, int size) {
+int addglob(char *name, int type, int stype, int class, int size) {
 	int slot;
 
   	// If this is already in the symbol table, return the existing slot       
@@ -85,7 +84,7 @@ int addglob(char *name, int type, int stype, int class, int endlabel, int size) 
 
   	// Otherwise get a new slot, fill it in and return the slot number
   	slot = newglob();
-  	updatesym(slot, name, type, stype, class, endlabel, size, 0);
+  	updatesym(slot, name, type, stype, class, size, 0);
 
 	// Generate the assembly for the symbol if it's global
 	if (class == C_GLOBAL)
@@ -111,11 +110,11 @@ int addlocl(char *name, int type, int stype, int class, int size) {
 	// the function's prototype
   	localslot = newlocl();
 	if (class == C_PARAM) {
-		updatesym(localslot, name, type, stype, C_PARAM, 0 , size, 0);
+		updatesym(localslot, name, type, stype, C_PARAM, size, 0);
 		globalslot = newglob();
-		updatesym(globalslot, name, type, stype, C_PARAM, 0 , size, 0);
+		updatesym(globalslot, name, type, stype, C_PARAM, size, 0);
 	} else {
-		updatesym(localslot, name, type, stype, C_LOCAL, 0, size, 0);        
+		updatesym(localslot, name, type, stype, C_LOCAL, size, 0);        
 		//updatesym(localslot, name, type, stype, C_LOCAL, 0, size, posn);
 	}
   	return (localslot);

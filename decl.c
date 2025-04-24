@@ -49,9 +49,8 @@ void var_declaration(int type, int class) {
 			// We treat the array as a pointer to its elements' type
 			if (class == C_LOCAL) {
 				fatal("For now, declaration of local arrays is not implemented");
-				//addlocl(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
 			} else {
-				addglob(Text, pointer_to(type), S_ARRAY, class, 0, Token.intvalue);
+				addglob(Text, pointer_to(type), S_ARRAY, class, Token.intvalue);
 			}
 		}
 	
@@ -66,7 +65,7 @@ void var_declaration(int type, int class) {
 				if (addlocl(Text, type, S_VARIABLE, class, 1) == -1)
 					fatals("Duplicate local variable declaration", Text);
 			} else {
-				addglob(Text, type, S_VARIABLE, class, 0, 1);
+				addglob(Text, type, S_VARIABLE, class, 1);
 			}
 
 			if (class != C_PARAM) {
@@ -159,7 +158,7 @@ struct ASTnode *function_declaration(int type) {
 	// If this is a new function declaration, get a label id for the end label, add the function to the symbol table
 	if (id == -1) {
 		endlabel = genlabel();
-		nameslot = addglob(Text, type, S_FUNCTION, C_GLOBAL, endlabel, 0);
+		nameslot = addglob(Text, type, S_FUNCTION, C_GLOBAL, endlabel);
 	}
 
 	// Scan in the parantheses and any parameters

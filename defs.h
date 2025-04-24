@@ -1,10 +1,12 @@
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<ctype.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 
-#define TEXTLEN		512 	//Length of symbols in input
-#define NSYMBOLS	1024	//Number of symbol table entries
+enum {
+	TEXTLEN=512,     //Length of symbols in input
+	NSYMBOLS=1024    //Number of symbol table entries
+};
 
 // Commands and default filenames
 #define AOUT "a.out"
@@ -16,15 +18,9 @@
 #define LDCMD "cc -o "
 #endif
 
-//Token structure
-struct token {
-        int token;	// Token type, from the below enum list
-        int intvalue;	// For T_INITLIT, the integer value
-};
-
-// Tokens
+// Token types
 enum {
-        T_EOF,
+	 T_EOF,
 
 	// Binary Operator
 	T_ASSIGN, T_LOGOR, T_LOGAND,
@@ -49,8 +45,15 @@ enum {
 	T_LBRACKET, T_RBRACKET,
 	T_COMMA
 };
-	
-// AST node types
+
+// Token structure
+struct token {
+	int token;	// Token type, from the below enum list
+	int intvalue;	// For T_INITLIT, the integer value
+};
+
+// AST node types. The first few line up
+// with the related tokens
 enum {
 	A_ASSIGN= 1, A_LOGOR, A_LOGAND,
 	A_OR, A_XOR, A_AND,
@@ -68,20 +71,16 @@ enum {
 	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL
 };
 
-// Primitive types
+// Primitive types. The bottom 4 bits is an integer value that represents the level
+// of indirection, e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum {
-	P_NONE, P_VOID, P_CHAR, P_INT, P_LONG,
-	P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
-};
-
-// Structural types
-enum {
-	S_VARIABLE, S_FUNCTION, S_ARRAY
+	P_NONE, P_VOID=16, P_CHAR=32, P_INT=48, P_LONG=64
+	// ,P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
 };
 
 // Abstract Syntax Tree structure
 struct ASTnode {
-	int op;				// Operation to be performed on this tree
+	int op;				// "Operation" to be performed on this tree
 	int type;			// Type of any expression this tree generates
 	int rvalue;			// True if the node is an rvalue
 	struct ASTnode *left;		// Left child tree
@@ -92,30 +91,40 @@ struct ASTnode {
 		int intvalue;		// For A_IDENT, the symbol slot number
 		int id;			// For A_FUNCTION, the symbol slot number
 		int size;		// For A_SCALE, the size to scale by
-	} v;				// For A_FUNCCALL, the symbol slot number
+	};				// For A_FUNCCALL, the symbol slot number
 };
 
-#define NOREG	-1	// Use NOREG when the AST generation functions have no register to return
-#define NOLABEL	 0	// Use NOLABEL when we have no label to pass to genAST()
+enum {
+	NOREG= -1,	// Use NOREG when the AST generation functions have no register to return
+	NOLABEL= 0	// Use NOLABEL when we have no label to pass to genAST()
+};
+
+// Structural types
+enum {
+	S_VARIABLE, S_FUNCTION, S_ARRAY
+};
+
 
 // Storage classes
 enum {
-	C_GLOBAL = 1,	// Globally visibke symbol
-	C_LOCAL,	// Locally visible symbole
+	C_GLOBAL = 1,	// Globally visible symbol
+	C_LOCAL,	// Locally visible symbol
 	C_PARAM		// Locally visible function parameter
 };
 
-//Symbol table structure
+// Symbol table structure
 struct symtable {
 	char *name;	// Name of a symbol
-	int type;	// Primitive type of the symbol
-	int stype;	// Structural type of the symbol
+	int type;	// Primitive type for the symbol
+	int stype;	// Structural type for the symbol
 	int class;	// Storage class for the symbol
-	int endlabel;	// For S_FUNCTIONs, the end label
-	int size;	// Number of element in the symbol
+	union {
+		int size;	// Number of elements in the symbol
+		int endlabel;	// For S_FUNCTIONs, the end label
+	};
+	union {
+	int nelems;	// For functions, # of params
 	int posn;	// For locals, either the negative offset from the stack base
 			// pointer, or register id
-#define nelems	posn	// For functions, # of params
-			// For structs, # of fields
-
+	};
 };

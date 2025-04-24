@@ -14,6 +14,7 @@ int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
 int cgshlconst(int r, int val);
 int cgcall(int id, int numargs);
+void cgcopyarg(int r, int argposn);
 int cgstorglob(int r, int id);
 int cgstorlocal(int r, int id);
 void cgglobsym(int id);
@@ -37,11 +38,8 @@ int cgor(int r1, int r2);
 int cgxor(int r1, int r2);
 int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
-void cgresetlocals(void);
-int cggetlocaloffset(int type, int isparam, int size);
-void cgcopyarg(int r, int argposn);
 
-//decl.c
+// decl.c
 int parse_type(void);
 void var_declaration(int type, int class);
 struct ASTnode *function_declaration(int type);
@@ -78,7 +76,7 @@ void fatals(char *s1, char *s2);
 void fatald(char *s, int d);
 void fatalc(char *s, int c);
 
-//scan.c
+// scan.c
 void reject_token(struct token *t);
 int scan(struct token *t);
 
@@ -89,7 +87,7 @@ struct ASTnode *compound_statement(void);
 int findglob(char *s);
 int findlocl(char *s);
 int findsymbol(char *s);
-int addglob(char *name, int type, int stype, int class, int endlabel, int size);
+int addglob(char *name, int type, int stype, int class, int size);
 int addlocl(char *name, int type, int stype, int class, int size);
 void copyfuncparams(int slot);
 void freeloclsyms(void);
@@ -103,6 +101,8 @@ void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
 //types.c
 int inttype(int type);
+int ptrtype(int type);
+int parse_type(void);
 int type_compatible(int *left, int *right, int onlyright);
 int pointer_to(int type);
 int value_at(int type);

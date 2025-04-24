@@ -93,7 +93,7 @@ static struct ASTnode *array_access(void) {
   	right = binexpr(0);
 
 	// Compare the size of array with the size to which the value is going to be assigned
-	if (Symtable[id].size <= right->v.size)
+	if (Symtable[id].size <= right->size)
 		fatal("Size of the array is smaller than the size being accessed");
 
 	// Get the ']'
@@ -173,7 +173,8 @@ static struct ASTnode *primary(void) {
 			// For a STRLIT token, generate the assembly for it.
 			// Then make a leaf AST node for it. id is the string's
 			id = genglobstr(Text);
-			n = mkastleaf(A_STRLIT, P_CHARPTR, id);
+			n = mkastleaf(A_STRLIT, pointer_to(P_CHAR), id);	
+			//n = mkastleaf(A_STRLIT, P_CHARPTR, id);
 			break;
 		case T_IDENT:
 			return (postfix());
