@@ -68,6 +68,7 @@ static int genWHILE(struct ASTnode *n) {
 	return (NOREG);
 }
 
+
 // Given an AST, an optional label, and the AST op of the parent, generate assembly code recursively.
 // Return the register id with the tree's final value
 int genAST(struct ASTnode *n, int label, int parentASTop) {
@@ -123,6 +124,8 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 				return (cgcompare_and_set(n->op, leftreg, rightreg));
   		case A_INTLIT:
     			return (cgloadint(n->v.intvalue, n->v.id));
+		case A_STRLIT:
+			return (cgloadglobstr(n->v.id));
   		case A_IDENT:
 			// Load our value if we are an rvalue or we are being dereferenced
 			if (n->rvalue || parentASTop == A_DEREF)
@@ -195,6 +198,12 @@ void genprintint(int reg) {
 
 void genglobsym(int id) {
   	cgglobsym(id);
+}
+
+int genglobstr(char *strvalue) {
+	int l = genlabel();
+	cgglobstr(l, strvalue);
+	return(l);
 }
 
 int genprimsize(int type) {

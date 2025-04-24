@@ -44,6 +44,60 @@ static int scanint(int c) {
 	return val;
 }
 
+// Return the next character from a character or string literal
+static int scanch(void) {
+	int c;
+
+	// Get the next input character and interpret metacharacters that start with a backslash
+	c = next();
+	if (c == '\\') {
+		switch (c = next()) {
+			case 'a':
+				return '\a';
+			case 'b':
+				return '\b';
+			case 'f':
+				return '\f';
+			case 'n':
+				return '\n';
+			case 'r':
+				return '\r';
+			case 't':
+				return '\t';
+			case 'v':
+				return '\v';
+			case '\\':
+				return '\\';
+			case '"':
+				return '"';
+			case '\'':
+				return '\'';
+			default:
+				fatalc("Unknown escape sequence", c);
+		}
+	}
+	return (c);		// Just an ordinary old character!
+}
+
+// Scan in a string literal frm the input file, and store it in buf[]. REturn the length of the string
+static int scanstr(char *buf) {
+	int i, c;
+	
+	// Loop while we have enough buffer space
+	for (i = 0; i <TEXTLEN-1; i++) {
+		// Get the next char and append to buf. Return when we hit
+		// the ending double quote
+		if ((c = scanch()) == '"') {
+			buf[i] = 0;
+			return(i);
+		}
+		buf[i] = c;
+	}
+	// Ran out of buf[] space
+	fatal("String literal too long");
+	return(0);
+}
+	
 //Skip past input that we don't need to deal with, i.e whitespace, newlines.
 //Return the first character we do need to deal with
 static int skip(void) {
@@ -223,6 +277,18 @@ int scan(struct token *t) {
 				putback(c);
 				t->token = T_AMPER;
 			}
+			break;
+		case '\'':
+			// If it's a quote, scan in the literal character value and the trailing quote
+			t->intvalue = scanch();
+			t->token = T_INTLIT;
+			if (next() != '\'')
+				fatal("Expected '\\' at the end of char literal");
+			break;
+		case '"':
+			// Scan in a literal string
+			scanstr(Text);
+			t->token = T_STRLIT;
 			break;
 		default:
 			//If it's a digit, scan the literal integer value in

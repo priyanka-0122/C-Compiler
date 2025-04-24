@@ -101,7 +101,7 @@ void cgfuncpreamble(int id) {
 
 // Print out a function postamble
 void cgfuncpostamble(int id) {
-  	cglabel(Gsym[id].endlabel);
+	cglabel(Gsym[id].endlabel);
 	fputs("\tsub\tsp, fp, #4\n" "\tpop\t{fp, pc}\n" "\t.align\t2\n", Outfile);
 }
 
@@ -150,6 +150,16 @@ int cgloadglob(int id) {
 			fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
 			break;
 	}
+	return (r);
+}
+
+// Given the label number of a global string, load its address into a new register
+int cgloadglobstr(int id) {
+	// Get a new register
+	int r = alloc_register();
+	
+	// Load the address of the string to the register
+	fprintf(Outfile, "\tldr\t%s, =L%d\n", reglist[r], id);
 	return (r);
 }
 
@@ -267,6 +277,16 @@ void cgglobsym(int id) {
 				fatald("Unknown typesize in cgglobsym: ", typesize);
 		}
   	}
+}
+
+// Generate a global string and its start label
+void cgglobstr(int l, char *strvalue) {
+	char *cptr;
+	cglabel(l);
+	for (cptr = strvalue; *cptr; cptr++) {
+		fprintf(Outfile, "\t.byte\t%d\n", *cptr);
+	}
+	fprintf(Outfile, "\t.byte\t0\n");
 }
 
 // List of comparisons instructions in AST order:

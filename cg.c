@@ -99,6 +99,14 @@ int cgloadglob(int id) {
 	return (r);
 }
 
+// Given the label number of a global string, load its address into a new register
+int cgloadglobstr(int id) {
+	// Get a new register
+	int r = alloc_register();
+	fprintf(Outfile, "\tleaq\tL%d(\%%rip), %s\n", id, reglist[r]);
+	return (r);
+}
+
 // Add two registers together and return the number of the register with the result
 int cgadd(int r1, int r2) {
 	fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
@@ -161,7 +169,7 @@ int cgshlconst(int r, int val) {
 int cgstorglob(int r, int id) {
 	switch (Gsym[id].type) {
 		case P_CHAR:
-			fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
+			fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r], Gsym[id].name);
 			break;
 		case P_INT:
 			fprintf(Outfile, "\tmovl\t%s, %s(\%%rip)\n", dreglist[r], Gsym[id].name);
@@ -173,7 +181,7 @@ int cgstorglob(int r, int id) {
 			fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
 			break;
 		default:
-			fatald("Bad type in cgloadglob:", Gsym[id].type);
+			fatald("Bad type in cgstorglob:", Gsym[id].type);
 	}
 	return (r);
 }
@@ -209,13 +217,23 @@ void cgglobsym(int id) {
     			case 4:
 				fprintf(Outfile, "\t.long\t0\n");
 				break;
-    			case 8:
+			case 8:
 				fprintf(Outfile, "\t.quad\t0\n");
 				break;
     			default:
 				fatald("Unknown typesize in cgglobsym: ", typesize);
 		}
   	}
+}
+
+// Generate a global string and its start label
+void cgglobstr(int l, char *strvalue) {
+	char *cptr;
+	cglabel(l);
+	for (cptr = strvalue; *cptr; cptr++) {
+		fprintf(Outfile, "\t.byte\t%d\n", *cptr);
+	}
+	fprintf(Outfile, "\t.byte\t0\n");
 }
 
 // List of comparisons instructions in AST order:
@@ -251,8 +269,8 @@ static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 // Compare two registers and jump if false.
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 	// Check the range of the AST operation
-	if(ASTop < A_EQ || ASTop > A_GE)
-		fatal("Bad ASTop in cgcompare_and_Set()");
+	if (ASTop < A_EQ || ASTop > A_GE)
+		fatal("Bad ASTop in cgcompare_and_jump()");
 
 	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
 	fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
@@ -297,7 +315,7 @@ int cgaddress(int id) {
 int cgderef(int r, int type) {
 	switch (type) {
 		case P_CHARPTR:
-			fprintf(Outfile, "\tmovb\t(%s), %s\n", reglist[r], breglist[r]);
+			fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
 			break;
 		case P_INTPTR:
 			fprintf(Outfile, "\tmovl\t(%s), %s\n", reglist[r], dreglist[r]);

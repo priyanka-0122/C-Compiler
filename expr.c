@@ -4,6 +4,32 @@
 
 // Parsing of expressions
 
+// Parse a function call with a single expression argument and return its AST
+struct ASTnode *funccall(void) {
+	struct ASTnode *tree;
+	int id;
+
+	// Check that the identifier has been defined, then make a leaf node for it.
+	// Add structural type test 
+	if ((id = findglob(Text)) == -1 || Gsym[id].stype != S_FUNCTION) {
+		fatals("Undeclared function", Text);
+	}
+
+	// Get the '('
+	lparen();
+
+	// Parse the following expression
+	tree = binexpr(0);
+
+	// Build the function call AST node. Store the function's return type
+	// as this node's type. Also record the function's symbol-id
+	tree = mkastunary(A_FUNCCALL, Gsym[id].type, tree, id);
+
+	// Get the ')'
+	rparen();
+	return tree;
+}
+
 // Parse the index into an array and return as AST tree for it
 static struct ASTnode *array_access(void) {
 	struct ASTnode *left, *right;
@@ -26,8 +52,8 @@ static struct ASTnode *array_access(void) {
 	if (Gsym[id].size <= right->v.size)
 		fatal("Size of the array is smaller than the size being accessed");
 
-  	// Get the ']'
-  	match(T_RBRACKET, "]");
+	// Get the ']'
+	match(T_RBRACKET, "]");
 
   	// Ensure that this is of int type
   	if (!inttype(right->type))
@@ -41,32 +67,6 @@ static struct ASTnode *array_access(void) {
   	left = mkastnode(A_ADD, Gsym[id].type, left, NULL, right, 0);
   	left = mkastunary(A_DEREF, value_at(left->type), left, 0);
   	return (left);
-}
-
-// Parse a function call with a single expression argument and return its AST
-struct ASTnode *funccall(void) {
-	struct ASTnode *tree;
-	int id;
-
-	// Check that the identifier has been defined, then make a leaf node for it.
-	// Add structural type test 
-	if ((id = findglob(Text)) == -1) {
-		fatals("Undeclared function", Text);
-	}
-
-	// Get the '('
-	lparen();
-
-	// Parse the following expression
-	tree = binexpr(0);
-
-	// Build the function call AST node. Store the function's return type
-	// as this node's type. Also record the function's symbol-id
-	tree = mkastunary(A_FUNCCALL, Gsym[id].type, tree, id);
-
-	// Get the ')'
-	rparen();
-	return tree;
 }
 
 // Parse a primary factor and return an AST node representing it.
@@ -84,6 +84,12 @@ static struct ASTnode *primary(void) {
 				n = mkastleaf(A_INTLIT, P_INT, Token.intvalue);
 			break;
 		
+		case T_STRLIT:
+			// For a STRLIT token, generate the assembly for it.
+			// Then make a leaf AST node for it. id is the string's
+			id = genglobstr(Text);
+			n = mkastleaf(A_STRLIT, P_CHARPTR, id);
+			break;
 		case T_IDENT:
 			// This could be a variable, array index or a function call. Scan in the next token to find out
 			scan(&Token);
@@ -101,7 +107,7 @@ static struct ASTnode *primary(void) {
 
 			// Check that this identifier exists
 			id = findglob(Text);
-			if (id == -1)
+			if (id == -1 || Gsym[id].stype != S_VARIABLE)
 				fatals("Unknown variable", Text);
 		
 			// Make a leaf AST node for it
