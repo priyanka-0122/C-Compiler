@@ -40,7 +40,6 @@ static struct ASTnode *fold2(struct ASTnode *n) {
 	return (mkastleaf(A_INTLIT, n->type, NULL, val));
 }
 
-
 // Fold an AST tree with a unary operator
 // and one INTLIT children. Return either 
 // the original tree or a new leaf node.

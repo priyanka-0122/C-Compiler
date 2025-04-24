@@ -66,9 +66,32 @@ static int skip(void) {
 	return (c);
 }
 
+// Read in a hexadecimal constant from the input
+static int hexchar(void) {
+	int c, h, n = 0, f = 0;
+
+	// Loop getting characters
+	while (isxdigit(c = next())) {
+		// Convert from char to int value
+		h = chrpos("0123456789abcdef", tolower(c));
+		// Add to running hex value
+		n = n * 16 + h;
+		f = 1;
+	}
+
+	// We hit a non-hex character, put it back
+	putback(c);
+	// Flag tells us we never saw any hex characters
+	if (!f)
+		fatal("missing digits after '\\x'");
+	if (n > 255)
+		fatal("value out of range after '\\x'");
+	return n;
+}
+
 // Return the next character from a character or string literal
 static int scanch(void) {
-	int c;
+	int i, c, c2;
 
 	// Get the next input character and interpret
 	// metacharacters that start with a backslash
@@ -76,25 +99,46 @@ static int scanch(void) {
 	if (c == '\\') {
 		switch (c = next()) {
 			case 'a':
-				return '\a';
+				return ('\a');
 			case 'b':
-				return '\b';
+				return ('\b');
 			case 'f':
-				return '\f';
+				return ('\f');
 			case 'n':
-				return '\n';
+				return ('\n');
 			case 'r':
-				return '\r';
+				return ('\r');
 			case 't':
-				return '\t';
+				return ('\t');
 			case 'v':
-				return '\v';
+				return ('\v');
 			case '\\':
-				return '\\';
+				return ('\\');
 			case '"':
-				return '"';
+				return ('"');
 			case '\'':
-				return '\'';
+				return ('\'');
+				// Deal with octal constants by reading in
+				// characters until we hit a non-octal digit.
+				// Build up the octal value in c2 and count
+				// # digits in i. Permit only 3 octal digits.
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+				for (i = c2 = 0; isdigit(c) && c < '8'; c = next()) {
+					if (++i > 3)
+						break;
+					c2 = c2 * 8 + (c - '0');
+				}
+				putback(c);		// Put back the first non-octalchar
+				return (c2);
+			case 'x':
+				return hexchar();
 			default:
 				fatalc("Unknown escape sequence", c);
 		}
@@ -104,11 +148,24 @@ static int scanch(void) {
 
 // Scan and return an integer literal value from the input file
 static int scanint(int c) {
-	int k, val = 0;
+	int k, val = 0, radix = 10;
+
+	// Assume the radix is 10, but if it starts with 0
+	if (c == '0') {
+		// and the next character is 'x', it's radix 16
+		if ((c = next()) == 'x') {
+			radix = 16;
+			c = next();
+		} else
+			// Otherwise, it's radix 8
+			radix = 8;
+	}
 
 	// Convert each character into an int value
-	while ((k = chrpos("0123456789", c)) >= 0) {
-		val = val * 10 + k;
+	while ((k = chrpos("0123456789abcdef", tolower(c))) >= 0) {
+		if (k >= radix)
+			fatalc("invalid digit in integer literal", c);
+		val = val * radix + k;
 		c = next();
 	}
 
@@ -117,7 +174,7 @@ static int scanint(int c) {
 	return (val);
 }
 
-// Scan in a string literal from the input file, and store it in buf[]. REturn the length of the string
+// Scan in a string literal from the input file, and store it in buf[]. Return the length of the string
 static int scanstr(char *buf) {
 	int i, c;
 	
@@ -144,7 +201,7 @@ static int scanident(int c, char *buf, int lim) {
 	while (isalpha(c) || isdigit(c) || '_' == c) {
 		// Error if we hit the identifier length limit, else append to buf[] and get next character
 		if (lim - 1 == i) {
-			printf("identifier too long on line %d\n",Line);
+			printf("Identifier too long on line %d\n",Line);
 			exit(1);
 		} 
 		else if (i < lim - 1) {
@@ -231,16 +288,6 @@ static int keyword(char *s) {
 	return (0);
 }
 
-// A pointer to a rejected token
-static struct token *Rejtoken = NULL;
-
-// Reject the token that we just scanned
-void reject_token(struct token *t) {
-	if (Rejtoken != NULL)
-		fatal("Can't reject token twice");
-	Rejtoken = t;
-}
-
 // List of token strings, for debugging purposes
 char *Tstring[] = {
 	"EOF", "=", "+=", "-=", "*=", "/=",
@@ -262,16 +309,18 @@ char *Tstring[] = {
 int scan(struct token *t) {
 	int c, tokentype;
 
-	// If we have any rejected token, return it
-	if (Rejtoken != NULL) {
-		t = Rejtoken;
-		Rejtoken = NULL;
+	// If we have a lookahead token, return this token
+	if (Peektoken.token != 0) {
+		t->token = Peektoken.token;
+		t->tokstr = Peektoken.tokstr;
+		t->intvalue = Peektoken.intvalue;
+		Peektoken.token = 0;
 		return (1);
 	}
 	
 	// Skip whitespace
 	c = skip();
-	
+
 	// Determine the token based on the input character
 	switch (c) {
 		case EOF:
@@ -443,6 +492,7 @@ int scan(struct token *t) {
 			// The character isn't part of any recognised token, error
 			fatalc("Unrecognised character", c);
 	}
+
 	// We found a token
 	t->tokstr = Tstring[t->token];
 	return (1);

@@ -327,7 +327,7 @@ static struct ASTnode *single_statement(void) {
 			return (switch_statement());
 		default:
 			// For now, see if this is an expression.
-			// This catches assignement statements.
+			// This catches assignment statements.
 			stmt = binexpr(0);
 			semi();
 			return (stmt);
