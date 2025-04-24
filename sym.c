@@ -116,12 +116,19 @@ int addlocl(char *name, int type, int stype, int isparam, int size) {
 	// return the slot number. If this is a parameter, also create a global C_PARAM entry to build
 	// the function's prototype
   	localslot = newlocl();
-	if (isparam) {
+/**	if (stype == S_ARRAY)
+	{
+	  	posn = gengetlocaloffset(value_at(type), 0, size);	// XXX 0 for now
+	} else {
+  		posn = gengetlocaloffset(type, 0, size);	// XXX 0 for now
+  	}
+**/	if (isparam) {
 		updatesym(localslot, name, type, stype, C_PARAM, 0 , size, 0);
 		globalslot = newglob();
 		updatesym(globalslot, name, type, stype, C_PARAM, 0 , size, 0);
 	} else {
 		updatesym(localslot, name, type, stype, C_LOCAL, 0, size, 0);        
+		//updatesym(localslot, name, type, stype, C_LOCAL, 0, size, posn);
 	}
   	return (localslot);
 }

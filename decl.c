@@ -131,6 +131,8 @@ struct ASTnode *function_declaration(int type) {
 	nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
 	Functionid = nameslot;
 
+//	genresetlocals();	// Reset position of new locals
+
 	// Scan in the parantheses and any parameters
 	// Update the function symbol entry with the number of parameters
 	lparen();
