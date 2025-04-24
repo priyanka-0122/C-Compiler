@@ -199,7 +199,7 @@ int cgloadint(int value, int type) {
 
 	// Print out the code to initialise it
 	fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
-	return(r);
+	return (r);
 }
 
 // Load a value from a variable into a register. Return the number of the register. If the operation
@@ -232,7 +232,6 @@ int cgloadglob(struct symtable *sym, int op) {
 				if (op == A_POSTDEC)
 					fprintf(Outfile, "\tdecb\t%s(%%rip)\n", sym->name);
 				break;
-
 			case P_INT:
 				if (op == A_PREINC)
 					fprintf(Outfile, "\tincl\t%s(%%rip)\n", sym->name);
@@ -240,11 +239,10 @@ int cgloadglob(struct symtable *sym, int op) {
 					fprintf(Outfile, "\tdecl\t%s(%%rip)\n", sym->name);
 				fprintf(Outfile, "\tmovslq\t%s(%%rip), %s\n", sym->name, reglist[r]);
 				if (op == A_POSTINC)
-	        			fprintf(Outfile, "\tincl\t%s(%%rip)\n", sym->name);
+					fprintf(Outfile, "\tincl\t%s(%%rip)\n", sym->name);
 		      		if (op == A_POSTDEC)
 					fprintf(Outfile, "\tdecl\t%s(%%rip)\n", sym->name);
 				break;
-
 			default:
 				fatald("Bad type in cgloadglob:", sym->type);
 		}
@@ -281,7 +279,6 @@ int cgloadlocal(struct symtable *sym, int op) {
 				if (op == A_POSTDEC)
 					fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->posn);
 				break;
-
 			case P_INT:
 				if (op == A_PREINC)
 					fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
@@ -289,11 +286,10 @@ int cgloadlocal(struct symtable *sym, int op) {
 					fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
 				fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
 				if (op == A_POSTINC)
-	        			fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
+					fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
 		      		if (op == A_POSTDEC)
 					fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
 				break;
-
 			default:
 				fatald("Bad type in cgloadlocal:", sym->type);
 		}
@@ -431,7 +427,7 @@ void cgcopyarg(int r, int argposn) {
 		// Otherwise, copy the value into one of the six registers used to hold parameter values
 		fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
 			reglist[FIRSTPARAMREG - argposn + 1]);
-  	}
+	}
 }
 
 // Shift a register left by a constant
@@ -496,7 +492,7 @@ void cgglobsym(struct symtable *node) {
 		type = value_at(node->type);
 	} else {
 		size = node->size;
-		type = node->type;		// size = typesize(node->type, node->ctype);
+		type = node->type;
 	}
 
 	// Generate the global identity and the label
@@ -505,10 +501,10 @@ void cgglobsym(struct symtable *node) {
 	fprintf(Outfile, "%s:\n", node->name);
 
 	// Output space for one or more elements
-	for ( i = 0; i < node->nelems; i++) {
+	for (i=0; i < node->nelems; i++) {
 
 		// Get any initial value
-		// initvalue = 0;
+		initvalue= 0;
 		if (node->initlist != NULL)
 			initvalue= node->initlist[i];
 
@@ -527,11 +523,11 @@ void cgglobsym(struct symtable *node) {
 				else
 					fprintf(Outfile, "\t.quad\t%d\n", initvalue);
 				break;
-    			default:
+			default:
 				for (int i = 0; i < size; i++)
 					fprintf(Outfile, "\t.byte\t0\n");
 		}
-  	}
+	}
 }
 
 // Generate a global string and its start label

@@ -17,7 +17,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	// Generate two label: one for the false compound, and the other one for the end of the overall
 	// IF statement. When there is no ELSE clause, Lfalse _is_ the ending label!
 	Lfalse = genlabel();
-	if(n->right)
+	if (n->right)
 		Lend = genlabel();
 
 	// Generate the condition code followed by a zero jump to false label.
@@ -30,7 +30,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	genfreeregs();
 
 	// If there is an optional ELSE clause, generate the jump to skip to the end
-	if(n->right)
+	if (n->right)
 		cgjump(Lend);			// Jump to Lend
 
 	// Now the false label
@@ -60,7 +60,7 @@ static int genWHILE(struct ASTnode *n) {
 	genAST(n->left, Lend, Lstart, Lend, n->op);
 	genfreeregs();
 	
-	// Generate the compund statement for the body
+	// Generate the compound statement for the body
 	genAST(n->right, NOLABEL, Lstart, Lend, n->op);
 	genfreeregs();
 
@@ -153,6 +153,9 @@ static int gen_funccall(struct ASTnode *n) {
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	   int loopendlabel, int parentASTop) {
 	int leftreg, rightreg;
+
+	// We have some specific AST node handling at the top
+	// so that we don't evaluate the child sub-trees immediately
 	switch (n->op) {
 		case A_IF:
 			return (genIF(n, looptoplabel, loopendlabel));

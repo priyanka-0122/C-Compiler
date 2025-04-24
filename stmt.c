@@ -104,7 +104,9 @@ static struct ASTnode *for_statement(void) {
 	preopAST = expression_list(T_SEMI);
 	semi();
 
-	// Get the condition and the ';'
+	// Get the condition and the ';'.
+	// Force a non-comparison to be boolean
+	// the tree's operation is a comparison.
 	condAST = binexpr(0);
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
@@ -302,10 +304,10 @@ static struct ASTnode *single_statement(void) {
 		case T_UNION:
 		case T_ENUM:
 		case T_TYPEDEF:
-		    	// The beginning of a variable declaration list
-			declaration_list(&ctype, C_LOCAL, T_SEMI, T_EOF);
+		    	// The beginning of a variable declaration list.
+			declaration_list(&ctype, C_LOCAL, T_SEMI, T_EOF, &stmt);
 			semi();
-			return (NULL);			// No AST generated here
+			return (stmt);		// Any assignments from the declarations
 		case T_IF:
 			return (if_statement());
 		case T_WHILE:
@@ -323,7 +325,7 @@ static struct ASTnode *single_statement(void) {
 		default:
 			// For now, see if this is an expression.
 			// This catches assignement statements.
-			stmt= binexpr(0);
+			stmt = binexpr(0);
 			semi();
 			return (stmt);
 	}
