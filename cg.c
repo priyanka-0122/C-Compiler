@@ -592,6 +592,23 @@ void cgjump(int l) {
 //			       A_EQ, A_NE,  A_LT,  A_GT, A_LE, A_GE
 static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 
+// List of cmovc instructions, in AST order:
+//			      A_EQ,    A_NE,     A_LT,     A_GT,     A_LE,     A_GE
+static char *cmovlist[] = { "cmovne", "cmove", "cmovle", "cmovge", "cmovle", "cmovge" };
+
+// Compare two registers and move
+int cgcompare_and_move(int ASTop, int r1, int r2) {
+
+	// Check the range of the AST operation
+	if (ASTop < A_EQ || ASTop > A_GE)
+		fatal("Bad ASTop in cgcompare_and_jump()");
+
+	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r1], reglist[r2]);
+	fprintf(Outfile, "\t%s\t%s, %s\n", cmovlist[ASTop - A_EQ], reglist[r2], reglist[r1]);
+	freeall_registers(r1);
+	return (r1);
+}
+
 // Compare two registers and jump if false.
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 

@@ -160,8 +160,21 @@ static int gen_funccall(struct ASTnode *n) {
 
 // Generate code for a ternary expression
 static int gen_ternary(struct ASTnode *n) {
-	int Lfalse, Lend;
+	int Lfalse = NOLABEL, Lend = NOLABEL;
 	int reg, expreg;
+
+	// Check if the true and false condition are identifiers
+	if ((n->mid->op == A_IDENT) && (n->right->op == A_IDENT)) {
+		// Check if the same identifiers are used in conditions
+		// and true and false expression
+		if (((n->mid->sym->name == n->left->right->sym->name) ||
+		     (n->mid->sym->name == n->left->left->sym->name))
+		 && ((n->right->sym->name == n->left->right->sym->name) ||
+		     (n->right->sym->name == n->left->left->sym->name))) {	
+				reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+				return (reg);
+		}
+	} 
 
 	// Generate two labels: one for the
 	// false expression, and one for the
@@ -174,25 +187,38 @@ static int gen_ternary(struct ASTnode *n) {
 	genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
 	genfreeregs(NOREG);
 
-	// Get a register to hold the result of the two expressions
-	reg = alloc_register();
-
 	// Generate the true expression and the false label.
 	// Move the expression result into the known register.
-	expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
-	cgmove(expreg, reg);
+	if (n->mid->op == A_INTLIT) {
+		// When ternary operator has just the integer values to be assigned
+		reg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+		genfreeregs(NOREG);
+	} else {
+		// Get a register to hold the result if there is expression
+		reg = alloc_register();
+		expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+		cgmove(expreg, reg);
 
-	// Don't free the register holding the result, though!
-	genfreeregs(reg);
+		// Don't free the register holding the result, though!
+		genfreeregs(reg);
+	}
+
 	cgjump(Lend);
 	cglabel(Lfalse);
 
 	// Generate the false expression and the end label.
 	// Move the expression result into the known register.
-	expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
-	cgmove(expreg, reg);
-	// Don't free the register holding the result, though!
-	genfreeregs(reg);
+	if (n->right->op == A_INTLIT) {
+		// When ternary operator has just the integer values to be assigned
+		reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+		genfreeregs(NOREG);
+	} else {
+		expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+		cgmove(expreg, reg);
+		// Don't free the register holding the result, though!
+		genfreeregs(reg);
+	}
+
 	cglabel(Lend);
 	return (reg);
 }
@@ -269,9 +295,12 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			// followed by a jump. Otherwise, compare registers and set one to
 			// 1 or 0 based on the comparison.
 			if (parentASTop == A_IF || parentASTop == A_WHILE ||
-			    parentASTop == A_TERNARY)
-				return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel));
-			 else
+			    parentASTop == A_TERNARY) {
+				if (iflabel == 0)
+					return (cgcompare_and_move(n->op, leftreg, rightreg));
+				else
+					return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel));
+			} else
 				return (cgcompare_and_set(n->op, leftreg, rightreg));
   		case A_INTLIT:
     			return (cgloadint(n->a_intvalue, n->type));
