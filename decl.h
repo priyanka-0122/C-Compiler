@@ -1,5 +1,34 @@
 // Function prototypes for all compiler files
 
+// scan.c
+void reject_token(struct token *t);
+int scan(struct token *t);
+
+// tree.c
+struct ASTnode *mkastnode(int op, int type,
+			  struct ASTnode *left,
+			  struct ASTnode *mid,
+			  struct ASTnode *right,
+			  struct symtable *sym, int intvalue);
+struct ASTnode *mkastleaf(int op, int type,
+			  struct symtable *sym, int intvalue);
+struct ASTnode *mkastunary(int op, int type, struct ASTnode *left,
+			    struct symtable *sym, int intvalue);
+void dumpAST(struct ASTnode *n, int label, int parentASTop);
+
+// gen.c
+int genlabel(void);
+int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
+	   int loopendlabel, int parentASTop);
+void genpreamble();
+void genpostamble();
+void genfreeregs();
+void genglobsym(struct symtable *node);
+int genglobstr(char *strvalue);
+int genprimsize(int type);
+int genalign(int type, int offset, int direction);
+void genreturn(int reg, int id);
+
 // cg.c
 int cgprimsize(int type);
 int cgalign(int type, int offset, int direction);
@@ -46,27 +75,12 @@ int cgshr(int r1, int r2);
 void cgswitch(int reg, int casecount, int toplabel,
 	int *caselabel, int *caseval, int defaultlabel);
 
-// decl.c
-struct symtable *var_declaration(int type, struct symtable *ctype, int class);
-struct ASTnode *function_declaration(int type);
-void global_declarations(void);
-
 // expr.c
 struct ASTnode *expression_list(int endtoken);
 struct ASTnode *binexpr(int ptp);
 
-// gen.c
-int genlabel(void);
-int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
-		int loopendlabel, int parentASTop);
-void genpreamble();
-void genpostamble();
-void genfreeregs();
-void genglobsym(struct symtable *node);
-int genglobstr(char *strvalue);
-int genprimsize(int type);
-int genalign(int type, int offset, int direction);
-void genreturn(int reg, int id);
+// stmt.c
+struct ASTnode *compound_statement(int inswitch);
 
 // misc.c
 void match(int t, char *what);
@@ -81,13 +95,6 @@ void fatal(char *s);
 void fatals(char *s1, char *s2);
 void fatald(char *s, int d);
 void fatalc(char *s, int c);
-
-// scan.c
-void reject_token(struct token *t);
-int scan(struct token *t);
-
-// stmt.c
-struct ASTnode *compound_statement(int inswitch);
 
 // sym.c
 void appendsym(struct symtable **head, struct symtable **tail,
@@ -114,22 +121,13 @@ struct symtable *findtypedef(char *s);
 void clear_symtable(void);
 void freeloclsyms(void);
 
-// tree.c
-struct ASTnode *mkastnode(int op, int type,
-			  struct ASTnode *left,
-			  struct ASTnode *mid,
-			  struct ASTnode *right,
-			  struct symtable *sym, int intvalue);
-struct ASTnode *mkastleaf(int op, int type,
-			  struct symtable *sym, int intvalue);
-struct ASTnode *mkastunary(int op, int type, struct ASTnode *left,
-			    struct symtable *sym, int intvalue);
-void dumpAST(struct ASTnode *n, int label, int parentASTop);
+// decl.c
+int declaration_list(struct symtable **ctype, int class, int et1, int et2);
+void global_declarations(void);
 
 // types.c
 int inttype(int type);
 int ptrtype(int type);
-int parse_type(struct symtable **ctype, int *class);
 int pointer_to(int type);
 int value_at(int type);
 int typesize(int type, struct symtable *ctype);

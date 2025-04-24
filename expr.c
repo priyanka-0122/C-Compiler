@@ -56,7 +56,7 @@ static struct ASTnode *funccall(void) {
 	// Get the '('
 	lparen();
 
-	// Parse the following expression
+	// Parse the argument expression list
 	tree = expression_list(T_RPAREN);
 
 	// XXX Check type of each argument against the function's prototype
@@ -109,7 +109,7 @@ static struct ASTnode *array_access(void) {
 	return (left);
 }
 
-// Parse the member reference of a struct (or union, soon) and return an AST tree for it.
+// Parse the member reference of a struct or union and return an AST tree for it.
 // If withpointer is true, the access is through a pointer to the member.
 static struct ASTnode *member_access(int withpointer) {
 	struct ASTnode *left, *right;
@@ -117,7 +117,7 @@ static struct ASTnode *member_access(int withpointer) {
 	struct symtable *typeptr;
 	struct symtable *m;
 
-	// Check that the identifier has been declared as a struct (or a union, later),
+	// Check that the identifier has been declared as a struct or a union
 	// or a struct/union pointer
 	if ((compvar = findsymbol(Text)) == NULL)
 		fatals("Undeclared variable", Text);
@@ -254,7 +254,7 @@ static struct ASTnode *primary(void) {
 	return (n);
 }
 
-// Convert a binary operator token into an AST operation. We rely on a 1:1 mapping from token to AST operation
+// Convert a binary operator token into a binary AST operation. We rely on a 1:1 mapping from token to AST operation
 static int binastop(int tokentype) {
 	if (tokentype > T_EOF && tokentype <= T_SLASH)
 		return (tokentype);
@@ -291,6 +291,14 @@ static int op_precedence(int tokentype) {
 		fatald("Syntax error, token", tokentype);
 	return (prec);
 }
+
+// prefix_expression: primary
+//     | '*'  prefix_expression
+//     | '&'  prefix_expression
+//     | '-'  prefix_expression
+//     | '++' prefix_expression
+//     | '--' prefix_expression
+//     ;
 
 // Parse a prefix expression and return a sub-tree representing it
 struct ASTnode *prefix(void) {
@@ -398,8 +406,6 @@ struct ASTnode *binexpr(int ptp) {
 
 	// If we hit one of several terminating tokens, return just the left node
   	tokentype = Token.token;
-
-	// If we hit a semicolon or ')', return just the left node
 	if (tokentype == T_SEMI || tokentype == T_RPAREN ||
 	    tokentype == T_RBRACKET || tokentype == T_COMMA ||
 	    tokentype == T_COLON) {

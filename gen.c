@@ -138,8 +138,8 @@ static int gen_funccall(struct ASTnode *n) {
 		// Copy this into the n'th function parameter: size is 1, 2, 3, ...
 		cgcopyarg(reg, gluetree->size);
 		// Keep the first (highest) number of arguments
-		if (numargs==0)
-			numargs= gluetree->size;
+		if (numargs == 0)
+			numargs = gluetree->size;
 		genfreeregs();
 		gluetree = gluetree->left;
 	}
@@ -153,10 +153,9 @@ static int gen_funccall(struct ASTnode *n) {
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	   int loopendlabel, int parentASTop) {
 	int leftreg, rightreg;
-
 	switch (n->op) {
 		case A_IF:
-			return(genIF(n, looptoplabel, loopendlabel));
+			return (genIF(n, looptoplabel, loopendlabel));
 		case A_WHILE:
 			return (genWHILE(n));
 		case A_SWITCH:

@@ -134,7 +134,7 @@ static int scanstr(char *buf) {
 	fatal("String literal too long");
 	return (0);
 }
-	
+
 // Scan an identifier from the input file and store it in buf[]. Return the identifier's length
 static int scanident(int c, char *buf, int lim) {
 	int i = 0;
@@ -142,7 +142,7 @@ static int scanident(int c, char *buf, int lim) {
 	// Allow digits, alpha and underscores
 	while (isalpha(c) || isdigit(c) || '_' == c) {
 		// Error if we hit the identifier length limit, else append to buf[] and get next character
-		if (lim -1 == i) {
+		if (lim - 1 == i) {
 			printf("identifier too long on line %d\n",Line);
 			exit(1);
 		} 
@@ -159,7 +159,8 @@ static int scanident(int c, char *buf, int lim) {
 
 // Given a word from the input, return the matching keyword token number or 0 if it's not a keyword.
 // Switch on the first letter so that we don't have to waste strcmp()ing against all the keywords.
-static int keyword( char *s) {
+
+static int keyword(char *s) {
 	switch (*s) {
 		case 'b':
 			if (!strcmp(s, "break"))
@@ -167,15 +168,16 @@ static int keyword( char *s) {
 			break;
 		case 'c':
 			if (!strcmp(s, "case"))
-				return(T_CASE);
+				return (T_CASE);
 			if (!strcmp(s, "char"))
-				return(T_CHAR);
+				return (T_CHAR);
 			if (!strcmp(s, "continue"))
 				return (T_CONTINUE);
 			break;
 		case 'd':
 			if (!strcmp(s, "default"))
-				return(T_DEFAULT);
+				return (T_DEFAULT);
+			break;
 		case 'e':
 			if (!strcmp(s, "else"))
 				return (T_ELSE);
@@ -186,7 +188,7 @@ static int keyword( char *s) {
 			break;
 		case 'f':
 			if (!strcmp(s, "for"))
-				return T_FOR;
+				return (T_FOR);
 			break;
 		case 'i':
 			if (!strcmp(s, "int"))
@@ -211,9 +213,11 @@ static int keyword( char *s) {
 		case 't':
 			if (!strcmp(s, "typedef"))
 				return (T_TYPEDEF);
+			break;
 		case 'u':
 			if (!strcmp(s, "union"))
 				return (T_UNION);
+			break;
 		case 'v':
 			if (!strcmp(s, "void"))
 				return (T_VOID);
@@ -388,7 +392,7 @@ int scan(struct token *t) {
 			t->intvalue = scanch();
 			t->token = T_INTLIT;
 			if (next() != '\'')
-				fatal("Expected '\\' at the end of char literal");
+				fatal("Expected '\\'' at end of char literal");
 			break;
 		case '"':
 			// Scan in a literal string
@@ -403,7 +407,7 @@ int scan(struct token *t) {
 				break;
 			}
 			else if (isalpha(c) || '_' == c) {
-				//Read in a keyword or identifier
+				// Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
 
 				// If it's a recognised keyword, return that token
