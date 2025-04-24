@@ -1,8 +1,10 @@
+int printf(char *fmt);
+
 int a [3];
 
 void main()
 {
-        int b , c , d ,e , f;
+        int b, c, d, e, f;
         a[2] = 300;
         a[1] = 200;
         a[0] = 100;
@@ -11,8 +13,7 @@ void main()
         c = a[1];
         d = a[0];
 
-        printint(b);
-        printint(c);
-        printint(d);
-
+        printf("%d\n", b);
+        printf("%d\n", c);
+        printf("%d\n", d);
 }

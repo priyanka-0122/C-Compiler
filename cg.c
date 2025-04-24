@@ -378,14 +378,6 @@ void cgcopyarg(int r, int argposn) {
   	}
 }
 
-// Call printint() with the register
-void cgprintint(int r) {
-	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]); 	//Linux x86-64 expects te first arg to
-								// a function to be %rdi
-	fprintf(Outfile, "\tcall\tprintint\n");
-	free_register(r);
-}
-
 // Shift a register left by a constant
 int cgshlconst(int r, int val) {
 	fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);

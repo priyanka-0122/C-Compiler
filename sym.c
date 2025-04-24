@@ -139,3 +139,8 @@ int findsymbol(char *s) {
 	return (slot);
 }
 
+// Reset the contents of the symbol table
+void clear_symtable(void) {
+	Globs = 0;
+	Locls = NSYMBOLS - 1;
+}

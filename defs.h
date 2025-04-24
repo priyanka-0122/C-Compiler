@@ -6,6 +6,16 @@
 #define TEXTLEN		512 	//Length of symbols in input
 #define NSYMBOLS	1024	//Number of symbol table entries
 
+// Commands and default filenames
+#define AOUT "a.out"
+#ifdef __NASM__
+#define ASCMD "nasm -f elf64 -o "
+#define LDCMD "cc -no-pie -fno-plt -Wall -o "
+#else
+#define ASCMD "as -o "
+#define LDCMD "cc -o "
+#endif
+
 //Token structure
 struct token {
         int token;	// Token type, from the below enum list

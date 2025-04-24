@@ -257,10 +257,6 @@ void genfreeregs() {
   	freeall_registers();
 }
 
-void genprintint(int reg) {
-  	cgprintint(reg);
-}
-
 void genglobsym(int id) {
   	cgglobsym(id);
 }
@@ -274,13 +270,3 @@ int genglobstr(char *strvalue) {
 int genprimsize(int type) {
 	return (cgprimsize(type));
 }
-
-/***
-void genresetlocals(void) {
-  	cgresetlocals();
-}
-
-int gengetlocaloffset(int type, int isparam, int size) {
-  	return (cggetlocaloffset(type, isparam, size));
-}
-***/

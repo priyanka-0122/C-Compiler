@@ -13,7 +13,6 @@ int cgsub(int r1, int r2);
 int cgmul(int r1, int r2);
 int cgdiv(int r1, int r2);
 int cgshlconst(int r, int val);
-void cgprintint(int r);
 int cgcall(int id, int numargs);
 int cgstorglob(int r, int id);
 int cgstorlocal(int r, int id);
@@ -94,6 +93,7 @@ int addglob(char *name, int type, int stype, int class, int endlabel, int size);
 int addlocl(char *name, int type, int stype, int class, int size);
 void copyfuncparams(int slot);
 void freeloclsyms(void);
+void clear_symtable(void);
 
 //tree.c
 struct ASTnode *mkastnode (int op, int type, struct ASTnode *left, struct ASTnode *mid, struct ASTnode *right, int intvalue);

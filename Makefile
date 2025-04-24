@@ -1,16 +1,17 @@
+HSRCS= data.h decl.h defs.h
 SRCS= cg.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
 
 SRCN= cgn.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
 
 ARMSRCS= cg_arm.c decl.c expr.c gen.c main.c misc.c scan.c stmt.c sym.c tree.c types.c
 
-comp: $(SRCS)
+comp: $(SRCS) $(HSRCS)
 	cc -o comp -g -Wall $(SRCS)
 
 compn: $(SRCN)
-	cc -o compn -g $(SRCN)
+	cc -D__NASM__ -o compn -g -Wall $(SRCN)
 
-comp_arm: $(ARMSRCS)
+comp_arm: $(ARMSRCS) $(HSRCS)
 	cc -o comp_arm -g -Wall $(ARMSRCS)
 
 clean:
@@ -21,11 +22,6 @@ test: comp tests/runtests
 
 arm_qemu: comp_arm input01.c ./lib/printint.c
 	./comp_arm input01.c
-	arm-linux-gnueabi-gcc -o arm.out out.s ./lib/printint.c -static
-	qemu-arm-static ./arm.out
-
-arm_qemu_1: comp_arm input20.c ./lib/printint.c
-	./comp_arm input20.c
 	arm-linux-gnueabi-gcc -o arm.out out.s ./lib/printint.c -static
 	qemu-arm-static ./arm.out
 
