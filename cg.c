@@ -24,15 +24,9 @@ void cgdataseg() {
 static int localOffset;
 static int stackOffset;
 
-// Reset the position of new local variables when parsing a new function
-//void cgresetlocals(void) {
-//	localOffset = 0;
-//}
-
 // Create the position of a new variable.
 int newlocaloffset(int type) {
 	// Decrement the offset by a minimum of 4 bytes and allocate on the stack
-//	localOffset += ((cgprimsize(type) > 4) ? cgprimsize(type) : 4) * size ;
 	localOffset += (cgprimsize(type) > 4) ? cgprimsize(type) : 4;
 	return (-localOffset);
 }
@@ -76,7 +70,6 @@ static void free_register(int reg)
 void cgpreamble()
 {
 	freeall_registers();
-//	fputs("\t.text\n", Outfile);
 }
 
 // Nothing to do
@@ -138,7 +131,6 @@ void cgfuncpostamble(int id) {
 // Load an integer literal value into a register. Return the number of the register
 // For x86-64, we don't need to worry about the type
 int cgloadint(int value, int type) {
-
 	// Get a new register
 	int r = alloc_register();
 
@@ -361,15 +353,13 @@ int cgboolean(int r, int op, int label) {
 int cgcall(int id, int numargs) {
 	// Get a new register
 	int outr = alloc_register();
-//	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
 	// Call the function
-	fprintf(Outfile, "\tcall\t%s\n", Symtable[id].name);
+	fprintf(Outfile, "\tcall\t%s@PLT\n", Symtable[id].name);
 	// Remove any arguments pushed on the stack
 	if (numargs > 6)
-		fprintf(Outfile, "\taddq\t$%d, %%rsp\n", 8*(numargs-6));
+		fprintf(Outfile, "\taddq\t$%d, %%rsp\n", 8 * (numargs - 6));
 	// and copy the return value into our register
 	fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
-//	free_register(r);
 	return (outr);
 }
 
@@ -399,7 +389,7 @@ void cgprintint(int r) {
 // Shift a register left by a constant
 int cgshlconst(int r, int val) {
 	fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
-	return(r);
+	return (r);
 }
 
 // Store a register's value into a variable
@@ -458,7 +448,7 @@ int cgprimsize(int type) {
 	return (psize[type]);
 }
 
-// Generate a global symbol
+// Generate a global symbol but not functions
 void cgglobsym(int id) {
 	int typesize;
 

@@ -44,7 +44,7 @@ void cgcopyarg(int r, int argposn);
 
 //decl.c
 int parse_type(void);
-void var_declaration(int type, int islocal, int isparam);
+void var_declaration(int type, int class);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
@@ -90,8 +90,9 @@ struct ASTnode *compound_statement(void);
 int findglob(char *s);
 int findlocl(char *s);
 int findsymbol(char *s);
-int addglob(char *name, int type, int stype, int endlabel, int size);
-int addlocl(char *name, int type, int stype, int endlabel, int size);
+int addglob(char *name, int type, int stype, int class, int endlabel, int size);
+int addlocl(char *name, int type, int stype, int class, int size);
+void copyfuncparams(int slot);
 void freeloclsyms(void);
 
 //tree.c

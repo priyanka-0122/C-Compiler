@@ -1,16 +1,20 @@
-char *str;
-char *str1;
-char *str2;
+char a; char b; char c;
+int  d; int  e; int  f;
+long g; long h; long i;
+
 
 int main() {
-  for (str= "Hello\n"; *str != 0; str = str + 1) {
-    printchar(*str);
-  }
-  for (str1= "Welcome"; *str1 != 0; str1 = str1 + 1) {
-    printchar(*str1);
-  }
-  for (str2= " Peers!!\n"; *str2 != 0; str2 = str2 + 1) {
-    printchar(*str2);
-  }
+  b= 5; c= 7; a= b + c++; printint(a);
+  e= 5; f= 7; d= e + f++; printint(d);
+  h= 5; i= 7; g= h + i++; printint(g);
+  a= b-- + c; printint(a);
+  d= e-- + f; printint(d);
+  g= h-- + i; printint(g);
+  a= ++b + c; printint(a);
+  d= ++e + f; printint(d);
+  g= ++h + i; printint(g);
+  a= b * --c; printint(a);
+  d= e * --f; printint(d);
+  g= h * --i; printint(g);
   return(0);
 }

@@ -50,16 +50,6 @@ void freeloclsyms(void) {
 	Locls = NSYMBOLS - 1;
 }
 
-// Determine if the symbol s is in symbol table. Return its slot position of -1 if not found
-int findsymbol(char *s) {
-	int slot;
-
-	slot = findlocl(s);
-	if (slot == -1)
-		slot = findglob(s);
-	return (slot);
-}
-
 // Update a symbol at the given slot number in the symbol table. Set up its:
 // + type: char, int etc.
 // + structural type: var, function, array etc.
@@ -82,10 +72,11 @@ static void updatesym(int slot, char *name, int type, int stype,
 // Add a global symbol to the symbol table. Set up its:
 // + type: char, int etc.
 // + structural type: var, function, array etc.
+// + class of the symbol
 // + size: number of elements
 // + endlabel: if this is a function
 // Return the slot number in the symbol table
-int addglob(char *name, int type, int stype, int endlabel, int size) {
+int addglob(char *name, int type, int stype, int class, int endlabel, int size) {
 	int slot;
 
   	// If this is already in the symbol table, return the existing slot       
@@ -94,8 +85,11 @@ int addglob(char *name, int type, int stype, int endlabel, int size) {
 
   	// Otherwise get a new slot, fill it in and return the slot number
   	slot = newglob();
-  	updatesym(slot, name, type, stype, C_GLOBAL, endlabel, size, 0);
-  	genglobsym(slot);
+  	updatesym(slot, name, type, stype, class, endlabel, size, 0);
+
+	// Generate the assembly for the symbol if it's global
+	if (class == C_GLOBAL)
+  		genglobsym(slot);
   	return (slot);
 }
 
@@ -105,7 +99,7 @@ int addglob(char *name, int type, int stype, int endlabel, int size) {
 // + size: number of elements
 // + isparam: if true, this is a parameter to the function
 // Return the slot number in the symbol table, -1 if a duplicate entry
-int addlocl(char *name, int type, int stype, int isparam, int size) {      
+int addlocl(char *name, int type, int stype, int class, int size) {      
   	int localslot, globalslot;
 
   	// If this is already in the symbol table, return an error       
@@ -116,13 +110,7 @@ int addlocl(char *name, int type, int stype, int isparam, int size) {
 	// return the slot number. If this is a parameter, also create a global C_PARAM entry to build
 	// the function's prototype
   	localslot = newlocl();
-/**	if (stype == S_ARRAY)
-	{
-	  	posn = gengetlocaloffset(value_at(type), 0, size);	// XXX 0 for now
-	} else {
-  		posn = gengetlocaloffset(type, 0, size);	// XXX 0 for now
-  	}
-**/	if (isparam) {
+	if (class == C_PARAM) {
 		updatesym(localslot, name, type, stype, C_PARAM, 0 , size, 0);
 		globalslot = newglob();
 		updatesym(globalslot, name, type, stype, C_PARAM, 0 , size, 0);
@@ -132,3 +120,22 @@ int addlocl(char *name, int type, int stype, int isparam, int size) {
 	}
   	return (localslot);
 }
+// Given a function's slot number, copy the global parameters from its prototype to be local parameters
+void copyfuncparams (int slot) {
+	int i, id = slot + 1;
+	
+	for (i = 0; i < Symtable[slot].nelems; i++, id++) {
+		addlocl(Symtable[id].name, Symtable[id].type, Symtable[id].stype, Symtable[id].class, Symtable[id].size);
+	}
+}
+
+// Determine if the symbol s is in symbol table. Return its slot position of -1 if not found
+int findsymbol(char *s) {
+	int slot;
+
+	slot = findlocl(s);
+	if (slot == -1)
+		slot = findglob(s);
+	return (slot);
+}
+
