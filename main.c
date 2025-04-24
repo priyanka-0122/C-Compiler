@@ -133,8 +133,9 @@ static void usage(char *prog) {
   	exit(1);
 }
 
-// Main program: check arguments and print a usage if we don't have an argument.
-// Open up the input file and call scanfile() to scan the tokens in it.
+// Main program: check arguments and print a usage
+// if we don't have an argument. Open up the input
+// file and call scanfile() to scan the tokens in it.
 #define MAXOBJ 100
 int main(int argc, char *argv[]) {
   	char *outfilename = AOUT;

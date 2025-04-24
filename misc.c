@@ -5,9 +5,8 @@
 
 // Ensure that the current token is t, and fetch the next token. Otherwise throw an error
 void match( int t, char *what) {
-	if (Token.token == t) {
+	if (Token.token == t)
 		scan(&Token);
-	}
 	else {
 		printf("%s expected on line %d\n", what , Line);
 		exit(1);
@@ -17,11 +16,6 @@ void match( int t, char *what) {
 // Match a semicolon and fetch the next token
 void semi(void) {
 	match(T_SEMI, ";");
-}
-
-// Match an identifier and fetch the next token
-void ident(void) {
-	match(T_IDENT, "identifier");
 }
 
 // Match a left brace and fetch the next token
@@ -42,6 +36,16 @@ void lparen(void) {
 // Match a right parenthesis and fetch the next token
 void rparen(void) {
 	match(T_RPAREN, ")");
+}
+
+// Match an identifier and fetch the next token
+void ident(void) {
+	match(T_IDENT, "identifier");
+}
+
+// Match a comma and fetch the next token
+void comma(void) {
+	match(T_COMMA, "comma");
 }
 
 // Print out fatal messages

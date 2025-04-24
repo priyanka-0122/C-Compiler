@@ -10,7 +10,7 @@ struct ASTnode *mkastnode(int op, int type,
 			struct symtable *sym, int intvalue) {
 	struct ASTnode *n;
 	
-	// Calloc a new ASTnode
+	//Calloc a new ASTnode
 	n = (struct ASTnode *)calloc(1, sizeof(struct ASTnode));
 	if (n == NULL) {
 		fprintf(stderr, "Unable to calloc a node in mkastnode()");

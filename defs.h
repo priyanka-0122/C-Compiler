@@ -4,7 +4,7 @@
 #include <ctype.h>
 
 enum {
-	TEXTLEN=512     // Length of identifiers in input
+	TEXTLEN = 512	// Length of identifiers in input
 };
 
 // Commands and default filenames
@@ -37,7 +37,7 @@ enum {
 
 	// Other keywords
 	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
-	T_STRUCT, T_UNION,
+	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,
 	
 	// Structural tokens
 	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
@@ -53,7 +53,8 @@ struct token {
 	int intvalue;	// For T_INTLIT, the integer value
 };
 
-// AST node types. The first few line up with the related tokens
+// AST node types. The first few line up
+// with the related tokens
 enum {
 	A_ASSIGN= 1, A_LOGOR, A_LOGAND,
 	A_OR, A_XOR, A_AND,
@@ -74,8 +75,7 @@ enum {
 // Primitive types. The bottom 4 bits is an integer value that represents the level
 // of indirection, e.g. 0= no pointer, 1= pointer, 2= pointer pointer etc.
 enum {
-	P_NONE,
-	P_VOID = 16, P_CHAR = 32, P_INT = 48, P_LONG = 64,
+	P_NONE, P_VOID = 16, P_CHAR = 32, P_INT = 48, P_LONG = 64,
 	P_STRUCT=80, P_UNION=96
 };
 
@@ -91,7 +91,10 @@ enum {
 	C_PARAM,		// Locally visible function parameter
 	C_STRUCT,		// A struct
 	C_UNION,		// A union
-	C_MEMBER		// Member of a struct or union
+	C_MEMBER,		// Member of a struct or union
+	C_ENUMTYPE,		// A named enumeration type
+	C_ENUMVAL,		// A named enumeration value
+	C_TYPEDEF		// A named typedef
 };
 
 // Symbol table structure

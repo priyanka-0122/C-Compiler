@@ -16,35 +16,35 @@
 // set to the number of expressions in the tree at this point. If no
 // expressions are parsed, NULL is returned
 static struct ASTnode *expression_list(void) {
-	struct ASTnode *tree = NULL;
-	struct ASTnode *child = NULL;
-	int exprcount = 0;
+  struct ASTnode *tree = NULL;
+  struct ASTnode *child = NULL;
+  int exprcount = 0;
 
-	// Loop until the final right parentheses
-	while (Token.token != T_RPAREN) {
+  // Loop until the final right parentheses
+  while (Token.token != T_RPAREN) {
 
-		// Parse the next expression and increment the expression count
-		child = binexpr(0);
-		exprcount++;
+    // Parse the next expression and increment the expression count
+    child = binexpr(0);
+    exprcount++;
 
-		// Build an A_GLUE AST node with the previous tree as the left child
-		// and the new expression as the right child. Store the expression count.
-		tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
+    // Build an A_GLUE AST node with the previous tree as the left child
+    // and the new expression as the right child. Store the expression count.
+    tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
 
-		// Must have a ',' or ')' at this point
-		switch (Token.token) {
-			case T_COMMA:
-				scan(&Token);
-				break;
-			case T_RPAREN:
-				break;
-			default:
-				fatald("Unexpected token in expression list", Token.token);
-		}
-	}
+    // Must have a ',' or ')' at this point
+    switch (Token.token) {
+      case T_COMMA:
+        scan(&Token);
+        break;
+      case T_RPAREN:
+        break;
+      default:
+        fatald("Unexpected token in expression list", Token.token);
+    }
+  }
 
-	// Return the tree of expressions
-	return (tree);
+  // Return the tree of expressions
+  return (tree);
 }
 
 // Parse a function call and return its AST
@@ -166,6 +166,14 @@ static struct ASTnode *member_access(int withpointer) {
 static struct ASTnode *postfix(void) {
 	struct ASTnode *n;
 	struct symtable *varptr;
+	struct symtable *enumptr;
+
+	// If the identifier matches an enum value,
+	// return an A_INTLIT node
+	if ((enumptr = findenumval(Text)) != NULL) {
+		scan(&Token);
+		return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->posn));
+	}
 
 	// Scan in the next token to see if we have a postfix expression
 	scan(&Token);

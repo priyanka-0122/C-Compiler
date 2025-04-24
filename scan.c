@@ -2,7 +2,7 @@
 #include "data.h"
 #include "decl.h"
 
-// Return the position of character c in string s, or -1 if c not found
+//Return the position of character c in string s, or -1 if c not found
 static int chrpos(char *s, int c) {
 	char *p;
 
@@ -10,23 +10,24 @@ static int chrpos(char *s, int c) {
 	return (p ? p - s : -1);
 }
 
+// Put back an unwanted character
 static void putback(int c) {
-	        Putback = c;
+	Putback = c;
 }
 
 // Get the next character from the input file
 static int next(void) {
 	int c;
-	if (Putback) {			// Use the character put
-		c = Putback;		// back if there is one
+	if (Putback) {			//Use the character put
+		c = Putback;		//back if there is one
 		Putback = 0;
 		return c;
 	}
 
-	c = fgetc(Infile);		// Read from input file
-	// printf("%d ",(int)c);
+	c = fgetc(Infile);		//Read from input file
+	//printf("%d ",(int)c);
 	if ('\n' == c)
-		Line++;			// Increment line count
+		Line++;			//Increment line count
 	return c;
 }
 
@@ -34,12 +35,12 @@ static int next(void) {
 static int scanint(int c) {
 	int k, val = 0;
 	 
-	// Convert each character into an int value
+	//Convert each character into an int value
 	while ((k = chrpos("0123456789", c)) >= 0) {
 		val = val * 10 + k;
 		c = next();
 	}
-	// We hit a non-integer character, put it back
+	//We hit a non-integer character, put it back
 	putback(c);
 	return val;
 }
@@ -79,12 +80,12 @@ static int scanch(void) {
 	return (c);		// Just an ordinary old character!
 }
 
-// Scan in a string literal frm the input file, and store it in buf[]. REturn the length of the string
+// Scan in a string literal from the input file, and store it in buf[]. REturn the length of the string
 static int scanstr(char *buf) {
 	int i, c;
 	
 	// Loop while we have enough buffer space
-	for (i = 0; i < TEXTLEN-1; i++) {
+	for (i = 0; i < TEXTLEN - 1; i++) {
 		// Get the next char and append to buf. Return when we hit
 		// the ending double quote
 		if ((c = scanch()) == '"') {
@@ -98,8 +99,8 @@ static int scanstr(char *buf) {
 	return (0);
 }
 	
-// Skip past input that we don't need to deal with, i.e whitespace, newlines.
-// Return the first character we do need to deal with
+//Skip past input that we don't need to deal with, i.e whitespace, newlines.
+//Return the first character we do need to deal with
 static int skip(void) {
 	int c;
 	c = next();
@@ -142,6 +143,8 @@ static int keyword( char *s) {
 		case 'e':
 			if (!strcmp(s, "else"))
 				return (T_ELSE);
+			if (!strcmp(s, "enum"))
+				return (T_ENUM);
 			break;
 		case 'f':
 			if (!strcmp(s, "for"))
@@ -165,6 +168,9 @@ static int keyword( char *s) {
 			if (!strcmp(s, "struct"))
 				return (T_STRUCT);
 			break;
+		case 't':
+			if (!strcmp(s, "typedef"))
+				return (T_TYPEDEF);
 		case 'u':
 			if (!strcmp(s, "union"))
 				return (T_UNION);
@@ -190,8 +196,8 @@ void reject_token(struct token *t) {
 	Rejtoken = t;
 }
 
-// Scan and return the next token found in the input.
-// Return 1 if the token is valid, 0 if no tokens left.
+//Scan and return the next token found in the input.
+//Return 1 if the token is valid, 0 if no tokens left.
 int scan(struct token *t) {
 	int c, tokentype;
 
@@ -332,14 +338,14 @@ int scan(struct token *t) {
 			t->token = T_STRLIT;
 			break;
 		default:
-			// If it's a digit, scan the literal integer value in
+			//If it's a digit, scan the literal integer value in
 			if (isdigit(c)) {
 				t->intvalue = scanint(c);
 				t->token = T_INTLIT;
 				break;
 			}
 			else if (isalpha(c) || '_' ==c) {
-				// Read in a keyword or identifier
+				//Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
 
 				// If it's a recognised keyword, return that token
@@ -354,6 +360,6 @@ int scan(struct token *t) {
 			// The character isn't part of any recognised token, error
 			fatalc("Unrecognised character", c);
 	}
-	// We found a token
+	//We found a token
 	return (1);
 }

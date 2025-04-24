@@ -197,8 +197,7 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 		case A_ADDR:
 			return (cgaddress(n->sym));
 		case A_DEREF:
-			// If we are an rvalue, dereference to get the value we point at otherwise leave
-			// it for A_ASSIGN to store through the pointer
+			// If we are an rvalue, dereference to get the value we point at otherwise leave it for A_ASSIGN to store through the pointer
 			if (n->rvalue)
 				return (cgderef(leftreg, n->left->type));
 			else
@@ -240,8 +239,8 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 		case A_LOGNOT:
 			return (cglognot(leftreg));
 		case A_TOBOOL:
-			// If the parent AST node is an A_IF or A_WHILE, generate a compare followed by a
-			// jump. Otherwise, set the register to 0 or 1 based on it's zeroeness or non-zeroeness
+			// If the parent AST node is an A_IF or A_WHILE, generate a compare followed by a jump. Otherwise, set the register
+			// to 0 or 1 based on it's zeroeness or non-zeroeness
 			return (cgboolean(leftreg, parentASTop, label));
 		default:
     			fatald("Unknown AST operator", n->op);

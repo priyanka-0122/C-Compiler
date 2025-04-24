@@ -11,33 +11,17 @@ comp: $(SRCS) $(HSRCS)
 compn: $(SRCN)
 	cc -D__NASM__ -o compn -g -Wall $(SRCN)
 
-comp_arm: $(ARMSRCS) $(HSRCS)
-	cc -o comp_arm -g -Wall $(ARMSRCS)
-
 clean:
 	rm -f comp comp_arm compn *.o *.s *.out out
 
 test: comp tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
 
-arm_qemu: comp_arm input01.c ./lib/printint.c
-	./comp_arm input01.c
-	arm-linux-gnueabi-gcc -o arm.out out.s ./lib/printint.c -static
-	qemu-arm-static ./arm.out
-
-armtest: comp_arm tests/runtests
-	(cd tests; chmod +x runtests_arm; ./runtests_arm)
-
 testn: compn tests/runtestsn
 	(cd tests; chmod +x runtestsn; ./runtestsn)
 
 test15: comp tests/input15.c lib/printint.c
 	./comp tests/input15.c
-	cc -o out out.s lib/printint.c
-	./out
-
-armtest14: comp_arm tests/input14 lib/printint.c
-	./comp_arm tests/input14
 	cc -o out out.s lib/printint.c
 	./out
 

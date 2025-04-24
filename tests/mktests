@@ -14,7 +14,7 @@ do if [ ! -f "out.$i" -a ! -f "err.$i" ]
      if [ ! -s "err.$i" ]
      then
         rm -f "err.$i"
-        gcc -o out $i
+        gcc -o out $i ../lib/printint.c
         ./out > "out.$i"
       fi
    fi

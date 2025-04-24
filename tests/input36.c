@@ -1,3 +1,5 @@
+int printf(char *fmt);
+
 int open(char *pathname, int flags);
 int read(int fd, char *buf, int count);
 int write(int fd, void *buf, int count);
@@ -10,7 +12,7 @@ int main() {
   int cnt;
 
   buf= "                                                             ";
-  zin = open("input30.c", 0);
+  zin = open("input36.c", 0);
   if (zin == -1) {
     return (1);
   }
