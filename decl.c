@@ -100,22 +100,6 @@ void var_declaration(int type) {
   }
 }
 
-//Parse the declaration of a variable
-/*void var_declaration(void) {
-	int id, type;
-	
-	// Get the type of the variable, which also scans in the identifier
-	type = parse_type();
-	ident();
-	
-	// Text now has the identifier's name. Add it as a known identifier and
-	// generate its space in assembly
-	id = addglob(Text, type, S_VARIABLE, 0);
-	genglobsym(id);
-	// Get the trailing semicolon
-	semi();
-}
-*/
 // Parse one or more global declarations, either variable or functions
 void global_declarations(void) {
 	struct ASTnode *tree;

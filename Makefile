@@ -19,8 +19,8 @@ clean:
 test: comp tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
 
-arm_qemu: comp_arm input01.c ./lib/printint.c
-	./comp_arm input01.c
+arm_qemu: comp_arm input08.c ./lib/printint.c
+	./comp_arm input08.c
 	arm-linux-gnueabi-gcc -o arm.out out.s ./lib/printint.c -static
 	qemu-arm-static ./arm.out
 

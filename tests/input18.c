@@ -1,22 +1,16 @@
-int a;
-
-int add()
-{
-	int c;
-	c = 10;
-	c = c + a;
-	printint(c);
-	return(c);
-}
+long c;
+long d;
+long *e;
+long f;
 
 int main() {
-	int b;
-	b = 3;
-	a = 5;
-	b = b + a;
-	printint(b);
-	b = add(b) + b;
-	printint(b);
-	printint(a);
-	return (0);
+  	c = 12;
+	printint(c);
+	d = 13;
+	printint(d);
+	e = &c;
+	printint(e);
+	e = &c + 1;
+	printint(e);
+  	return(0);
 }

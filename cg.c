@@ -20,11 +20,11 @@ static int alloc_register(void)
 	for (int i = 0; i < 4; i++) {
 		if (freereg[i]) {
 			freereg[i] = 0;
-			return(i);
+			return (i);
 		}
 	}
 	fatal("Out of registers!");
-	return (NOREG);
+	return (NOREG);		// Keep -Wall happy
 }
 
 // Return a register to the list of available registers. Check to see if it's not already there
@@ -60,7 +60,7 @@ void cgfuncpreamble(int id) {
 // Print out a function postamble
 void cgfuncpostamble(int id) {
 	cglabel(Gsym[id].endlabel);
-	fputs("\tpopq %rbp\n" "\tret\n", Outfile);
+  	fputs("\tpopq %rbp\n" "\tret\n", Outfile);
 }
 
 // Load an integer literal value into a register. Return the number of the register
@@ -74,18 +74,36 @@ int cgloadint(int value, int type) {
 	return(r);
 }
 
+// Load a value from a variable into a register. Return the number of the register
+int cgloadglob(int id) {
+	// Get a new register
+	int r = alloc_register();
+
+	// Print out the code to initialise it
+	switch (Gsym[id].type) {
+		case P_CHAR:
+			fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+			break;
+		case P_INT:
+			fprintf(Outfile, "\tmovzb\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+			break;
+		case P_LONG:
+		case P_CHARPTR:
+		case P_INTPTR:
+		case P_LONGPTR:
+			fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+			break;
+		default:
+			fatald("Bad type in cgloadglob:", Gsym[id].type);
+	}
+	return (r);
+}
+
 // Add two registers together and return the number of the register with the result
 int cgadd(int r1, int r2) {
 	fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
 	free_register(r1);
-	return(r2);
-}
-
-// Multiply two registers together and return the number of the register with the result
-int cgmul(int r1, int r2) {
-	fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
-	free_register(r1);
-	return(r2);
+	return (r2);
 }
 
 // Subtract the second register from the first and return the number of the register with the result
@@ -93,6 +111,13 @@ int cgsub(int r1, int r2) {
 	fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
 	free_register(r2);
 	return (r1);
+}
+
+// Multiply two registers together and return the number of the register with the result
+int cgmul(int r1, int r2) {
+	fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
+	free_register(r1);
+	return (r2);
 }
 
 // Divide the first register by the second and return the number of the register with the result
@@ -126,50 +151,10 @@ int cgcall(int r, int id) {
 	return (outr);
 }
 
-// Array of type sizes in P_XXX order. 0 means no size.
-//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG, P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
-static int psize[] = { 0, 0, 1, 4, 8, 8, 8, 8};
-
-// Given a P_XXX type value, return the size of a primitive type in bytes.
-int cgprimsize(int type) {
-	// Check the type is valid
-	if (type < P_NONE || type > P_LONGPTR)
-		fatal("Bad type in cgprimsize()");
-	return (psize[type]);
-}
-
-// Generate a global symbol
-void cgglobsym(int id) {
-	int typesize;
-	// Get the size of the type
-	typesize = cgprimsize(Gsym[id].type);
-
-	fprintf(Outfile, "\t.comm\t%s,%d,%d\n", Gsym[id].name, typesize, typesize);
-}
-
-// Load a value from a variable into a register. Return the number of the register
-int cgloadglob(int id) {
-	// Get a new register
-	int r = alloc_register();
-
-	// Print out the code to initialise it
-	switch (Gsym[id].type) {
-		case P_CHAR:
-			fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
-			break;
-		case P_INT:
-			fprintf(Outfile, "\tmovzb\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
-			break;
-		case P_LONG:
-		case P_CHARPTR:
-		case P_INTPTR:
-		case P_LONGPTR:
-			fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
-			break;
-		default:
-			fatald("Bad type in cgloadglob:", Gsym[id].type);
-	}
-	return (r);
+// Shift a register left by a constant
+int cgshlconst(int r, int val) {
+	fprintf(Outfile, "\tsalq\t$%d, %s\n", val, reglist[r]);
+	return(r);
 }
 
 // Store a register's value into a variable
@@ -193,8 +178,42 @@ int cgstorglob(int r, int id) {
 	return (r);
 }
 
+// Array of type sizes in P_XXX order. 0 means no size.
+//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG, P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
+static int psize[] = { 0, 0, 1, 4, 8, 8, 8, 8, 8};
+
+// Given a P_XXX type value, return the size of a primitive type in bytes.
+int cgprimsize(int type) {
+	// Check the type is valid
+	if (type < P_NONE || type > P_LONGPTR)
+		fatal("Bad type in cgprimsize()");
+	return (psize[type]);
+}
+
+// Generate a global symbol
+void cgglobsym(int id) {
+	int typesize;
+	// Get the size of the type
+	typesize = cgprimsize(Gsym[id].type);
+
+	fprintf(Outfile, "\t.data\n" "\t.globl\t%s\n", Gsym[id].name);
+	switch(typesize) {
+    		case 1:
+			fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[id].name);
+			break;
+    		case 4:
+			fprintf(Outfile, "%s:\t.long\t0\n", Gsym[id].name);
+			break;
+    		case 8:
+			fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[id].name);
+			break;
+    		default:
+			fatald("Unknown typesize in cgglobsym: ", typesize);
+  	}
+}
+
 // List of comparisons instructions in AST order:
-//			     A_EQ,  A_NE,    A_LT,   A_GT,    A_LE, A_GE
+//			     A_EQ,  A_NE,    A_LT,   A_GT,    A_LE, 	A_GE
 static char *cmplist[] = { "sete", "setne", "setl", "setg", "setle", "setge"};
 
 // Compare two registers and set if true.
@@ -211,7 +230,7 @@ int cgcompare_and_set(int ASTop, int r1, int r2) {
 
 // Generate a label
 void cglabel(int l) {
-	fprintf(Outfile, "L%d:\n",l);
+	fprintf(Outfile, "L%d:\n", l);
 }
 
 // Generate a jump to a label

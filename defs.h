@@ -40,7 +40,7 @@ enum {
 	A_INTLIT,
 	A_IDENT, A_LVIDENT, A_ASSIGN, A_PRINT, A_GLUE,
 	A_IF, A_WHILE, A_FUNCTION, A_WIDEN, A_RETURN,
-	A_FUNCCALL, A_DEREF, A_ADDR
+	A_FUNCCALL, A_DEREF, A_ADDR, A_SCALE
 };
 
 // Primitive types
@@ -62,10 +62,11 @@ struct ASTnode {
 	struct ASTnode *mid;		// Middle child tree
 	struct ASTnode *right;		// Right child tree
 	
-	union {
-		int intvalue;		// For A_INTLIT, the integer value
-		int id;			// For A_IDENT, the symbol slot number
-	} v;
+	union {				// For A_INTLIT, the integer value
+		int intvalue;		// For A_IDENT, the symbol slot number
+		int id;			// For A_FUNCTION, the symbol slot number
+		int size;		// For A_SCALE, the size to scale by
+	} v;				// For A_FUNCCALL, the symbol slot number
 };
 
 #define NOREG	-1	// Use NOREG when the AST generation functions have no register to return
