@@ -158,6 +158,18 @@ static int gen_funccall(struct ASTnode *n) {
 	return (cgcall(n->sym, numargs));
 }
 
+// Generate code for a ternary expression if true and false is constant numbers
+static int gen_ternary_constant(struct ASTnode *n) {
+	int reg, reg1, reg2;
+
+	genfreeregs(NOREG);
+	reg1 = cgloadint(n->mid->a_intvalue, n->mid->type);
+	reg2 = cgloadint(n->right->a_intvalue, n->right->type);
+
+	reg = genAST(n->left, NOLABEL, reg1, reg2, n->op);
+	return (reg);
+}
+
 // Generate code for a ternary expression
 static int gen_ternary(struct ASTnode *n) {
 	int Lfalse = NOLABEL, Lend = NOLABEL;
@@ -241,6 +253,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		case A_FUNCCALL:
 			return (gen_funccall(n));
 		case A_TERNARY:
+			if ((n->mid->op == A_INTLIT) && (n->right->op == A_INTLIT))
+				return (gen_ternary_constant(n));
 			return (gen_ternary(n));
 		case A_GLUE:
 			// Do each child statement, and free the
@@ -296,10 +310,15 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			// 1 or 0 based on the comparison.
 			if (parentASTop == A_IF || parentASTop == A_WHILE ||
 			    parentASTop == A_TERNARY) {
-				if (iflabel == 0)
-					return (cgcompare_and_move(n->op, leftreg, rightreg));
-				else
+				// iflabel is set to 0 only in the case where parentASTop is A_TERNARY and the true and false value is
+				// anything apart from constant(e.g. ? 1 : 2;) and same as comparison variables(e.g a>b ? a : b;)
+				if (iflabel == 0) {
+					// looptoplabel and loopendlabel holds the const1's and const2's register value respectively
+					// in the case where both true and false value is a constant
+					return (cgcompare_and_move(n->op, leftreg, rightreg, looptoplabel, loopendlabel));
+				} else {
 					return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel));
+				}
 			} else
 				return (cgcompare_and_set(n->op, leftreg, rightreg));
   		case A_INTLIT:

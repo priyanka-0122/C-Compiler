@@ -57,7 +57,7 @@ void cgglobsym(struct symtable *node);
 void cgglobstr(int l, char *strvalue);
 int cgcompare_and_set(int ASTop, int r1, int r2);
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
-int cgcompare_and_move(int ASTop, int r1, int r2);
+int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2);
 void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);

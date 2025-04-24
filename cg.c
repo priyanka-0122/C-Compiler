@@ -597,14 +597,21 @@ static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 static char *cmovlist[] = { "cmovne", "cmove", "cmovle", "cmovge", "cmovle", "cmovge" };
 
 // Compare two registers and move
-int cgcompare_and_move(int ASTop, int r1, int r2) {
+// perform a little differently incase if gen_ternary_constant call
+// const1 and const2 are true and false constant respectively
+int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2) {
 
 	// Check the range of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
 		fatal("Bad ASTop in cgcompare_and_jump()");
 
 	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r1], reglist[r2]);
-	fprintf(Outfile, "\t%s\t%s, %s\n", cmovlist[ASTop - A_EQ], reglist[r2], reglist[r1]);
+	if (const1 == const2)
+		fprintf(Outfile, "\t%s\t%s, %s\n", cmovlist[ASTop - A_EQ], reglist[r2], reglist[r1]);
+	else {
+		fprintf(Outfile, "\t%s\t%s, %s\n", cmovlist[ASTop - A_EQ], reglist[const2], reglist[const1]);
+		r1 = const1;
+	}		
 	freeall_registers(r1);
 	return (r1);
 }
