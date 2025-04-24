@@ -43,7 +43,7 @@ int cggetlocaloffset(int type, int isparam, int size);
 
 //decl.c
 int parse_type(void);
-void var_declaration(int type, int islocal);
+void var_declaration(int type, int islocal, int isparam);
 struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
@@ -91,6 +91,7 @@ int findlocl(char *s);
 int findsymbol(char *s);
 int addglob(char *name, int type, int stype, int endlabel, int size);
 int addlocl(char *name, int type, int stype, int endlabel, int size);
+void freeloclsyms(void);
 
 //tree.c
 struct ASTnode *mkastnode (int op, int type, struct ASTnode *left, struct ASTnode *mid, struct ASTnode *right, int intvalue);

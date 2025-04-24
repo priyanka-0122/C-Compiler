@@ -1,6 +1,7 @@
+int a[3];
+
 void main()
 {
-        int a[3];
         int b , c , d ,e , f;
         a[1] = 200;
         a[0] = 100;

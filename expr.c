@@ -126,8 +126,7 @@ static struct ASTnode *primary(void) {
 			break;
 		
 		case T_STRLIT:
-			// For a STRLIT token, generate the assembly for it.
-			// Then make a leaf AST node for it. id is the string's
+			// For a STRLIT token, generate the assembly for it. Then make a leaf AST node for it. id is the string's
 			id = genglobstr(Text);
 			n = mkastleaf(A_STRLIT, P_CHARPTR, id);
 			break;

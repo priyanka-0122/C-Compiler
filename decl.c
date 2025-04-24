@@ -34,11 +34,96 @@ int parse_type(void) {
 	return (type);
 }
 
+// Parse the declaration of a scalarvariable or an array with a given size. The identifier has
+// been scanned & we have the type
+// islocal is set if this is a local variable
+// isparam is set if this local variable is a function parameter
+void var_declaration(int type, int islocal, int isparam) {
+
+	// Text now has the identifier's name. If the next token is a '['
+	if (Token.token == T_LBRACKET) {
+		// Skip past the '['
+		scan(&Token);
+
+		// Check we have an array size
+		if (Token.token == T_INTLIT) {
+			// Add this as a known array and generate its apace in assembly.
+			// We treat the array as a pointer to its elements' type
+			if (islocal) {
+				fatal("For now, declaration of local arrays is not implemented");
+				//addlocl(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+			} else {
+				addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+			}
+		}
+	
+		// Ensure we have a following ']'
+		scan(&Token);
+		match(T_RBRACKET, "]");
+
+	} else {
+    		while(1) {
+			// Add this as a known scalar and generate its space in assembly
+			if (islocal) {
+				if (addlocl(Text, type, S_VARIABLE, isparam, 1) == -1)
+					fatals("Duplicate local variable declaration", Text);
+			} else {
+				addglob(Text, type, S_VARIABLE, 0, 1);
+			}
+
+			if (!isparam) {
+				// If the next token is a semicolon, return.
+				if (Token.token == T_SEMI) {
+					return;
+				}
+				// If the next token is a comma, skip it, get the identifier and loop back
+    				if (Token.token == T_COMMA) {
+      					scan(&Token);
+      					ident();
+      					continue;
+    				}
+    				fatal("Missing , or ; after identifier");
+			} else {
+				break;
+			}
+		}		
+	}
+}
+
+// Parse the parameters in parantheses after the function name. Add them as symbols to the symbol table
+// and return the number of parameters.
+static int param_declaration(void) {
+	int type, paramcnt = 0;
+
+	// Loop until the final right parantheses
+	while (Token.token != T_RPAREN) {
+		// Get the type and identifier and ass it to the symbol table
+		type = parse_type();
+		ident();
+		var_declaration(type, 1, 1);
+		paramcnt++;
+
+		// Must have a ',' or ')' at this point
+		switch (Token.token) {
+			case T_COMMA:
+				scan(&Token);
+				break;
+			case T_RPAREN:
+				break;
+			default:
+				fatald("Unexpected token in parameter list", Token.token);
+		}
+	}
+
+	// Return the count of parameters
+	return (paramcnt);
+}
+
 // For now we have a vwery simplistic function declaration grammar
 // Parse the declaration of a simplistic function
 struct ASTnode *function_declaration(int type) {
 	struct ASTnode *tree, *finalstmt;
-	int nameslot, endlabel;
+	int nameslot, endlabel, paramcnt;
 
 	// Get a label id for the end label, add the function to the symbol table, and set the 
 	// Functionid global to the function's symbol id
@@ -46,10 +131,11 @@ struct ASTnode *function_declaration(int type) {
 	nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
 	Functionid = nameslot;
 
-	genresetlocals();	// Reset position of new locals
-
-	// Scan in the parantheses
+	// Scan in the parantheses and any parameters
+	// Update the function symbol entry with the number of parameters
 	lparen();
+	paramcnt = param_declaration();
+	Symtable[nameslot].nelems = paramcnt;
 	rparen();
 
 	// Get the AST tree for the compound statement
@@ -73,57 +159,6 @@ struct ASTnode *function_declaration(int type) {
 	return(mkastunary(A_FUNCTION, type, tree, nameslot));
 }
 
-// Parse the declaration of a list of variables.
-// The identifier has been scanned & we have the type
-void var_declaration(int type, int islocal) {
-
-	// Text now has the identifier's name. If the next token is a '['
-	if (Token.token == T_LBRACKET) {
-		// Skip past the '['
-		scan(&Token);
-
-		// Check we have an array size
-		if (Token.token == T_INTLIT) {
-			// Add this as a known array and generate its apace in assembly.
-			// We treat the array as a pointer to its elements' type
-			if (islocal) {
-				addlocl(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
-			} else {
-				addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
-			}
-		}
-	
-		// Ensure we have a following ']'
-		scan(&Token);
-		match(T_RBRACKET, "]");
-
-	} else {
-    		while(1) {
-			// Add this as a known scalar and generate its space in assembly
-			if (islocal) {
-				addlocl(Text, type, S_VARIABLE, 0, 1);
-			} else {
-				addglob(Text, type, S_VARIABLE, 0, 1);
-			}
-
-			// If the next token is a semicolon, skip it and return.
-			if (Token.token == T_SEMI) {
-				scan(&Token);
-				return;
-			}
-			// If the next token is a comma, skip it, get the identifier and loop back
-    				if (Token.token == T_COMMA) {
-      					scan(&Token);
-      					ident();
-      					continue;
-    				}
-    				fatal("Missing , or ; after identifier");
-			}		
-	}
-	// Get the trailing semicolon
-	semi();
-}
-
 // Parse one or more global declarations, either variable or functions
 void global_declarations(void) {
 	struct ASTnode *tree;
@@ -143,12 +178,15 @@ void global_declarations(void) {
 				dumpAST(tree, NOLABEL, 0);
 				fprintf(stdout, "\n\n");
 			}
-
-			genAST(tree, NOREG, 0);
+			genAST(tree, NOLABEL, 0);
+			
+			// Now free the symbola associated with this function
+			freeloclsyms();
 		} else {
 
-			// Parse the global variable declaration
-			var_declaration(type, 0);
+			// Parse the global variable declaration and skip past the trailing semicolon
+			var_declaration(type, 0, 0);
+			semi();
 		}
 	
 		// Stop when we have reached EOF
