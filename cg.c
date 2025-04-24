@@ -90,7 +90,6 @@ void freeall_registers(void) {
 }
 
 // Allocate a free register. Return the number of the register. Die if no available registers.
-
 static int alloc_register(void) {
 	for (int i = 0; i < NUMFREEREGS; i++) {
 		if (freereg[i]) {
@@ -104,7 +103,6 @@ static int alloc_register(void) {
 
 // Return a register to the list of available registers. Check to see if it's not already there
 static void free_register(int reg) {
-
 	if (freereg[reg] != 0)
 		fatald("Error trying to free register", reg);
 	freereg[reg] = 1;
@@ -148,7 +146,7 @@ void cgfuncpreamble(struct symtable *sym) {
 			parm->posn = newlocaloffset(parm->type);
 			cgstorlocal(paramReg--, parm);
 		}
-  }
+	}
 	
 	// For the remainder, if they are a parameter then they are already on the stack. If only a local,
 	// make a stack position
@@ -208,7 +206,7 @@ int cgloadglob(struct symtable *sym, int op) {
 					fprintf(Outfile, "\tincb\t%s(%%rip)\n", sym->name);
 				if (op == A_POSTDEC)
 					fprintf(Outfile, "\tdecb\t%s(%%rip)\n", sym->name);
-  			break;
+				break;
 
 			case P_INT:
 				if (op == A_PREINC)
@@ -310,9 +308,9 @@ int cgmul(int r1, int r2) {
 // Divide the first register by the second and return the number of the register with the result
 int cgdiv(int r1, int r2) {
 	fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[r1]);	//dividend is loaded to %rax
-	fprintf(Outfile, "\tcqo\n");				                  //cqo is used to extend to eight bytes
-	fprintf(Outfile, "\tdivq\t%s\n", reglist[r2]);		    //idivq divides the content in %rax with 
-								                                         //the r2 and stores quotient in %rax
+	fprintf(Outfile, "\tcqo\n");				//cqo is used to extend to eight bytes
+	fprintf(Outfile, "\tdivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax with 
+								//the r2 and stores quotient in %rax
 	fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
 	free_register(r2);
 	return (r1);
@@ -492,7 +490,7 @@ void cgglobsym(struct symtable *node) {
 				for (int i = 0; i < size; i++)
 					fprintf(Outfile, "\t.byte\t0\n");
 		}
-  }
+  	}
 }
 
 // Generate a global string and its start label
@@ -625,6 +623,9 @@ int cgstorderef(int r1, int r2, int type) {
 		case 8:
 			fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
 			break;
+//		case P_LONG:
+//			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+//			break;
 		default:
 			fatald("Can't cgstoderef on type:", type);
 	}

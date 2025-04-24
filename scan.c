@@ -84,18 +84,18 @@ static int scanstr(char *buf) {
 	int i, c;
 	
 	// Loop while we have enough buffer space
-	for (i = 0; i <TEXTLEN-1; i++) {
+	for (i = 0; i < TEXTLEN-1; i++) {
 		// Get the next char and append to buf. Return when we hit
 		// the ending double quote
 		if ((c = scanch()) == '"') {
 			buf[i] = 0;
-			return(i);
+			return (i);
 		}
 		buf[i] = c;
 	}
 	// Ran out of buf[] space
 	fatal("String literal too long");
-	return(0);
+	return (0);
 }
 	
 //Skip past input that we don't need to deal with, i.e whitespace, newlines.
@@ -113,7 +113,7 @@ static int skip(void) {
 static int scanident(int c, char *buf, int lim) {
 	int i = 0;
 
-	// Allow digits , alpha and underscores
+	// Allow digits, alpha and underscores
 	while (isalpha(c) || isdigit(c) || '_' == c) {
 		// Error if we hit the identifier length limit, else append to buf[] and get next character
 		if (lim -1 == i) {
@@ -125,7 +125,7 @@ static int scanident(int c, char *buf, int lim) {
 		}
 		c = next();
 	}
-	// We hit a non-valid character, put it back. NULL-terminate teh buf[] and return the length
+	// We hit a non-valid character, put it back. NULL-terminate the buf[] and return the length
 	putback(c);
 	buf[i] = '\0';
 	return (i);
@@ -218,6 +218,8 @@ int scan(struct token *t) {
 		case '-':
 			if ((c = next()) == '-') {
 				t->token = T_DEC;
+			} else if (c == '>') {
+				t->token = T_ARROW;
 			} else {
 				putback(c);
 				t->token = T_MINUS;
@@ -258,6 +260,9 @@ int scan(struct token *t) {
 			break;
 		case ',':
 			t->token = T_COMMA;
+			break;
+		case '.':
+			t->token = T_DOT;
 			break;
 		case '=':
 			if ((c =next()) == '=') {

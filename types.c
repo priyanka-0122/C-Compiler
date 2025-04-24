@@ -3,6 +3,7 @@
 #include "decl.h"
 
 // Types and type handling
+
 // Return true if a type is an int type of any size, false otherwise
 int inttype(int type) {
 	return ((type & 0xf) == 0);
@@ -54,22 +55,22 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 	// Compare scalar int types
 	if (inttype(ltype) && inttype(rtype)) {
 
-    // Both types same, nothing to do
-  	if (ltype == rtype)
-		  return (tree);
+  		// Both types same, nothing to do
+  		if (ltype == rtype)
+			return (tree);
 
 		// Get the sizes for each type
-  	lsize = typesize(ltype, NULL);	// XXX Fix soon
-  	rsize = typesize(rtype, NULL);	// XXX Fix soon
+  		lsize = typesize(ltype, NULL);	// XXX Fix soon
+  		rsize = typesize(rtype, NULL);	// XXX Fix soon
 
 		// Tree's size is too big
 		if (lsize > rsize)
-		  return (NULL);
+			return (NULL);
 
 		// Widen to the right
 		if (rsize > lsize)
-		  return (mkastunary(A_WIDEN, rtype, tree, NULL, 0));
-  }
+			return (mkastunary(A_WIDEN, rtype, tree, NULL, 0));
+	}
 	// For pointers on the left
 	if (ptrtype(ltype)) {
 		// OK is same type on right and not doing a binary op

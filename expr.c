@@ -107,10 +107,58 @@ static struct ASTnode *array_access(void) {
   	right = modify_type(right, left->type, A_ADD);
 
   	// Return an AST tree where the array's base has the offset added to it, and dereference the element.
-	  // Still an lvalue at this point.
+	// Still an lvalue at this point.
   	left = mkastnode(A_ADD, aryptr->type, left, NULL, right, NULL, 0);
   	left = mkastunary(A_DEREF, value_at(left->type), left, NULL, 0);
   	return (left);
+}
+
+// Parse the member reference of a struct (or union, soon) and return an AST tree for it.
+// If withpointer is true, the access is through a pointer to the member.
+static struct ASTnode *member_access(int withpointer) {
+	struct ASTnode *left, *right;
+	struct symtable *compvar;
+	struct symtable *typeptr;
+	struct symtable *m;
+
+	// Check that the identifier has been declared as a struct (or a union, later),
+	// or a struct/union pointer
+	if ((compvar = findsymbol(Text)) == NULL)
+		fatals("Undeclared variable", Text);
+	if (withpointer && compvar->type != pointer_to(P_STRUCT))
+		fatals("Undeclared variable", Text);
+	if (!withpointer && compvar->type != P_STRUCT)
+		fatals("Undeclared variable", Text);
+
+	// If a pointer to a struct, get the pointer's value. Otherwise, make a leaf node that points at the base
+	if (withpointer)
+		left = mkastleaf(A_IDENT, pointer_to(P_STRUCT), compvar, 0);
+	else
+		left = mkastleaf(A_ADDR, compvar->type, compvar, 0);
+	left->rvalue = 1;
+
+	// Get the details of the composite type
+	typeptr = compvar->ctype;
+
+	// Skip the '.' or '->' token and get the member's name
+	scan(&Token);
+	ident();
+
+	// Find the matching member's name in the type.  Die if we can't find it
+	for (m = typeptr->member; m != NULL; m = m->next)
+		if (!strcmp(m->name, Text))
+			break;
+
+	if (m == NULL)
+		fatals("No member found in struct/union: ", Text);
+
+	// Build an A_INTLIT node with the offset
+	right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
+
+	// Add the member's offset to the base of the struct and dereference it. Still an lvalue at this point
+	left = mkastnode(A_ADD, pointer_to(m->type), left, NULL, right, NULL, 0);
+	left = mkastunary(A_DEREF, m->type, left, NULL, 0);
+	return (left);
 }
 
 // Parse a postfix expression and return an AST node representing it. The identifier is already in Text
@@ -128,6 +176,12 @@ static struct ASTnode *postfix(void) {
 	// An array reference
 	if (Token.token == T_LBRACKET)
 		return (array_access());
+
+	// Access into a struct or union
+	if (Token.token == T_DOT)
+		return (member_access(0));
+	if (Token.token == T_ARROW)
+		return (member_access(1));
 
 	// A variable. Check that the variable exists.
 	if ((varptr = findsymbol(Text)) == NULL || varptr->stype != S_VARIABLE)
@@ -336,7 +390,9 @@ struct ASTnode *binexpr(int ptp) {
 
 	// Get the tree on the left. Fetch the next token at the same time.
 	left = prefix();
-  tokentype = Token.token;
+
+	// If we hit one of several terminating tokens, return just the left node
+  	tokentype = Token.token;
   	
 	// If we hit a semicolon or ')', return just the left node
   	if (tokentype == T_SEMI || tokentype == T_RPAREN ||

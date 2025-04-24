@@ -48,28 +48,26 @@ static int gendumplabel(void) {
 
 void dumpAST(struct ASTnode *n, int label, int level) {
 	int Lfalse, Lstart, Lend;
-
 	switch (n->op) {
 		case A_IF:
       			Lfalse = gendumplabel();
       			for (int i = 0; i < level; i++)
-				      fprintf(stdout, " ");
+				fprintf(stdout, " ");
       			fprintf(stdout, "A_IF");
       			if (n->right) {
-				      Lend = gendumplabel();
+				Lend = gendumplabel();
         			fprintf(stdout, ", end L%d", Lend);
       			}
       			fprintf(stdout, "\n");
-
       			dumpAST(n->left, Lfalse, level + 2);
       			dumpAST(n->mid, NOLABEL, level + 2);
       			if (n->right)
-				      dumpAST(n->right, NOLABEL, level + 2);
+				dumpAST(n->right, NOLABEL, level + 2);
       			return;
     		case A_WHILE:
       			Lstart = gendumplabel();
       			for (int i = 0; i < level; i++)
-				      fprintf(stdout, " ");
+				fprintf(stdout, " ");
       			fprintf(stdout, "A_WHILE, start L%d\n", Lstart);
       			Lend = gendumplabel();
       			dumpAST(n->left, Lend, level + 2);

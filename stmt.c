@@ -135,8 +135,7 @@ static struct ASTnode *single_statement(void) {
       			type = parse_type(&ctype);
       			ident();
       			var_declaration(type, ctype, C_LOCAL);
-
-      semi();
+			semi();
 			return (NULL);			// No AST generated here
 		case T_IF:
 			return (if_statement());
