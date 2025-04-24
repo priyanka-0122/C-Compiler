@@ -127,13 +127,13 @@ int cgcall(int r, int id) {
 }
 
 // Array of type sizes in P_XXX order. 0 means no size.
-//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG
-static int psize[] = { 0,      0,      1,     4,     8};
+//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG, P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
+static int psize[] = { 0, 0, 1, 4, 8, 8, 8, 8};
 
 // Given a P_XXX type value, return the size of a primitive type in bytes.
 int cgprimsize(int type) {
 	// Check the type is valid
-	if (type < P_NONE || type > P_LONG)
+	if (type < P_NONE || type > P_LONGPTR)
 		fatal("Bad type in cgprimsize()");
 	return (psize[type]);
 }
@@ -161,6 +161,9 @@ int cgloadglob(int id) {
 			fprintf(Outfile, "\tmovzb\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
 			break;
 		case P_LONG:
+		case P_CHARPTR:
+		case P_INTPTR:
+		case P_LONGPTR:
 			fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
 			break;
 		default:
@@ -179,6 +182,9 @@ int cgstorglob(int r, int id) {
 			fprintf(Outfile, "\tmovl\t%s, %s(\%%rip)\n", dreglist[r], Gsym[id].name);
 			break;
 		case P_LONG:
+		case P_CHARPTR:
+		case P_INTPTR:
+		case P_LONGPTR:
 			fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
 			break;
 		default:
@@ -252,4 +258,28 @@ void cgreturn(int reg, int id) {
 			fatald("Bad function type in cgreturn:", Gsym[id].type);
 	}
 	cgjump(Gsym[id].endlabel);
+}
+
+// Generate code to load the address of a global identifier into a variable. Return a new register
+int cgaddress(int id) {
+	int r = alloc_register();
+
+	fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", Gsym[id].name, reglist[r]);	//leaq loads the address of the named identifier
+	return (r);
+}
+
+// Dereference a pointer to get the value it is pointing at into the same register
+int cgderef(int r, int type) {
+	switch (type) {
+		case P_CHARPTR:
+			fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
+			break;
+		case P_INTPTR:
+			fprintf(Outfile, "\tmovzb\t(%s), %s\n", reglist[r], reglist[r]);
+			break;
+		case P_LONGPTR:
+			fprintf(Outfile, "\tmovzb\t(%s), %s\n", reglist[r], reglist[r]);
+			break;
+	}
+	return (r);
 }

@@ -42,7 +42,7 @@ static void set_int_offset(int val) {
 
 	// See if it is already there
 	for (int i = 0; i < Intslot; i++) {
-		if (Intlist[i] == val) {
+		if ( Intlist[i] == val) {
 			offset = 4 * i;
 			break;
 		}
@@ -73,7 +73,7 @@ void cgpostamble() {
 	fprintf(Outfile, ".L2:\n");
 	for (int i = 0; i < Globs; i++) {
 		if (Gsym[i].stype == S_VARIABLE)
-		fprintf(Outfile, "\t.word %s\n", Gsym[i].name);
+		fprintf(Outfile, "\t.word %s\n", Gsym[i]. name);
 	}
 
 	// Print out the integer literals
@@ -139,7 +139,15 @@ int cgloadglob(int id) {
 
 	// Get the offset to the variable
 	set_var_offset(id);
-	fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r]);
+	
+	switch (Gsym[id].type) {
+		case P_CHAR:
+			fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r]);
+			break;
+		default:
+			fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
+			break;
+	}
   	return (r);
 }
 
@@ -174,7 +182,7 @@ int cgdiv(int r1, int r2) {
 	return(r1);
 }
 
-// Call printint() with the register
+// Call printint() with the given register
 void cgprintint(int r) {
 	fprintf(Outfile, "\tmov\tr0, %s\n", reglist[r]);
 	fprintf(Outfile, "\tbl\tprintint\n");
@@ -191,13 +199,13 @@ int cgcall(int r, int id) {
 }
 
 // Array of type sizes in P_XXX order. 0 means no size.
-//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG
-static int psize[] = { 0,      0,      1,     4,     4};
+//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG, P_CHARPTR, P_INTPTR, P_LONGPTR
+static int psize[] = { 0,      0,      1,     4,      4,	 4,	   4,	     4};
 
 // Given a P_XXX type value, return the size of a primitive type in bytes.
 int cgprimsize(int type) {
 	// Check the type is valid
-  	if (type < P_NONE || type > P_LONG)
+  	if (type < P_NONE || type > P_LONGPTR)
     		fatal("Bad type in cgprimsize()");
   	return (psize[type]);
 }
@@ -223,10 +231,13 @@ int cgstorglob(int r, int id) {
 			break;
     		case P_INT:
     		case P_LONG:
+		case P_CHARPTR:
+		case P_INTPTR:
+		case P_LONGPTR:
       			fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r]);
       			break;
     		default:
-      			fatald("Bad type in cgloadglob:", Gsym[id].type);
+      			fatald("Bad type in cgstorglob:", Gsym[id].type);
   	}
   	return (r);
 }
@@ -244,17 +255,19 @@ int cgcompare_and_set(int ASTop, int r1, int r2) {
 	//Check two randge of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
 		fatal("Bad ASTop in cgcompare_and_set()");
+
 	fprintf(Outfile, "\tcmp\t%s, %s\n", reglist[r1], reglist[r2]);
 	fprintf(Outfile, "\t%s\t%s, #1\n", cmplist[ASTop - A_EQ], reglist[r2]);
 	fprintf(Outfile, "\t%s\t%s, #0\n", invcmplist[ASTop - A_EQ], reglist[r2]);
 	fprintf(Outfile, "\tand\t%s, #255\n", reglist[r2]);
+//	fprintf(Outfile, "\tuxtb\t%s, %s\n", reglist[r2], reglist[r2]);
 	free_register(r1);
 	return (r2);
 }
 
 // Generate a label
 void cglabel(int l) {
-	fprintf(Outfile, "L%d:\n",l);
+	fprintf(Outfile, "L%d:\n", l);
 }
 
 // Generate a jump to a label
@@ -262,15 +275,16 @@ void cgjump(int l) {
 	fprintf(Outfile, "\tb\tL%d\n", l);
 }
 
-// List of inverted branch instructions, in ASR order:
+// List of inverted branch instructions, in AST order:
 //			  A_EQ,  A_NE,  A_LT,  A_LE,  A_LE, A_GE
 static char *brlist[] = { "bne", "beq", "bge", "ble", "bgt", "blt" };
 
 // Compare two registers and jump if false.
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
+
 	// Check the range of the AST operation
-	if(ASTop < A_EQ || ASTop > A_GE)
-		fatal("Bad ASTop in cgcompare_and_Set()");
+	if (ASTop < A_EQ || ASTop > A_GE)
+		fatal("Bad ASTop in cgcompare_and_set()");
 
 	fprintf(Outfile, "\tcmp\t%s, %s\n", reglist[r1], reglist[r2]);
 	fprintf(Outfile, "\t%s\tL%d\n", brlist[ASTop - A_EQ], label);
@@ -289,3 +303,32 @@ void cgreturn(int reg, int id) {
 	fprintf(Outfile, "\tmov\tr0, %s\n", reglist[reg]);
   	cgjump(Gsym[id].endlabel);
 }
+
+// Generate code to load the address of a global identifier int a variable.
+// Return a new register
+int cgaddress(int id) {
+	// Get a new register
+	int r = alloc_register();
+	
+	// Get the offset to the variable
+	set_var_offset(id);
+	fprintf(Outfile, "\tmov\t%s, r3\n", reglist[r]);
+	return (r);
+}
+// Dereference a pointer to get the value it is pointing at into the same register
+int cgderef(int r, int type) {
+	switch (type) {
+		case P_CHARPTR:
+			fprintf(Outfile, "\tldrb\t%s, [%s]\n", reglist[r], reglist[r]);
+			break;
+		case P_INTPTR:
+			fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
+			break;
+		case P_LONGPTR:
+			fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
+			break;
+	}
+	return (r);
+}
+
+

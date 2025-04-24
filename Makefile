@@ -19,23 +19,23 @@ clean:
 test: comp tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
 
-arm_qemu: comp_arm ./tests/input02 ./lib/printint.c
-	./comp_arm ./tests/input02
+arm_qemu: comp_arm input01.c ./lib/printint.c
+	./comp_arm input01.c
 	arm-linux-gnueabi-gcc -o arm.out out.s ./lib/printint.c -static
 	qemu-arm-static ./arm.out
 
-armtest: comp_arm tests/armtests
-	(cd tests; chmod +x armtests; ./armtests)
+armtest: comp_arm tests/runtests
+	(cd tests; chmod +x runtests_arm; ./runtests_arm)
 
 testn: compn tests/runtestsn
 	(cd tests; chmod +x runtestsn; ./runtestsn)
 
-test14: comp tests/input14 lib/printint.c
-	./comp tests/input14
+test15: comp tests/input15.c lib/printint.c
+	./comp tests/input15.c
 	cc -o out out.s lib/printint.c
 	./out
 
-armtest14: comp1arm tests/input14 lib/printint.c
+armtest14: comp_arm tests/input14 lib/printint.c
 	./comp_arm tests/input14
 	cc -o out out.s lib/printint.c
 	./out

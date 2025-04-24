@@ -99,14 +99,49 @@ static int op_precedence(int tokentype) {
   return (prec);
 }
 
+// Parse a prefix expression and return a sub-tree representing it
+struct ASTnode *prefix(void) {
+	struct ASTnode *tree;
+	switch (Token.token) {
+		case T_AMPER:
+			// Get the next token and parse it recursively as a prefix expression
+			scan(&Token);
+			tree = prefix();
+			
+			// Ensure that it's an identifier
+			if (tree->op != A_IDENT)
+				fatal("& operator must be followed by an identifier");
+	
+			// Now change the operator to A_ADDR and the type to a pointer to the original type
+			tree->op = A_ADDR;
+			tree->type = pointer_to(tree->type);
+			break;
+		case T_STAR:
+			// Get the next token and parse it recursively as a profix expression
+			scan(&Token);
+			tree = prefix();
+	
+			// For now, ensure it's either another deref or an identifier
+			if (tree->op != A_IDENT && tree->op != A_DEREF)
+				fatal("* operator must be followed by an identifier or *");
+
+			// Prepend an A_DEREF operation to the tree
+			tree = mkastunary(A_DEREF, value_at(tree->type), tree, 0);
+			break;
+		default:
+			tree = primary();
+	}
+	return (tree);
+}
+
 // Return an AST tree whose root is a binary operator. Parameter ptp is the previous token's precedence.
 struct ASTnode *binexpr(int ptp) {
 	struct ASTnode *left, *right;
 	int lefttype, righttype;
 	int tokentype;
 
-	// Get the primary tree on the left. Fetch the next token at the same time.
-  	left = primary();
+	// Get the tree on the left. Fetch teh next token at the same time.
+	left = prefix();
 
   	// If we hit a semicolon or ')', return just the left node
   	tokentype = Token.token;
