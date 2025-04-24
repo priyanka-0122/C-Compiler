@@ -94,13 +94,17 @@ static char *breglist[] =	 { "%r10b", "%r11b", "%r12b", "%r13b", "%r9b", "%r8b",
 static char *dreglist[] =	 { "%r10d", "%r11d", "%r12d", "%r13d", "%r9d", "%r8d", "%ecx", "%edx", "%esi", "%edi"};
 
 // Set all registers as available
-void freeall_registers(void) {
-	freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
+// But if reg is positive, don't free that one
+void freeall_registers(int keepreg) {
+	int i;
+	for (i = 0; i < NUMFREEREGS; i++)
+		if (i != keepreg)
+			freereg[i] = 1;
 }
 
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
-static int alloc_register(void) {
+int alloc_register(void) {
 	for (int i = 0; i < NUMFREEREGS; i++) {
 		if (freereg[i]) {
 			freereg[i] = 0;
@@ -121,7 +125,7 @@ static void free_register(int reg) {
 
 // Print out the assembly preamble
 void cgpreamble() {
-	freeall_registers();
+	freeall_registers(NOREG);
   	cgtextseg();
 	fprintf(Outfile,
 	  	"# internal switch(expr) routine\n"
@@ -167,11 +171,8 @@ void cgfuncpreamble(struct symtable *sym) {
 
 	// Output the function start, save the %rsp and %rsp
 	if (sym->class == C_GLOBAL)
-		fprintf(Outfile, "\t.globl\t%s\n"
-			"\t.type\t%s, @function\n", name, name);
-	fprintf(Outfile,
-		"%s:\n" "\tpushq\t%%rbp\n"
-		"\tmovq\t%%rsp, %%rbp\n", name);
+		fprintf(Outfile, "\t.globl\t%s\n" "\t.type\t%s, @function\n", name, name);
+	fprintf(Outfile, "%s:\n" "\tpushq\t%%rbp\n" "\tmovq\t%%rsp, %%rbp\n", name);
 
 	// Copy any in-register parameters to the stack, up to six of them
 	// The remaining parameters are already on the stack
@@ -346,7 +347,6 @@ int cgdiv(int r1, int r2) {
 	fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[r1]);	//dividend is loaded to %rax
 	fprintf(Outfile, "\tcqo\n");				//cqo is used to extend to eight bytes
 	fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax with 
-								//the r2 and stores quotient in %rax
 	fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
 	free_register(r2);
 	return (r1);
@@ -520,12 +520,12 @@ void cgglobsym(struct symtable *node) {
 	fprintf(Outfile, "%s:\n", node->name);
 
 	// Output space for one or more elements
-	for (i=0; i < node->nelems; i++) {
+	for (i = 0; i < node->nelems; i++) {
 
 		// Get any initial value
-		initvalue= 0;
+		initvalue = 0;
 		if (node->initlist != NULL)
-			initvalue= node->initlist[i];
+			initvalue = node->initlist[i];
 
 		// Generate the space for this type
 		switch (size) {
@@ -601,7 +601,7 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 
 	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
 	fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
-	freeall_registers();
+	freeall_registers(NOREG);
 	return (NOREG);
 }
 
@@ -722,4 +722,9 @@ void cgswitch(int reg, int casecount, int toplabel,
 	fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
 	fprintf(Outfile, "\tleaq\tL%d(%%rip), %%rdx\n", label);
 	fprintf(Outfile, "\tjmp\tswitch\n");
+}
+
+// Move value between registers
+void cgmove(int r1, int r2) {
+	fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r1], reglist[r2]);
 }

@@ -288,7 +288,7 @@ static struct ASTnode *primary(void) {
 				case T_UNION:
 				case T_ENUM:
 					// Get the type inside the parentheses
-					type= parse_cast();
+					type = parse_cast();
 					// Skip the closing ')' and then parse the following expression
 					rparen();
 				default:
@@ -301,7 +301,7 @@ static struct ASTnode *primary(void) {
 				rparen();
 			else
 				// Otherwise, make a unary AST node for the cast
-				n= mkastunary(A_CAST, type, n, NULL, 0);
+				n = mkastunary(A_CAST, type, n, NULL, 0);
 			return (n);
 
 		default:
@@ -335,6 +335,7 @@ static int rightassoc(int tokentype) {
 static int OpPrec[] = { 0,			// T_EOF, 
 			10,			// T_ASSIGN,
 			10, 10, 10, 10,		// T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
+			15,			// T_QUESTION,
 			20, 30,			// T_LOGOR, T_LOGAND
 			40, 50, 60,		// T_OR, T_XOR, T_AMPER 
 			70, 70,			// T_EQ, T_NE
@@ -501,7 +502,18 @@ struct ASTnode *binexpr(int ptp) {
 		// Determine the operation to be performed on the sub-trees
 		ASTop = binastop(tokentype);
 
-		if (ASTop == A_ASSIGN) {
+		switch (ASTop) {
+		case A_TERNARY:
+			// Ensure we have a ':' token, scan in the expression after it
+			match(T_COLON, ":");
+			ltemp = binexpr(0);
+
+			// Build and return the AST for this statement. Use the middle
+			// expression's type as the return type. XXX We should also
+			// consider the third expression's type.
+			return (mkastnode(A_TERNARY, right->type, left, right, ltemp, NULL, 0));
+
+		case A_ASSIGN:
 			// Assignment
 			// Make the right tree into an rvalue
 			right->rvalue = 1;
@@ -517,9 +529,10 @@ struct ASTnode *binexpr(int ptp) {
 			ltemp = left;
 			left = right;
 			right = ltemp;
-		} else {
+			break;
 
-			// We are not doing an assignment, so both trees should be rvalues. Convert both trees
+		default:
+			// We are not doing a ternary or assignment, so both trees should be rvalues. Convert both trees
 			// into rvalue if they are lvalue trees
 			left->rvalue = 1;
 			right->rvalue = 1;
