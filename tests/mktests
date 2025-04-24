@@ -4,7 +4,7 @@
 for i in input*c
 do if [ ! -f "out.$i" ]
    then
-     cc -o out $i ../lib/printint.c
+     gcc -o out $i ../lib/printint.c
      ./out > out.$i
      rm -f out
    fi

@@ -134,20 +134,77 @@ static void set_var_offset(int id) {
 	fprintf(Outfile, "\tldr\tr3, .L2+%d\n", offset);
 }
 	
-// Load a value from a variable into a register. Return the number of the register
-int cgloadglob(int id) {
+// Load a value from a variable into a register. Return the number of the register. If the operation
+// is pre or post-increment/decrement, also perform this action
+int cgloadglob(int id, int op) {
 	// Get a new register
 	int r = alloc_register();
 
 	// Get the offset to the variable
 	set_var_offset(id);
 	
+	// Print out the code to initialise it
 	switch (Gsym[id].type) {
 		case P_CHAR:
+			if (op == A_PREINC) {
+				fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r]);
+				fprintf(Outfile, "\tadd\t%s, %s, #1\n", reglist[r], reglist[r]);
+				fprintf(Outfile, "\tstrb\t%s, [r3]\n", reglist[r]);
+			}
+			if (op == A_PREDEC) {
+				fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r]);
+				fprintf(Outfile, "\tsub\t%s, %s, #1\n", reglist[r], reglist[r]);
+				fprintf(Outfile, "\tstrb\t%s, [r3]\n", reglist[r]);
+			}
 			fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r]);
+			if (op == A_POSTINC) {
+/**				int r1 = r;
+				r = alloc_register();
+				fprintf(Outfile, "\tmov\t%s, %s\n", reglist[r], reglist[r1]);
+				fprintf(Outfile, "\tadd\t%s, %s, #1\n", reglist[r1], reglist[r1]);
+				fprintf(Outfile, "\tstrb\t%s, [r3]\n", reglist[r1]);
+				free_register(r1);
+**/				int r1 = alloc_register();
+				fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r1]);
+				fprintf(Outfile, "\tadd\t%s, %s, #1\n", reglist[r1], reglist[r1]);
+				fprintf(Outfile, "\tstrb\t%s, [r3]\n", reglist[r1]);
+				free_register(r1);
+			}
+			if (op == A_POSTDEC) {
+				int r1 = alloc_register();
+				fprintf(Outfile, "\tldrb\t%s, [r3]\n", reglist[r1]);
+				fprintf(Outfile, "\tsub\t%s, %s, #1\n", reglist[r1], reglist[r1]);
+				fprintf(Outfile, "\tstrb\t%s, [r3]\n", reglist[r1]);
+				free_register(r1);
+			}
 			break;
+
 		default:
+			if (op == A_PREINC) {
+				fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
+				fprintf(Outfile, "\tadd\t%s, %s, #1\n", reglist[r], reglist[r]);
+				fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r]);
+			}
+			if (op == A_PREDEC) {
+				fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
+				fprintf(Outfile, "\tsub\t%s, %s, #1\n", reglist[r], reglist[r]);
+				fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r]);
+			}
 			fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
+			if (op == A_POSTINC) {
+				int r1 = alloc_register();
+				fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r1]);
+				fprintf(Outfile, "\tadd\t%s, %s, #1\n", reglist[r1], reglist[r1]);
+				fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r1]);
+				free_register(r1);
+			}
+			if (op == A_POSTDEC) {
+				int r1 = alloc_register();
+				fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r1]);
+				fprintf(Outfile, "\tsub\t%s, %s, #1\n", reglist[r1], reglist[r1]);
+				fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r1]);
+				free_register(r1);
+				}
 			break;
 	}
 	return (r);
@@ -194,6 +251,66 @@ int cgdiv(int r1, int r2) {
 	fprintf(Outfile, "\tmov\t%s, r0\n", reglist[r1]);
 	free_register(r2);
 	return (r1);
+}
+
+int cgand(int r1, int r2) {
+	fprintf(Outfile, "\tand\t%s, %s, %s\n", reglist[r1], reglist[r1], reglist[r2]);
+	free_register(r2);
+	return (r1);
+}
+
+int cgor(int r1, int r2) {
+	fprintf(Outfile, "\torr\t%s, %s, %s\n", reglist[r1], reglist[r1], reglist[r2]);
+	free_register(r2);
+	return (r1);
+}
+
+int cgxor(int r1, int r2) {
+	fprintf(Outfile, "\teor\t%s, %s, %s\n", reglist[r1], reglist[r1], reglist[r2]);
+	free_register(r2);
+	return (r1);
+}
+
+int cgshl(int r1, int r2) {
+  	fprintf(Outfile, "\tlsl\t%s, %s, %s\n", reglist[r1], reglist[r1], reglist[r2]);
+	free_register(r2);
+	return (r1);
+}
+
+int cgshr(int r1, int r2) {
+  	fprintf(Outfile, "\tlsr\t%s, %s, %s\n", reglist[r1], reglist[r1], reglist[r2]);
+	free_register(r2);
+	return (r1);
+}
+
+int cgnegate(int r) {
+	fprintf(Outfile, "\tmvn\t%s, %s\n", reglist[r], reglist[r]);
+	//add one to the one's compliment to make it two's compliment of the original number which will be the negative of the current number
+	fprintf(Outfile, "\tadd\t%s, %s, #1\n", reglist[r], reglist[r]); 
+	return (r);
+}
+
+int cginvert(int r) {
+	fprintf(Outfile, "\tmvn\t%s, %s\n", reglist[r], reglist[r]);	//move one's compliment of register to the same register
+	return (r);
+}
+
+int cglognot(int r) {
+	fprintf(Outfile, "\tcmp\t%s, #0\n", reglist[r]);
+	fprintf(Outfile, "\tmoveq\t%s, #1\n", reglist[r]);
+	fprintf(Outfile, "\tmovne\t%s, #0\n", reglist[r]); 
+	return (r);
+}
+
+int cgboolean(int r, int op, int label) {
+	fprintf(Outfile, "\tcmp\t%s, #0\n", reglist[r]);
+	if (op == A_IF || op == A_WHILE)
+		fprintf(Outfile, "\tbeq\tL%d\n", label);
+	else {
+		fprintf(Outfile, "mov\t%s, #0\n", reglist[r]);
+		fprintf(Outfile, "movne\t%s, #1\n", reglist[r]);
+	}
+	return (r);
 }
 
 // Call printint() with the given register

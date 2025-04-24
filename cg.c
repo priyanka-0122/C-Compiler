@@ -74,25 +74,53 @@ int cgloadint(int value, int type) {
 	return(r);
 }
 
-// Load a value from a variable into a register. Return the number of the register
-int cgloadglob(int id) {
+// Load a value from a variable into a register. Return the number of the register. If the operation
+// is pre or post-increment/decrement, also perform this action.
+int cgloadglob(int id, int op) {
 	// Get a new register
 	int r = alloc_register();
 
 	// Print out the code to initialise it
 	switch (Gsym[id].type) {
 		case P_CHAR:
+			if (op == A_PREINC)
+				fprintf(Outfile, "\tincb\t%s(\%%rip)\n", Gsym[id].name);
+			if (op == A_PREDEC)
+				fprintf(Outfile, "\tdecb\t%s(\%%rip)\n", Gsym[id].name);
 			fprintf(Outfile, "\tmovzbq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+			if (op == A_POSTINC)
+				fprintf(Outfile, "\tincb\t%s(\%%rip)\n", Gsym[id].name);
+			if (op == A_POSTDEC)
+				fprintf(Outfile, "\tdecb\t%s(\%%rip)\n", Gsym[id].name);
 			break;
+
 		case P_INT:
-			fprintf(Outfile, "\tmovl\t%s(\%%rip), %s\n", Gsym[id].name, dreglist[r]);
+			if (op == A_PREINC)
+				fprintf(Outfile, "\tincl\t%s(\%%rip)\n", Gsym[id].name);
+			if (op == A_PREDEC)
+				fprintf(Outfile, "\tdecl\t%s(\%%rip)\n", Gsym[id].name);
+			fprintf(Outfile, "\tmovslq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+			if (op == A_POSTINC)
+	        		fprintf(Outfile, "\tincl\t%s(\%%rip)\n", Gsym[id].name);
+		      	if (op == A_POSTDEC)
+				fprintf(Outfile, "\tdecl\t%s(\%%rip)\n", Gsym[id].name);
 			break;
+
 		case P_LONG:
 		case P_CHARPTR:
 		case P_INTPTR:
 		case P_LONGPTR:
+			if (op == A_PREINC)
+	              		fprintf(Outfile, "\tincq\t%s(\%%rip)\n", Gsym[id].name);
+			if (op == A_PREDEC)
+				fprintf(Outfile, "\tdecq\t%s(\%%rip)\n", Gsym[id].name);
 			fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", Gsym[id].name, reglist[r]);
+			if (op == A_POSTINC)
+				fprintf(Outfile, "\tincq\t%s(\%%rip)\n", Gsym[id].name);
+			if (op == A_POSTDEC)
+				fprintf(Outfile, "\tdecq\t%s(\%%rip)\n", Gsym[id].name);
 			break;
+
 		default:
 			fatald("Bad type in cgloadglob:", Gsym[id].type);
 	}
@@ -103,7 +131,7 @@ int cgloadglob(int id) {
 int cgloadglobstr(int id) {
 	// Get a new register
 	int r = alloc_register();
-	fprintf(Outfile, "\tleaq\tL%d(\%%rip), %s\n", id, reglist[r]);
+	fprintf(Outfile, "\tleaq\tL%d(%%rip), %s\n", id, reglist[r]);
 	return (r);
 }
 
@@ -139,9 +167,73 @@ int cgdiv(int r1, int r2) {
 	return (r1);
 }
 
+int cgand(int r1, int r2) {
+	fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r1], reglist[r2]);
+	free_register(r1);
+	return (r2);
+}
+
+int cgor(int r1, int r2) {
+	fprintf(Outfile, "\torq\t%s, %s\n", reglist[r1], reglist[r2]);
+	free_register(r1);
+	return (r2);
+}
+
+int cgxor(int r1, int r2) {
+	fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r1], reglist[r2]);
+	free_register(r1);
+	return (r2);
+}
+
+int cgshl(int r1, int r2) {
+	fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
+	fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);
+	free_register(r2);
+	return (r1);
+}
+
+int cgshr(int r1, int r2) {
+	fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
+	fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);
+	free_register(r2);
+	return (r1);
+}
+
+// Negate a register's value
+int cgnegate(int r) {
+	fprintf(Outfile, "\tnegq\t%s\n", reglist[r]);
+	return (r);
+}
+
+// Invert a register's value
+int cginvert(int r) {
+	fprintf(Outfile, "\tnotq\t%s\n", reglist[r]);
+	return (r);
+}
+
+// Logically negate a register's value
+int cglognot(int r) {
+	fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
+	fprintf(Outfile, "\tsete\t%s\n", breglist[r]);
+	fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
+	return (r);
+}
+
+// Convert an integer value to a boolean value. Jump if it's an IF or WHILE operation
+int cgboolean(int r, int op, int label) {
+	fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
+	if (op == A_IF || op == A_WHILE)
+		fprintf(Outfile, "\tje\tL%d\n", label);
+	else {
+		fprintf(Outfile, "\tsetnz\t%s\n", breglist[r]);
+		fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r], reglist[r]);
+	}
+	return (r);
+}
+
 // Call printint() with the register
 void cgprintint(int r) {
-	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]); 	//Linux x86-64 expects te first arg to
+	fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]); 	// Linux x86-64 expects te first arg to
 								// a function to be %rdi
 	fprintf(Outfile, "\tcall\tprintint\n");
 	free_register(r);
@@ -210,11 +302,11 @@ void cgglobsym(int id) {
 
 	// Generate the space
 	for ( int i = 0; i < Gsym[id].size; i++) {
-		switch(typesize) {
-    			case 1:
+		switch (typesize) {
+			case 1:
 				fprintf(Outfile, "\t.byte\t0\n");
 				break;
-    			case 4:
+			case 4:
 				fprintf(Outfile, "\t.long\t0\n");
 				break;
 			case 8:
@@ -242,7 +334,8 @@ static char *cmplist[] = { "sete", "setne", "setl", "setg", "setle", "setge"};
 
 // Compare two registers and set if true.
 int cgcompare_and_set(int ASTop, int r1, int r2) {
-	//Check two randge of the AST operation
+
+	// Check the range of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
 		fatal("Bad ASTop in cgcompare_and_set()");
 	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
@@ -268,6 +361,7 @@ static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 
 // Compare two registers and jump if false.
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
+
 	// Check the range of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
 		fatal("Bad ASTop in cgcompare_and_jump()");
@@ -329,18 +423,18 @@ int cgderef(int r, int type) {
 
 // Store through a dereferenced pointer
 int cgstorderef(int r1, int r2, int type) {
-  	switch (type) {
-    		case P_CHAR:
-      			fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
-      			break;
-    		case P_INT:
-      			fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
-      			break;
-    		case P_LONG:
-      			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
-      			break;
-    		default:
-      			fatald("Can't cgstoderef on type:", type);
-  	}
-  	return (r1);
+	switch (type) {
+		case P_CHAR:
+			fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
+			break;
+		case P_INT:
+			fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
+			break;
+		case P_LONG:
+			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+			break;
+		default:
+			fatald("Can't cgstoderef on type:", type);
+	}
+	return (r1);
 }

@@ -5,7 +5,7 @@ void cgpostamble();
 void cgfuncpreamble(int id);
 void cgfuncpostamble(int id);
 int cgloadint(int value, int type);
-int cgloadglob(int id);
+int cgloadglob(int id, int op);
 int cgloadglobstr(int id);
 int cgadd(int r1, int r2);
 int cgsub(int r1, int r2);
@@ -23,11 +23,19 @@ void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
 int cgprimsize(int type);
-
 void cgreturn(int reg, int id);
 int cgaddress(int id);
 int cgderef(int r, int type);
 int cgstorderef(int r1, int r2, int type);
+int cgnegate(int r);
+int cginvert(int r);
+int cglognot(int r);
+int cgboolean(int r, int op, int label);
+int cgand(int r1, int r2);
+int cgor(int r1, int r2);
+int cgxor(int r1, int r2);
+int cgshl(int r1, int r2);
+int cgshr(int r1, int r2);
 
 //decl.c
 int parse_type(void);
