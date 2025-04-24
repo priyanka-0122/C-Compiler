@@ -12,7 +12,7 @@ static int chrpos(char *s, int c) {
 	return (p ? p - s : -1);
 }
 
-// Get the next character from the input file
+// Get the next character from the input file.
 static int next(void) {
 	int c, l;
 
@@ -70,7 +70,8 @@ static int skip(void) {
 static int scanch(void) {
 	int c;
 
-	// Get the next input character and interpret metacharacters that start with a backslash
+	// Get the next input character and interpret
+	// metacharacters that start with a backslash
 	c = next();
 	if (c == '\\') {
 		switch (c = next()) {
@@ -122,8 +123,8 @@ static int scanstr(char *buf) {
 	
 	// Loop while we have enough buffer space
 	for (i = 0; i < TEXTLEN - 1; i++) {
-		// Get the next char and append to buf. Return when we hit
-		// the ending double quote
+		// Get the next char and append to buf
+		// Return when we hit the ending double quote
 		if ((c = scanch()) == '"') {
 			buf[i] = 0;
 			return (i);
@@ -191,10 +192,10 @@ static int keyword(char *s) {
 				return (T_FOR);
 			break;
 		case 'i':
-			if (!strcmp(s, "int"))
-				return (T_INT);
 			if (!strcmp(s, "if"))
 				return (T_IF);
+			if (!strcmp(s, "int"))
+				return (T_INT);
 			break;
 		case 'l':
 			if (!strcmp(s, "long"))
@@ -242,7 +243,8 @@ void reject_token(struct token *t) {
 
 // List of token strings, for debugging purposes
 char *Tstring[] = {
-	"EOF", "=", "||", "&&", "|", "^", "&",
+	"EOF", "=", "+=", "-=", "*=", "/=",
+	"||", "&&", "|", "^", "&",
 	"==", "!=", ",", ">", "<=", ">=", "<<", ">>",
 	"+", "-", "*", "/", "++", "--", "~", "!",
 	"void", "char", "int", "long",
@@ -278,6 +280,8 @@ int scan(struct token *t) {
 		case '+':
 			if ((c = next()) == '+') {
 				t->token = T_INC;
+			} else if (c == '=') {
+				t->token = T_ASPLUS;
 			} else {
 				putback(c);
 				t->token = T_PLUS;
@@ -288,16 +292,31 @@ int scan(struct token *t) {
 				t->token = T_DEC;
 			} else if (c == '>') {
 				t->token = T_ARROW;
+			} else if (c == '=') {
+				t->token = T_ASMINUS;
+			} else if (isdigit(c)) {	// Negative int literal
+				t->intvalue = -scanint(c);
+				t->token = T_INTLIT;
 			} else {
 				putback(c);
 				t->token = T_MINUS;
 			}
 			break;
 		case '*':
-			t->token = T_STAR;
+			if ((c = next()) == '=') {
+				t->token = T_ASSTAR;
+			} else {
+				putback(c);
+				t->token = T_STAR;
+			}
 			break;
 		case '/':
-			t->token = T_SLASH;
+			if ((c = next()) == '=') {
+				t->token = T_ASSLASH;
+			} else {
+				putback(c);
+				t->token = T_SLASH;
+			}
 			break;
 		case ';':
 			t->token = T_SEMI;
@@ -388,7 +407,9 @@ int scan(struct token *t) {
 			}
 			break;
 		case '\'':
-			// If it's a quote, scan in the literal character value and the trailing quote
+			// If it's a quote, scan in the
+			// literal character value and
+			// the trailing quote
 			t->intvalue = scanch();
 			t->token = T_INTLIT;
 			if (next() != '\'')
@@ -400,13 +421,13 @@ int scan(struct token *t) {
 			t->token = T_STRLIT;
 			break;
 		default:
-			//If it's a digit, scan the literal integer value in
+			// If it's a digit, scan the
+			// literal integer value in
 			if (isdigit(c)) {
 				t->intvalue = scanint(c);
 				t->token = T_INTLIT;
 				break;
-			}
-			else if (isalpha(c) || '_' == c) {
+			} else if (isalpha(c) || '_' == c) {
 				// Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
 

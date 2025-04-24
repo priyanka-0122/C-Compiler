@@ -14,13 +14,17 @@ int genlabel(void) {
 static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	int Lfalse, Lend;
 
-	// Generate two label: one for the false compound, and the other one for the end of the overall
-	// IF statement. When there is no ELSE clause, Lfalse _is_ the ending label!
+	// Generate two labels: one for the
+	// false compound statement, and one
+	// for the end of the overall IF statement.
+	// When there is no ELSE clause, Lfalse _is_
+	// the ending label!
 	Lfalse = genlabel();
 	if (n->right)
 		Lend = genlabel();
 
-	// Generate the condition code followed by a zero jump to false label.
+	// Generate the condition code followed
+	// by a jump to the false label.
 	// We cheat by sending the Lfalse label as a register.
 	genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);		// Condition and jump to false
 	genfreeregs();
@@ -29,14 +33,17 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	genAST(n->mid, NOLABEL, looptoplabel, loopendlabel, n->op);		// Statements after 'if'
 	genfreeregs();
 
-	// If there is an optional ELSE clause, generate the jump to skip to the end
+	// If there is an optional ELSE clause,
+	// generate the jump to skip to the end
 	if (n->right)
 		cgjump(Lend);			// Jump to Lend
 
 	// Now the false label
 	cglabel(Lfalse);			// Lfalse: label
 
-	// Optional ELSE clause: generate the false compound statement and the end label
+	// Optional ELSE clause: generate the
+	// false compound statement and the
+	// end label
 	if (n->right) {
 		genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);		// Statements after 'else'
 		genfreeregs();
@@ -50,7 +57,8 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 static int genWHILE(struct ASTnode *n) {
 	int Lstart, Lend;
 	
-	// Generate the start and end labels and output the start label
+	// Generate the start and end labels
+	// and output the start label
 	Lstart = genlabel();
 	Lend = genlabel();
 	cglabel(Lstart);
@@ -64,7 +72,8 @@ static int genWHILE(struct ASTnode *n) {
 	genAST(n->right, NOLABEL, Lstart, Lend, n->op);
 	genfreeregs();
 
-	// Finally output the jump back to the condition, and the end label
+	// Finally output the jump back to the condition,
+	// and the end label
 	cgjump(Lstart);
 	cglabel(Lend);
 	return (NOREG);
@@ -79,8 +88,8 @@ static int genSWITCH(struct ASTnode *n) {
 
 	// Create arrays for the case values and associated labels.
 	// Ensure that we have at least one position in each array.
-	caseval = (int *) malloc((n->intvalue + 1) * sizeof(int));
-	caselabel = (int *) malloc((n->intvalue + 1) * sizeof(int));
+	caseval = (int *) malloc((n->a_intvalue + 1) * sizeof(int));
+	caselabel = (int *) malloc((n->a_intvalue + 1) * sizeof(int));
 
 	// Generate labels for the top of the jump table, and the
 	// end of the switch statement. Set a default label for
@@ -102,7 +111,7 @@ static int genSWITCH(struct ASTnode *n) {
 		// and the case value in the arrays.
 		// Record if it is the default case.
 		caselabel[i] = genlabel();
-		caseval[i] = c->intvalue;
+		caseval[i] = c->a_intvalue;
 		cglabel(caselabel[i]);
 		if (c->op == A_DEFAULT)
 			defaultlabel = caselabel[i];
@@ -131,20 +140,22 @@ static int gen_funccall(struct ASTnode *n) {
 	int numargs = 0;
 
 	// If there is a list of arguments, walk this list
-	// from the last argument (right-hand child) to the first
+	// from the last argument (right-hand child) to the
+	// first
 	while (gluetree) {
 		// Calculate the expression's value
 		reg = genAST(gluetree->right, NOLABEL, NOLABEL, NOLABEL, gluetree->op);
 		// Copy this into the n'th function parameter: size is 1, 2, 3, ...
-		cgcopyarg(reg, gluetree->size);
+		cgcopyarg(reg, gluetree->a_size);
 		// Keep the first (highest) number of arguments
 		if (numargs == 0)
-			numargs = gluetree->size;
+			numargs = gluetree->a_size;
 		genfreeregs();
 		gluetree = gluetree->left;
 	}
 
-	// Call the function, clean up the stack (based on numargs), and return its result
+	// Call the function, clean up the stack (based on numargs),
+	// and return its result
 	return (cgcall(n->sym, numargs));
 }
 
@@ -166,7 +177,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		case A_FUNCCALL:
 			return (gen_funccall(n));
 		case A_GLUE:
-			// Do each child statement, and free the registers after each child
+			// Do each child statement, and free the
+			// registers after each child
 			if (n->left != NULL)
 				genAST (n->left, iflabel, looptoplabel, loopendlabel, n->op);
 			genfreeregs();
@@ -221,9 +233,9 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			else
 				return (cgcompare_and_set(n->op, leftreg, rightreg));
   		case A_INTLIT:
-    			return (cgloadint(n->intvalue, n->type));
+    			return (cgloadint(n->a_intvalue, n->type));
 		case A_STRLIT:
-			return (cgloadglobstr(n->intvalue));
+			return (cgloadglobstr(n->a_intvalue));
   		case A_IDENT:
 			// Load our value if we are an rvalue or we are being dereferenced
 			if (n->rvalue || parentASTop == A_DEREF) {
@@ -234,7 +246,34 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 				}
 			} else
 				return (NOREG);
+		case A_ASPLUS:
+		case A_ASMINUS:
+		case A_ASSTAR:
+		case A_ASSLASH:
   		case A_ASSIGN:
+			// For the '+=' and friends operators, generate suitable code
+			// and get the register with the result. Then take the left child,
+			// make it the right child so that we can fall into the assignment code.
+			switch (n->op) {
+				case A_ASPLUS:
+					leftreg= cgadd(leftreg, rightreg);
+					n->right= n->left;
+					break;
+				case A_ASMINUS:
+					leftreg= cgsub(leftreg, rightreg);
+					n->right= n->left;
+					break;
+				case A_ASSTAR:
+					leftreg= cgmul(leftreg, rightreg);
+					n->right= n->left;
+					break;
+				case A_ASSLASH:
+					leftreg= cgdiv(leftreg, rightreg);
+					n->right= n->left;
+					break;
+			}
+
+			// Now into the assignment code
 			// Are we assigning to an identifier or through a pointer
 			switch (n->right->op) {
 				case A_IDENT:
@@ -266,7 +305,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 				return (leftreg);
 		case A_SCALE:
 			// Small optimisation: use shift if the scale value is a known power of two
-			switch (n->size) {
+			switch (n->a_size) {
 				case 2:
 					return(cgshlconst(leftreg, 1));
 				case 4:
@@ -275,7 +314,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 					return(cgshlconst(leftreg, 3));
 				default:
 					// Load a register with the size and multiply the leftreg by this size
-					rightreg = cgloadint(n->size, P_INT);
+					rightreg = cgloadint(n->a_size, P_INT);
 					return (cgmul(leftreg, rightreg));
 			}
 		case A_POSTINC:

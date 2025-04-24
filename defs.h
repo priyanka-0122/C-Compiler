@@ -25,7 +25,9 @@ enum {
 	T_EOF,
 
 	// Binary operators
-	T_ASSIGN, T_LOGOR, T_LOGAND,
+	T_ASSIGN, 
+	T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
+	T_LOGOR, T_LOGAND,
 	T_OR, T_XOR, T_AMPER,
 	T_EQ, T_NE,
 	T_LT, T_GT, T_LE, T_GE,
@@ -63,7 +65,9 @@ struct token {
 // AST node types. The first few line up
 // with the related tokens
 enum {
-	A_ASSIGN= 1, A_LOGOR, A_LOGAND,
+	A_ASSIGN= 1,
+	A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH,
+	A_LOGOR, A_LOGAND,
 	A_OR, A_XOR, A_AND,
 	A_EQ, A_NE,
 	A_LT, A_GT, A_LE, A_GE,
@@ -112,34 +116,32 @@ enum {
 struct symtable {
 	char *name;			// Name of a symbol
 	int type;			// Primitive type for the symbol
-	struct symtable *ctype;		// If struct/union, ptr to that type
+	struct symtable *ctype;	// If struct/union, ptr to that type
 	int stype;			// Structural type for the symbol
 	int class;			// Storage class for the symbol
 	int size;			// Total size in bytes of this symbol
 	int nelems;			// Functions: # params. Arrays: # elements
-	union {
-		int endlabel;		// For functions, the end label
-		int posn;		// For locals, the negative offset
+#define st_endlabel st_posn	// For functions, the end label
+	int st_posn;			// For locals, the negative offset
 					// from the stack base pointer
-	};
-	int *initlist;			// List of initial values
-	struct symtable *next;		// Next symbol in one list
-	struct symtable *member;	// First member of a function, struct, union or enum
+	int *initlist;		// List of initial values
+	struct symtable *next;	// Next symbol in one list
+	struct symtable *member;	// First member of a function, struct,
+					// union or enum
 };
 
 // Abstract Syntax Tree structure
 struct ASTnode {
-	int op;				// "Operation" to be performed on this tree
+	int op;			// "Operation" to be performed on this tree
 	int type;			// Type of any expression this tree generates
 	int rvalue;			// True if the node is an rvalue
 	struct ASTnode *left;		// Left, middle and right child trees
 	struct ASTnode *mid;
 	struct ASTnode *right;
 	struct symtable *sym;		// For many AST nodes, the pointer to
-	union {				// the symbol in the symbol table
-		int intvalue;		// For A_INTLIT, the integer value
-		int size;		// For A_SCALE, the size to scale by
-	};
+					// the symbol in the symbol table
+#define a_intvalue a_size		// For A_INTLIT, the integer value
+	int a_size;			// For A_SCALE, the size to scale by
 };
 
 enum {

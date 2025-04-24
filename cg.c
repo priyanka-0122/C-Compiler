@@ -21,7 +21,8 @@ void cgdataseg() {
 	}
 }
 
-// Given a scalar type value, return the size of the type in bytes.
+// Given a scalar type value, return the
+// size of the type in bytes.
 int cgprimsize(int type) {
 	if (ptrtype(type))
 		return (8);
@@ -38,13 +39,17 @@ int cgprimsize(int type) {
   return (0);                   // Keep -Wall happy
 }
 
-// Given a scalar type, an existing memory offset (which hasn't been allocated to anything yet)
-// and a direction (1 is up, -1 is down), calculate and return a suitably aligned memory offset
-// for this scalar type. This could be the original offset, or it could be above/below the original
+// Given a scalar type, an existing memory offset
+// (which hasn't been allocated to anything yet)
+// and a direction (1 is up, -1 is down), calculate
+// and return a suitably aligned memory offset
+// for this scalar type. This could be the original
+// offset, or it could be above/below the original
 int cgalign(int type, int offset, int direction) {
 	int alignment;
 
-	// We don't need to do this on x86-64, but let's align chars on any offset and align ints/pointers
+	// We don't need to do this on x86-64, but let's
+	// align chars on any offset and align ints/pointers
 	// on a 4-byte alignment
 	switch (type) {
 		case P_CHAR:
@@ -53,30 +58,34 @@ int cgalign(int type, int offset, int direction) {
 		case P_LONG:
 			break;
 		default:
-			fatald("Bad type in calc_aligned_offset:", type);
+			if (!ptrtype(type))
+				fatald("Bad type in cg_align:", type);
 	}
 
-	// Here we have an int or a long. Align it on a 4-byte offset I put the generic code here so it can be reused elsewhere.
+	// Here we have an int or a long. Align it on a 4-byte offset
+	// I put the generic code here so it can be reused elsewhere.
 	alignment = 4;
 	offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
 	return (offset);
 }
 
-// Position of next local variable relative to stack base pointer. We store the offset as positive
-// to make aligning the stack pointer easier
+// Position of next local variable relative to stack base pointer.
+// We store the offset as positive to make aligning the stack pointer easier
 static int localOffset;
 static int stackOffset;
 
 // Create the position of a new local variable.
 static int newlocaloffset(int type) {
-	// Decrement the offset by a minimum of 4 bytes and allocate on the stack
+	// Decrement the offset by a minimum of 4 bytes
+	// and allocate on the stack
 	localOffset += (cgprimsize(type) > 4) ? cgprimsize(type) : 4;
 	return (-localOffset);
 }
 
 // List of available registers and their names.
 // We need a list of byte and doubleword registers, too
-// The list also includes the registers used to hold function parameters
+// The list also includes the registers used to
+// hold function parameters
 
 #define NUMFREEREGS	4
 #define FIRSTPARAMREG	9	// Position of first parameter register
@@ -90,7 +99,8 @@ void freeall_registers(void) {
 	freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
 }
 
-// Allocate a free register. Return the number of the register. Die if no available registers.
+// Allocate a free register. Return the number of
+// the register. Die if no available registers.
 static int alloc_register(void) {
 	for (int i = 0; i < NUMFREEREGS; i++) {
 		if (freereg[i]) {
@@ -102,7 +112,8 @@ static int alloc_register(void) {
 	return (NOREG);		// Keep -Wall happy
 }
 
-// Return a register to the list of available registers. Check to see if it's not already there
+// Return a register to the list of available registers.
+// Check to see if it's not already there.
 static void free_register(int reg) {
 	if (freereg[reg] != 0)
 		fatald("Error trying to free register", reg);
@@ -162,37 +173,40 @@ void cgfuncpreamble(struct symtable *sym) {
 		"%s:\n" "\tpushq\t%%rbp\n"
 		"\tmovq\t%%rsp, %%rbp\n", name, name, name);
 
-	// Copy any in-register parameters to the stack, up to six of them. The remaining parameters are already on the stack
+	// Copy any in-register parameters to the stack, up to six of them
+	// The remaining parameters are already on the stack
 	for (parm = sym->member, cnt = 1; parm != NULL; parm = parm->next, cnt++) {
 		if (cnt > 6) {
-			parm->posn = paramOffset;
+			parm->st_posn = paramOffset;
 			paramOffset += 8;
 		} else {
-			parm->posn = newlocaloffset(parm->type);
+			parm->st_posn = newlocaloffset(parm->type);
 			cgstorlocal(paramReg--, parm);
 		}
 	}
 	
-	// For the remainder, if they are a parameter then they are already on the stack. If only a local,
-	// make a stack position
+	// For the remainder, if they are a parameter then they are
+	// already on the stack. If only a local, make a stack position.
 	for (locvar = Loclhead; locvar != NULL; locvar = locvar->next) {
-		locvar->posn = newlocaloffset(locvar->type);
+		locvar->st_posn = newlocaloffset(locvar->type);
 	}
 
-	// Align the stack pointer to be a multiple of 16 less than its previous value
+	// Align the stack pointer to be a multiple of 16
+	// less than its previous value
 	stackOffset = (localOffset + 15) & ~15;
 	fprintf(Outfile, "\taddq\t$%d, %%rsp\n", -stackOffset);
 }
 
 // Print out a function postamble
 void cgfuncpostamble(struct symtable *sym) {
-	cglabel(sym->endlabel);
+	cglabel(sym->st_endlabel);
 	fprintf(Outfile, "\taddq\t$%d,%%rsp\n", stackOffset);
   	fputs("\tpopq\t%rbp\n" "\tret\n", Outfile);
 }
 
-// Load an integer literal value into a register. Return the number of the register
-// For x86-64, we don't need to worry about the type
+// Load an integer literal value into a register.
+// Return the number of the register.
+// For x86-64, we don't need to worry about the type.
 int cgloadint(int value, int type) {
 	// Get a new register
 	int r = alloc_register();
@@ -202,8 +216,10 @@ int cgloadint(int value, int type) {
 	return (r);
 }
 
-// Load a value from a variable into a register. Return the number of the register. If the operation
-// is pre or post-increment/decrement, also perform this action.
+// Load a value from a variable into a register.
+// Return the number of the register. If the
+// operation is pre- or post-increment/decrement,
+// also perform this action.
 int cgloadglob(struct symtable *sym, int op) {
 	// Get a new register
 	int r = alloc_register();
@@ -258,37 +274,37 @@ int cgloadlocal(struct symtable *sym, int op) {
 	// Print out the code to initialise it
 	if (cgprimsize(sym->type) == 8) {
 		if (op == A_PREINC)
-	        	fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->posn);
+	        	fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->st_posn);
 		if (op == A_PREDEC)
-			fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->posn);
-		fprintf(Outfile, "\tmovq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
+			fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->st_posn);
+		fprintf(Outfile, "\tmovq\t%d(%%rbp), %s\n", sym->st_posn, reglist[r]);
 		if (op == A_POSTINC)
-			fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->posn);
+			fprintf(Outfile, "\tincq\t%d(%%rbp)\n", sym->st_posn);
 		if (op == A_POSTDEC)
-			fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->posn);
+			fprintf(Outfile, "\tdecq\t%d(%%rbp)\n", sym->st_posn);
 	} else {
 		switch (sym->type) {
 			case P_CHAR:
 				if (op == A_PREINC)
-					fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->posn);
+					fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->st_posn);
 				if (op == A_PREDEC)
-					fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->posn);
-				fprintf(Outfile, "\tmovzbq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
+					fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->st_posn);
+				fprintf(Outfile, "\tmovzbq\t%d(%%rbp), %s\n", sym->st_posn, reglist[r]);
 				if (op == A_POSTINC)
-					fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->posn);
+					fprintf(Outfile, "\tincb\t%d(%%rbp)\n", sym->st_posn);
 				if (op == A_POSTDEC)
-					fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->posn);
+					fprintf(Outfile, "\tdecb\t%d(%%rbp)\n", sym->st_posn);
 				break;
 			case P_INT:
 				if (op == A_PREINC)
-					fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
+					fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->st_posn);
 				if (op == A_PREDEC)
-					fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
-				fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
+					fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->st_posn);
+				fprintf(Outfile, "\tmovslq\t%d(%%rbp), %s\n", sym->st_posn, reglist[r]);
 				if (op == A_POSTINC)
-					fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->posn);
+					fprintf(Outfile, "\tincl\t%d(%%rbp)\n", sym->st_posn);
 		      		if (op == A_POSTDEC)
-					fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->posn);
+					fprintf(Outfile, "\tdecl\t%d(%%rbp)\n", sym->st_posn);
 				break;
 			default:
 				fatald("Bad type in cgloadlocal:", sym->type);
@@ -424,7 +440,8 @@ void cgcopyarg(int r, int argposn) {
   	if (argposn > 6) {
 		fprintf(Outfile, "\tpushq\t%s\n", reglist[r]);
 	} else {
-		// Otherwise, copy the value into one of the six registers used to hold parameter values
+		// Otherwise, copy the value into one of the six registers
+		// used to hold parameter values
 		fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
 			reglist[FIRSTPARAMREG - argposn + 1]);
 	}
@@ -459,14 +476,14 @@ int cgstorglob(int r, struct symtable *sym) {
 int cgstorlocal(int r, struct symtable *sym) {
 
 	if (cgprimsize(sym->type) == 8) {
-		fprintf(Outfile, "\tmovq\t%s, %d(%%rbp)\n", reglist[r], sym->posn);
+		fprintf(Outfile, "\tmovq\t%s, %d(%%rbp)\n", reglist[r], sym->st_posn);
 	} else
 		switch (sym->type) {
 			case P_CHAR:
-				fprintf(Outfile, "\tmovb\t%s, %d(%%rbp)\n", breglist[r], sym->posn);
+				fprintf(Outfile, "\tmovb\t%s, %d(%%rbp)\n", breglist[r], sym->st_posn);
 				break;
 			case P_INT:
-				fprintf(Outfile, "\tmovl\t%s, %d(%%rbp)\n", dreglist[r], sym->posn);
+				fprintf(Outfile, "\tmovl\t%s, %d(%%rbp)\n", dreglist[r], sym->st_posn);
 				break;
 			default:
 				fatald("Bad type in cgstorlocal:", sym->type);
@@ -608,7 +625,7 @@ void cgreturn(int reg, struct symtable *sym) {
 		default:
 			fatald("Bad function type in cgreturn:", sym->type);
 	}
-	cgjump(sym->endlabel);
+	cgjump(sym->st_endlabel);
 }
 
 // Generate code to load the address of an identifier into a variable. Return a new register
@@ -618,7 +635,7 @@ int cgaddress(struct symtable *sym) {
 	if (sym->class == C_GLOBAL)
 		fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
 	else
-		fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->posn, reglist[r]);
+		fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->st_posn, reglist[r]);
 	return (r);
 }
 

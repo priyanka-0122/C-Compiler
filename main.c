@@ -165,7 +165,6 @@ int main(int argc, char *argv[]) {
 	char *asmfile, *objfile;
 	char *objlist[MAXOBJ];
 	int i, objcnt = 0;
-
 	// Initialise our variables
 	O_dumpAST = 0;
 	O_genpreprocess = 0;

@@ -14,10 +14,8 @@ struct ASTnode *mkastnode(int op, int type,
 	
 	// Calloc a new ASTnode
 	n = (struct ASTnode *)calloc(1, sizeof(struct ASTnode));
-	if (n == NULL) {
-		fprintf(stderr, "Unable to calloc a node in mkastnode()");
-		exit(1);
-	}
+	if (n == NULL)
+		fatal("Unable to calloc in mkastnode()");
 	
 	// Copy in the field values and return it
 	n->op = op;
@@ -26,7 +24,7 @@ struct ASTnode *mkastnode(int op, int type,
 	n->mid = mid;
 	n->right = right;
 	n->sym = sym;
-	n->intvalue = intvalue;
+	n->a_intvalue = intvalue;
 	return (n);
 }
 
@@ -129,10 +127,10 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			fprintf(stdout, "A_GE\n");
 			return;
 		case A_INTLIT:
-			fprintf(stdout, "A_INTLIT %d\n", n->intvalue);
+			fprintf(stdout, "A_INTLIT %d\n", n->a_intvalue);
 			return;
 		case A_STRLIT:
-			fprintf(stdout, "A_STRLIT rval label L%d\n", n->intvalue);
+			fprintf(stdout, "A_STRLIT rval label L%d\n", n->a_intvalue);
 			return;
 		case A_IDENT:
 			if (n->rvalue)
@@ -162,7 +160,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 				fprintf(stdout, "A_DEREF\n");
 			return;
 		case A_SCALE:
-			fprintf(stdout, "A_SCALE %d\n", n->size);
+			fprintf(stdout, "A_SCALE %d\n", n->a_size);
 			return;
 		case A_PREINC:
 			fprintf(stdout, "A_PREINC %s\n", n->sym->name);
@@ -186,7 +184,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			fprintf(stdout, "A_CONTINUE\n");
 			return;
 		case A_CASE:
-			fprintf(stdout, "A_CASE %d\n", n->intvalue);
+			fprintf(stdout, "A_CASE %d\n", n->a_intvalue);
 			return;
 		case A_DEFAULT:
 			fprintf(stdout, "A_DEFAULT\n");
@@ -196,6 +194,18 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			return;
 		case A_CAST:
 			fprintf(stdout, "A_CAST %d\n", n->type);
+			return;
+		case A_ASPLUS:
+			fprintf(stdout, "A_ASPLUS\n");
+			return;
+		case A_ASMINUS:
+			fprintf(stdout, "A_ASMINUS\n");
+			return;
+		case A_ASSTAR:
+			fprintf(stdout, "A_ASSTAR\n");
+			return;
+		case A_ASSLASH:
+			fprintf(stdout, "A_ASSLASH\n");
 			return;
 		default:
 			fatald("Unknown dumpAST operator", n->op);

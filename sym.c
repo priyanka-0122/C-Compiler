@@ -38,7 +38,10 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype,
 		fatal("Unable to malloc a symbol table node in newsym");
 
 	// Fill in the values
-	node->name = strdup(name);
+	if (name == NULL)
+		node->name = NULL;
+	else
+		node->name = strdup(name);
 	node->type = type;
 	node->ctype = ctype;
 	node->stype = stype;
@@ -51,11 +54,10 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype,
 	if (ptrtype(type) || inttype(type))
 		node->size = nelems * typesize(type, ctype);
 
-	node->posn = posn;
+	node->st_posn = posn;
 	node->next = NULL;
 	node->member = NULL;
 	node->initlist = NULL;
-
 	return (node);
 }
 
@@ -63,9 +65,8 @@ struct symtable *newsym(char *name, int type, struct symtable *ctype,
 struct symtable *addglob(char *name, int type, struct symtable *ctype,
 			 int stype, int class, int nelems, int posn) {
 	struct symtable *sym = newsym(name, type, ctype, stype, class, nelems, posn);
-
 	// For structs and unions, copy the size from the type node
-	if (type == P_STRUCT || type == P_UNION)
+	if (type== P_STRUCT || type== P_UNION)
 		sym->size = ctype->size;
 	appendsym(&Globhead, &Globtail, sym);
 	return (sym);
@@ -76,7 +77,7 @@ struct symtable *addlocl(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
 	struct symtable *sym = newsym(name, type, ctype, stype, C_LOCAL, nelems, 0);
 	// For structs and unions, copy the size from the type node
-	if (type == P_STRUCT || type == P_UNION)
+	if (type== P_STRUCT || type== P_UNION)
 		sym->size = ctype->size;
 	appendsym(&Loclhead, &Locltail, sym);
 	return (sym);
@@ -94,9 +95,8 @@ struct symtable *addparm(char *name, int type, struct symtable *ctype,
 struct symtable *addmemb(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
 	struct symtable *sym = newsym(name, type, ctype, stype, C_MEMBER, nelems, 0);
-
 	// For structs and unions, copy the size from the type node
-	if (type == P_STRUCT || type == P_UNION)
+	if (type== P_STRUCT || type== P_UNION)
 		sym->size = ctype->size;
 	appendsym(&Membhead, &Membtail, sym);
 	return (sym);

@@ -59,8 +59,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 			return (tree);
 
 		// Get the sizes for each type
-		lsize = typesize(ltype, NULL);	// XXX Fix soon
-		rsize = typesize(rtype, NULL);	// XXX Fix soon
+		lsize = typesize(ltype, NULL);
+		rsize = typesize(rtype, NULL);
 
 		// Tree's size is too big
 		if (lsize > rsize)
@@ -86,8 +86,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 	// We can scale only on A_ADD or A_SUBTRACT operation
 	if (op == A_ADD || op == A_SUBTRACT) {
 
-		// Left is int type, right is pointer type and the size of the original type is
-		// >=1: scale the left
+		// Left is int type, right is pointer type and the size
+		// of the original type is >1: scale the left
 		if (inttype(ltype) && ptrtype(rtype)) {
 			rsize = genprimsize(value_at(rtype));
 			if (rsize > 1)

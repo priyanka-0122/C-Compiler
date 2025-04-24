@@ -36,10 +36,11 @@ static struct ASTnode *if_statement(void) {
 	match(T_IF, "if");
 	lparen();
 
-	// Parse the following expression and the ')' following. Ensure the
-	// tree's operation is a comparison
+	// Parse the following expression
+	// and the ')' following. Force a
+	// non-comparison to be boolean
+	// the tree's operation is a comparison.
 	condAST = binexpr(0);
-
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
 	rparen();
@@ -47,12 +48,12 @@ static struct ASTnode *if_statement(void) {
 	// Get the AST for the statement
 	trueAST = single_statement();
 
-	// If we have an 'else', skip it and get the AST for the compund statement
+	// If we have an 'else', skip it
+	// and get the AST for the statement
 	if (Token.token == T_ELSE) {
 		scan(&Token);
 		falseAST = single_statement();
 	}
-
 	// Build and return the AST for this statement
 	return (mkastnode(A_IF, P_NONE, condAST, trueAST, falseAST, NULL, 0));
 }
@@ -68,9 +69,10 @@ static struct ASTnode *while_statement(void) {
 	match(T_WHILE, "while");
 	lparen();
 	
-	// Parse the following expression and the ')' following.
-	// Force a non-comparison to be boolean the tree's
-	// operation is a comparison
+	// Parse the following expression
+	// and the ')' following. Force a
+	// non-comparison to be boolean
+	// the tree's operation is a comparison.
 	condAST = binexpr(0);
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
@@ -207,8 +209,9 @@ static struct ASTnode *switch_statement(void) {
 	if (!inttype(left->type))
 		fatal("Switch expression is not of integer type");
 
-	// Build an A_SWITCH subtree with the expression as the child
-	n = mkastunary(A_SWITCH, 0, left, NULL, 0);
+	// Build an A_SWITCH subtree with the expression as
+	// the child
+	n= mkastunary(A_SWITCH, 0, left, NULL, 0);
 
 	// Now parse the cases
 	Switchlevel++;
@@ -238,12 +241,12 @@ static struct ASTnode *switch_statement(void) {
 					// Ensure the case value is an integer literal
 					if (left->op != A_INTLIT)
 						fatal("Expecting integer literal for case value");
-					casevalue= left->intvalue;
+					casevalue= left->a_intvalue;
 
 					// Walk the list of existing case values to ensure
 					// that there isn't a duplicate case value
 					for (c= casetree; c != NULL; c= c -> right)
-						if (casevalue == c->intvalue)
+						if (casevalue == c->a_intvalue)
 							fatal("Duplicate case value");
 				}
 
@@ -269,17 +272,17 @@ static struct ASTnode *switch_statement(void) {
 
 	// We have a sub-tree with the cases and any default. Put the
 	// case count into the A_SWITCH node and attach the case tree.
-	n->intvalue = casecount;
+	n->a_intvalue = casecount;
 	n->right = casetree;
 	rbrace();
 
 	return(n);
 }
 
-// Parse a single statement and return its AST
+// Parse a single statement and return its AST.
 static struct ASTnode *single_statement(void) {
-	struct symtable *ctype;
 	struct ASTnode *stmt;
+	struct symtable *ctype;
 
 	switch (Token.token) {
 		case T_LBRACE:
@@ -290,7 +293,7 @@ static struct ASTnode *single_statement(void) {
 			return(stmt);
 		case T_IDENT:
 			// We have to see if the identifier matches a typedef.
-			// If not do the default code in this switch statement.
+			// If not, treat it as an expression.
 			// Otherwise, fall down to the parse_type() call.
 			if (findtypedef(Text) == NULL) {
 				stmt = binexpr(0);
@@ -344,7 +347,8 @@ struct ASTnode *compound_statement(int inswitch) {
 		// Parse a single statement
 		tree = single_statement();
 	
-		// For each new tree, either save it in left if left is empty, or glue the left and the 
+		// For each new tree, either save it in left
+		// if left is empty, or glue the left and the
 		// new tree together
 		if (tree != NULL) {
 			if (left == NULL)
@@ -353,7 +357,7 @@ struct ASTnode *compound_statement(int inswitch) {
 				left = mkastnode(A_GLUE, P_NONE, left, NULL, tree, NULL, 0);
 		}
 		
-		// When we hit a right curly bracket, skip past it and return the AST
+		// Leave if we've hit the end token
 		if (Token.token == T_RBRACE)
 			return (left);
 

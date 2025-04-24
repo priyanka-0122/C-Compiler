@@ -53,7 +53,6 @@ static struct ASTnode *funccall(void) {
 	if ((funcptr = findsymbol(Text)) == NULL || funcptr->stype != S_FUNCTION) {
 		fatals("Undeclared function", Text);
 	}
-
 	// Get the '('
 	lparen();
 
@@ -62,8 +61,9 @@ static struct ASTnode *funccall(void) {
 
 	// XXX Check type of each argument against the function's prototype
 
-	// Build the function call AST node. Store the function's return type
-	// as this node's type. Also record the function's symbol-id
+	// Build the function call AST node. Store the
+	// function's return type as this node's type.
+	// Also record the function's symbol-id
 	tree = mkastunary(A_FUNCCALL, funcptr->type, tree, funcptr, 0);
 
 	// Get the ')'
@@ -76,8 +76,8 @@ static struct ASTnode *array_access(void) {
 	struct ASTnode *left, *right;
 	struct symtable *aryptr;
 
-	// Check that the identifier has been as an array then make a leaf node for it
-	// that points at the base
+	// Check that the identifier has been defined as an array
+	// then make a leaf node for it that points at the base
 	if ((aryptr = findsymbol(Text)) == NULL || aryptr->stype != S_ARRAY) {
 		fatals("Undeclared array", Text);
 	}
@@ -90,7 +90,7 @@ static struct ASTnode *array_access(void) {
 	right = binexpr(0);
 
 	// Compare the size of array with the size to which the value is going to be assigned
-	if (aryptr->size <= right->size)
+	if (aryptr->size <= right->a_size)
 		fatal("Size of the array is smaller than the size being accessed");
 
 	// Get the ']'
@@ -103,23 +103,25 @@ static struct ASTnode *array_access(void) {
 	// Scale the index by the size of the element's type
 	right = modify_type(right, left->type, A_ADD);
 
-	// Return an AST tree where the array's base has the offset added to it, and dereference the element.
-	// Still an lvalue at this point.
+	// Return an AST tree where the array's base has the offset
+	// added to it, and dereference the element. Still an lvalue
+	// at this point.
 	left = mkastnode(A_ADD, aryptr->type, left, NULL, right, NULL, 0);
 	left = mkastunary(A_DEREF, value_at(left->type), left, NULL, 0);
 	return (left);
 }
 
-// Parse the member reference of a struct or union and return an AST tree for it.
-// If withpointer is true, the access is through a pointer to the member.
+// Parse the member reference of a struct or union
+// and return an AST tree for it. If withpointer is true,
+// the access is through a pointer to the member.
 static struct ASTnode *member_access(int withpointer) {
 	struct ASTnode *left, *right;
 	struct symtable *compvar;
 	struct symtable *typeptr;
 	struct symtable *m;
 
-	// Check that the identifier has been declared as a struct or a union
-	// or a struct/union pointer
+	// Check that the identifier has been declared as a
+	// struct/union or a struct/union pointer
 	if ((compvar = findsymbol(Text)) == NULL)
 		fatals("Undeclared variable", Text);
 	if (withpointer && compvar->type != pointer_to(P_STRUCT)
@@ -128,7 +130,9 @@ static struct ASTnode *member_access(int withpointer) {
 	if (!withpointer && compvar->type != P_STRUCT && compvar->type != P_UNION)
 		fatals("Undeclared variable", Text);
 
-	// If a pointer to a struct, get the pointer's value. Otherwise, make a leaf node that points at the base
+	// If a pointer to a struct/union, get the pointer's value.
+	// Otherwise, make a leaf node that points at the base
+	// Either way, it's an rvalue
 	if (withpointer) {
 		left = mkastleaf(A_IDENT, pointer_to(compvar->type), compvar, 0);
 	} else
@@ -142,7 +146,8 @@ static struct ASTnode *member_access(int withpointer) {
 	scan(&Token);
 	ident();
 
-	// Find the matching member's name in the type.  Die if we can't find it
+	// Find the matching member's name in the type
+	// Die if we can't find it
 	for (m = typeptr->member; m != NULL; m = m->next)
 		if (!strcmp(m->name, Text))
 			break;
@@ -151,7 +156,7 @@ static struct ASTnode *member_access(int withpointer) {
 		fatals("No member found in struct/union: ", Text);
 
 	// Build an A_INTLIT node with the offset
-	right = mkastleaf(A_INTLIT, P_INT, NULL, m->posn);
+	right = mkastleaf(A_INTLIT, P_INT, NULL, m->st_posn);
 
 	// Add the member's offset to the base of the struct/union
 	// and dereference it. Still an lvalue at this point
@@ -160,7 +165,9 @@ static struct ASTnode *member_access(int withpointer) {
 	return (left);
 }
 
-// Parse a postfix expression and return an AST node representing it. The identifier is already in Text
+// Parse a postfix expression and return
+// an AST node representing it. The
+// identifier is already in Text.
 static struct ASTnode *postfix(void) {
 	struct ASTnode *n;
 	struct symtable *varptr;
@@ -170,9 +177,8 @@ static struct ASTnode *postfix(void) {
 	// return an A_INTLIT node
 	if ((enumptr = findenumval(Text)) != NULL) {
 		scan(&Token);
-		return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->posn));
+		return (mkastleaf(A_INTLIT, P_INT, NULL, enumptr->st_posn));
 	}
-
 	// Scan in the next token to see if we have a postfix expression
 	scan(&Token);
 
@@ -214,7 +220,8 @@ static struct ASTnode *postfix(void) {
 	return (n);
 }
 
-// Parse a primary factor and return an AST node representing it.
+// Parse a primary factor and return an
+// AST node representing it.
 static struct ASTnode *primary(void) {
 	struct ASTnode *n;
 	int id;
@@ -286,7 +293,8 @@ static struct ASTnode *primary(void) {
 	return (n);
 }
 
-// Convert a binary operator token into a binary AST operation. We rely on a 1:1 mapping from token to AST operation
+// Convert a binary operator token into a binary AST operation.
+// We rely on a 1:1 mapping from token to AST operation
 static int binastop(int tokentype) {
 	if (tokentype > T_EOF && tokentype <= T_SLASH)
 		return (tokentype);
@@ -294,26 +302,30 @@ static int binastop(int tokentype) {
 	return (0);			// Keep -Wall happy
 }
 
-// Return true if a token is right-associative, false otherwise.
+// Return true if a token is right-associative,
+// false otherwise.
 static int rightassoc(int tokentype) {
-	if (tokentype == T_ASSIGN)
+	if (tokentype >= T_ASSIGN && tokentype <= T_ASSLASH)
 		return (1);
 	return (0);
 }
 
 // Operator precedence for each token. Must
 // match up with the order of tokens in defs.h
-static int OpPrec[] = { 0,		// T_EOF, 
-			10, 20, 30,	// T_ASSIGN, T_LOGOR, T_LOGAND
-			40, 50, 60,	// T_OR, T_XOR, T_AMPER
-			70, 70,		// T_EQ, T_NE
+static int OpPrec[] = { 0,			// T_EOF, 
+			10,			// T_ASSIGN,
+			10, 10, 10, 10,		// T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
+			20, 30,			// T_LOGOR, T_LOGAND
+			40, 50, 60,		// T_OR, T_XOR, T_AMPER 
+			70, 70,			// T_EQ, T_NE
 			80, 80, 80, 80,	// T_LT, T_GT, T_LE, T_GE
 			90, 90,		// T_LSHIFT, T_RSHIFT
 			100, 100,	// T_PLUS, T_MINUS
 			110, 110	// T_STAR, T_SLASH	
 		      };
 
-// Check that we have a binary operator and return its precedence.
+// Check that we have a binary operator and
+// return its precedence.
 static int op_precedence(int tokentype) {
 	int prec;
 	if (tokentype > T_SLASH)
@@ -332,12 +344,14 @@ static int op_precedence(int tokentype) {
 //     | '--' prefix_expression
 //     ;
 
-// Parse a prefix expression and return a sub-tree representing it
+// Parse a prefix expression and return 
+// a sub-tree representing it.
 struct ASTnode *prefix(void) {
 	struct ASTnode *tree;
 	switch (Token.token) {
 		case T_AMPER:
-			// Get the next token and parse it recursively as a prefix expression
+			// Get the next token and parse it
+			// recursively as a prefix expression
 			scan(&Token);
 			tree = prefix();
 			
@@ -345,7 +359,8 @@ struct ASTnode *prefix(void) {
 			if (tree->op != A_IDENT)
 				fatal("& operator must be followed by an identifier");
 	
-			// Now change the operator to A_ADDR and the type to a pointer to the original type
+			// Now change the operator to A_ADDR and the type to
+			// a pointer to the original type
 			tree->op = A_ADDR;
 			tree->type = pointer_to(tree->type);
 			break;
@@ -355,7 +370,8 @@ struct ASTnode *prefix(void) {
 			scan(&Token);
 			tree = prefix();
 
-			// For now, ensure it's either another deref or an identifier
+			// For now, ensure it's either another deref or an
+			// identifier
 			if (tree->op != A_IDENT && tree->op != A_DEREF)
 				fatal("* operator must be followed by an identifier or *");
 
@@ -368,7 +384,8 @@ struct ASTnode *prefix(void) {
 			scan(&Token);
 			tree = prefix();
 
-			// Prepend a A_NEGATE operation to the tree and make the child an rvalue. Because chars are unsigned,
+			// Prepend a A_NEGATE operation to the tree and
+			// make the child an rvalue. Because chars are unsigned,
 			// also widen this to int so that it's signed
       			tree->rvalue = 1;
 			tree = modify_type(tree, P_INT, 0);
@@ -380,7 +397,8 @@ struct ASTnode *prefix(void) {
 			scan(&Token);
 			tree = prefix();
 
-			// Prepend a A_INVERT operation to the tree and make the child an rvalue.
+			// Prepend a A_INVERT operation to the tree and
+			// make the child an rvalue.
 			tree->rvalue = 1;
 			tree = mkastunary(A_INVERT, tree->type, tree, NULL, 0);
       			break;
@@ -390,7 +408,8 @@ struct ASTnode *prefix(void) {
 			scan(&Token);
 			tree = prefix();
 
-			// Prepend a A_LOGNOT operation to the tree and	make the child an rvalue.
+			// Prepend a A_LOGNOT operation to the tree and
+			// make the child an rvalue.
 			tree->rvalue = 1;
 			tree = mkastunary(A_LOGNOT, tree->type, tree, NULL, 0);
 			break;
@@ -427,13 +446,16 @@ struct ASTnode *prefix(void) {
 	return (tree);
 }
 
-// Return an AST tree whose root is a binary operator. Parameter ptp is the previous token's precedence.
+// Return an AST tree whose root is a binary operator.
+// Parameter ptp is the previous token's precedence.
 struct ASTnode *binexpr(int ptp) {
 	struct ASTnode *left, *right;
 	struct ASTnode *ltemp, *rtemp;
-	int ASTop, tokentype;
+	int ASTop;
+	int tokentype;
 
-	// Get the tree on the left. Fetch the next token at the same time.
+	// Get the tree on the left.
+	// Fetch the next token at the same time.
 	left = prefix();
 
 	// If we hit one of several terminating tokens, return just the left node
@@ -452,7 +474,8 @@ struct ASTnode *binexpr(int ptp) {
 		// Fetch in the next integer literal
 		scan(&Token);
 
-		// Recursively call binexpr() with the precedence of our token to build a sub-tree
+		// Recursively call binexpr() with the
+		// precedence of our token to build a sub-tree
 		right = binexpr(OpPrec[tokentype]);
 
 		// Determine the operation to be performed on the sub-trees
@@ -468,18 +491,21 @@ struct ASTnode *binexpr(int ptp) {
 			if (right == NULL)
 				fatal("Incompatible expression in assignment");
 
-			// Make an assignment AST tree. However, switch left and right around, so that the right
-			// expression's code will be generated before the left expression
+			// Make an assignment AST tree. However, switch
+			// left and right around, so that the right expression's 
+			// code will be generated before the left expression
 			ltemp = left;
 			left = right;
 			right = ltemp;
 		} else {
+
 			// We are not doing an assignment, so both trees should be rvalues. Convert both trees
 			// into rvalue if they are lvalue trees
 			left->rvalue = 1;
 			right->rvalue = 1;
 
-			// Ensure the two types are compatible by trying to modify each tree to match the other's type
+			// Ensure the two types are compatible by trying
+			// to modify each tree to match the other's type.
 			ltemp = modify_type(left, right->type, ASTop);
 			rtemp = modify_type(right, left->type, ASTop);
 			if (ltemp == NULL && rtemp == NULL)
@@ -490,10 +516,13 @@ struct ASTnode *binexpr(int ptp) {
 				right = rtemp;
 		}
 
-		// Join that sub-tree with ours. Convert the token into an AST operation at the same time.
+		// Join that sub-tree with ours. Convert the token
+		// into an AST operation at the same time.
     		left = mkastnode(binastop(tokentype), left->type, left, NULL, right, NULL, 0);
 
-    		// Update the details of the current token. If we hit a semicolon, ')', ']', return just the left node
+
+    		// Update the details of the current token.
+		// If we hit a terminating token, return just the left node
 		tokentype = Token.token;
 		if (tokentype == T_SEMI || tokentype == T_RPAREN ||
 		    tokentype == T_RBRACKET || tokentype == T_COMMA ||
@@ -503,7 +532,8 @@ struct ASTnode *binexpr(int ptp) {
 		}
 	}
 
-  	// Return the tree we have when the precedence is the same or lower
+	// Return the tree we have when the precedence
+	// is the same or lower
 	left->rvalue = 1;
 	return (left);
 }
