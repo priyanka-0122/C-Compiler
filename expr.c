@@ -16,35 +16,35 @@
 // set to the number of expressions in the tree at this point. If no
 // expressions are parsed, NULL is returned
 static struct ASTnode *expression_list(void) {
-  struct ASTnode *tree = NULL;
-  struct ASTnode *child = NULL;
-  int exprcount = 0;
+	struct ASTnode *tree = NULL;
+	struct ASTnode *child = NULL;
+	int exprcount = 0;
 
-  // Loop until the final right parentheses
-  while (Token.token != T_RPAREN) {
+	// Loop until the final right parentheses
+	while (Token.token != T_RPAREN) {
 
-    // Parse the next expression and increment the expression count
-    child = binexpr(0);
-    exprcount++;
+		// Parse the next expression and increment the expression count
+		child = binexpr(0);
+		exprcount++;
 
-    // Build an A_GLUE AST node with the previous tree as the left child
-    // and the new expression as the right child. Store the expression count.
-    tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
+		// Build an A_GLUE AST node with the previous tree as the left child
+		// and the new expression as the right child. Store the expression count.
+		tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
 
-    // Must have a ',' or ')' at this point
-    switch (Token.token) {
-      case T_COMMA:
-        scan(&Token);
-        break;
-      case T_RPAREN:
-        break;
-      default:
-        fatald("Unexpected token in expression list", Token.token);
-    }
-  }
+		// Must have a ',' or ')' at this point
+		switch (Token.token) {
+			case T_COMMA:
+				scan(&Token);
+				break;
+			case T_RPAREN:
+				break;
+			default:
+				fatald("Unexpected token in expression list", Token.token);
+		}
+	}
 
-  // Return the tree of expressions
-  return (tree);
+	// Return the tree of expressions
+	return (tree);
 }
 
 // Parse a function call and return its AST
@@ -86,11 +86,11 @@ static struct ASTnode *array_access(void) {
 	}
 	left = mkastleaf(A_ADDR, aryptr->type, aryptr, 0);
 
-  	// Get the '['
-  	scan(&Token);
+	// Get the '['
+	scan(&Token);
 
-  	// Parse the following expression
-  	right = binexpr(0);
+	// Parse the following expression
+	right = binexpr(0);
 
 	// Compare the size of array with the size to which the value is going to be assigned
 	if (aryptr->size <= right->size)
@@ -99,18 +99,18 @@ static struct ASTnode *array_access(void) {
 	// Get the ']'
 	match(T_RBRACKET, "]");
 
-  	// Ensure that this is of int type
-  	if (!inttype(right->type))
-    		fatal("Array index is not of integer type");
+	// Ensure that this is of int type
+	if (!inttype(right->type))
+		fatal("Array index is not of integer type");
 
-  	// Scale the index by the size of the element's type
-  	right = modify_type(right, left->type, A_ADD);
+	// Scale the index by the size of the element's type
+	right = modify_type(right, left->type, A_ADD);
 
-  	// Return an AST tree where the array's base has the offset added to it, and dereference the element.
+	// Return an AST tree where the array's base has the offset added to it, and dereference the element.
 	// Still an lvalue at this point.
-  	left = mkastnode(A_ADD, aryptr->type, left, NULL, right, NULL, 0);
-  	left = mkastunary(A_DEREF, value_at(left->type), left, NULL, 0);
-  	return (left);
+	left = mkastnode(A_ADD, aryptr->type, left, NULL, right, NULL, 0);
+	left = mkastunary(A_DEREF, value_at(left->type), left, NULL, 0);
+	return (left);
 }
 
 // Parse the member reference of a struct (or union, soon) and return an AST tree for it.
@@ -218,19 +218,19 @@ static struct ASTnode *postfix(void) {
 
 // Parse a primary factor and return an AST node representing it.
 static struct ASTnode *primary(void) {
-  	struct ASTnode *n;
-  	int id;
-  
+	struct ASTnode *n;
+	int id;
+
 	switch (Token.token) {
-  		case T_INTLIT:
+		case T_INTLIT:
 			// For an INTLIT token, make a leaf AST node for it.
 			// Make it a P_CHAR if it's within the P_CHAR range
 			if ((Token.intvalue) >= 0 && (Token.intvalue < 256))
-    				n = mkastleaf(A_INTLIT, P_CHAR, NULL, Token.intvalue);
+				n = mkastleaf(A_INTLIT, P_CHAR, NULL, Token.intvalue);
 			else
 				n = mkastleaf(A_INTLIT, P_INT, NULL, Token.intvalue);
 			break;
-		
+
 		case T_STRLIT:
 			// For a STRLIT token, generate the assembly for it.
 			// Then make a leaf AST node for it. id is the string's label.
@@ -250,7 +250,7 @@ static struct ASTnode *primary(void) {
 			return (n);
 
 		default:
-    			fatald("Expecting a primary expression, got token", Token.token);
+			fatald("Expecting a primary expression, got token", Token.token);
 	}
 
 	// Scan in the next token and return the leaf node
@@ -291,9 +291,9 @@ static int op_precedence(int tokentype) {
 	if (tokentype > T_SLASH)
 		fatald("Token with no precedence in op_precedence:", tokentype);
 	prec = OpPrec[tokentype];
-  	if (prec == 0)
-    		fatald("Syntax error, token", tokentype);
-  	return (prec);
+	if (prec == 0)
+		fatald("Syntax error, token", tokentype);
+	return (prec);
 }
 
 // Parse a prefix expression and return a sub-tree representing it
@@ -318,7 +318,7 @@ struct ASTnode *prefix(void) {
 			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
 			tree = prefix();
-	
+
 			// For now, ensure it's either another deref or an identifier
 			if (tree->op != A_IDENT && tree->op != A_DEREF)
 				fatal("* operator must be followed by an identifier or *");
@@ -405,7 +405,8 @@ struct ASTnode *binexpr(int ptp) {
   	
 	// If we hit a semicolon or ')', return just the left node
   	if (tokentype == T_SEMI || tokentype == T_RPAREN ||
-	    tokentype == T_RBRACKET || tokentype == T_COMMA) {
+	    tokentype == T_RBRACKET || tokentype == T_COMMA ||
+	    tokentype == T_COLON) {
     		left->rvalue = 1;
 		return (left);
 	}
@@ -461,7 +462,8 @@ struct ASTnode *binexpr(int ptp) {
     		// Update the details of the current token. If we hit a semicolon, ')', ']', return just the left node
     		tokentype = Token.token;
     		if (tokentype == T_SEMI || tokentype == T_RPAREN ||
-		    tokentype == T_RBRACKET || tokentype == T_COMMA) {
+		    tokentype == T_RBRACKET || tokentype == T_COMMA ||
+		    tokentype == T_COLON) {
 			left->rvalue = 1;
       			return (left);
 		}

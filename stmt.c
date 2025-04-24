@@ -8,7 +8,29 @@
 static struct ASTnode *single_statement(void);
 
 // Parse an If statement including any optional ELSE clause and return its AST
-struct ASTnode *if_statement(void) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static struct ASTnode *if_statement(void) {
 	struct ASTnode *condAST, *trueAST, *falseAST = NULL;
 
 	// Ensure we have 'if' '('
@@ -44,13 +66,15 @@ static struct ASTnode *while_statement(void) {
 	match(T_WHILE, "while");
 	lparen();
 	
-	// Parse the following expression and the ')' following. Ensure the tree's operation is a comparison
+	// Parse the following expression and the ')' following. 
+	// Force a non-comparison to be boolean the tree's
+	// operation is a comparison
 	condAST = binexpr(0);
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
 	rparen();
 
-	// Get the AST for the compound statement
+	// Get the AST for the compound statement.
 	// Update the loop depth in the process
 	Looplevel++;
 	bodyAST = compound_statement();
@@ -74,7 +98,8 @@ static struct ASTnode *for_statement(void) {
 	preopAST = single_statement();
 	semi();
 
-	// Get the condition and the ';'
+	// Get the condition and the ';'. Force a non-comparison
+	// to be boolean the tree's operation is a comparison.
 	condAST = binexpr(0);
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		condAST = mkastunary(A_TOBOOL, condAST->type, condAST, NULL, 0);
@@ -91,14 +116,16 @@ static struct ASTnode *for_statement(void) {
 	Looplevel--;
 
 	// For now, all four sub-trees have to be non-NULL. Later on, we'll change the semantics for
-	// when some are missing. Glue the compound statement and the postop tree
+	// when some are missing.
+
+	// Glue the compound statement and the postop tree
 	tree = mkastnode(A_GLUE, P_NONE, bodyAST, NULL, postopAST, NULL, 0);
 	
 	// Make a WHILE loop with the condition and this new body
 	tree = mkastnode(A_WHILE, P_NONE, condAST, NULL, tree, NULL, 0);
 
-	// And glue the prop tree to the A_WHILE tree
-	return(mkastnode(A_GLUE, P_NONE, preopAST, NULL, tree, NULL, 0));
+	// And glue the preop tree to the A_WHILE tree
+	return (mkastnode(A_GLUE, P_NONE, preopAST, NULL, tree, NULL, 0));
 }
 
 // Parse a return statement and return its AST
@@ -132,8 +159,8 @@ static struct ASTnode *return_statement(void) {
 // Parse a break statement and return its AST
 static struct ASTnode *break_statement(void) {
 
-	if (Looplevel == 0)
-		fatal("no loop to break out from");
+	if (Looplevel == 0 && Switchlevel == 0)
+		fatal("no loop or switch to break out from");
 	scan(&Token);
 	return (mkastleaf(A_BREAK, 0, NULL, 0));
 }
@@ -145,6 +172,95 @@ static struct ASTnode *continue_statement(void) {
 		fatal("no loop to continue to");
 	scan(&Token);
 	return (mkastleaf(A_CONTINUE, 0, NULL, 0));
+}
+
+// Parse a switch statement and return its AST
+static struct ASTnode *switch_statement(void) {
+	struct ASTnode *left, *n, *c, *casetree= NULL, *casetail;
+	int inloop=1, casecount=0;
+	int seendefault=0;
+	int ASTop, casevalue;
+
+	// Skip the 'switch' and '('
+	scan(&Token);
+	lparen();
+
+	// Get the switch expression, the ')' and the '{'
+	left= binexpr(0);
+	rparen();
+	lbrace();
+
+	// Ensure that this is of int type
+	if (!inttype(left->type))
+		fatal("Switch expression is not of integer type");
+
+	// Build an A_SWITCH subtree with the expression as the child
+	n = mkastunary(A_SWITCH, 0, left, NULL, 0);
+
+	// Now parse the cases
+	Switchlevel++;
+	while (inloop) {
+		switch(Token.token) {
+			// Leave the loop when we hit a '}'
+			case T_RBRACE:
+				if (casecount == 0)
+					fatal("No cases in switch");
+				inloop = 0;
+				break;
+			case T_CASE:
+			case T_DEFAULT:
+				// Ensure this isn't after a previous 'default'
+				if (seendefault)
+					fatal("case or default after existing default");
+
+				// Set the AST operation. Scan the case value if required
+				if (Token.token == T_DEFAULT) {
+					ASTop = A_DEFAULT;
+					seendefault = 1;
+					scan(&Token);
+				} else {
+					ASTop = A_CASE;
+					scan(&Token);
+					left = binexpr(0);
+					// Ensure the case value is an integer literal
+					if (left->op != A_INTLIT)
+						fatal("Expecting integer literal for case value");
+					casevalue= left->intvalue;
+
+					// Walk the list of existing case values to ensure
+					// that there isn't a duplicate case value
+					for (c= casetree; c != NULL; c= c -> right)
+						if (casevalue == c->intvalue)
+							fatal("Duplicate case value");
+				}
+
+				// Scan the ':' and get the compound expression
+				match(T_COLON, ":");
+				left= compound_statement();
+				casecount++;
+
+				// Build a sub-tree with the compound statement as the left child
+				// and link it in to the growing A_CASE tree
+				if (casetree==NULL) {
+					casetree= casetail= mkastunary(ASTop, 0, left, NULL, casevalue);
+				} else {
+					casetail->right= mkastunary(ASTop, 0, left, NULL, casevalue);
+					casetail= casetail->right;
+				}
+				break;
+			default:
+				fatald("Unexpected token in switch", Token.token);
+		}
+	}
+	Switchlevel--;
+
+	// We have a sub-tree with the cases and any default. Put the
+	// case count into the A_SWITCH node and attach the case tree.
+	n->intvalue = casecount;
+	n->right = casetree;
+	rbrace();
+
+	return(n);
 }
 
 // Parse a single statement and return its AST
@@ -167,11 +283,11 @@ static struct ASTnode *single_statement(void) {
 		case T_ENUM:
 		case T_TYPEDEF:
 		    	// The beginning of a variable declaration. Parse the type and get the identifier.
-      			// Then parse the rest of the declaration.
-      			// XXX: These are globals at present.
-      			type = parse_type(&ctype, &class);
-      			ident();
-      			var_declaration(type, ctype, C_LOCAL);
+			// Then parse the rest of the declaration.
+			// XXX: These are globals at present.
+			type = parse_type(&ctype, &class);
+			ident();
+			var_declaration(type, ctype, class);
 			semi();
 			return (NULL);			// No AST generated here
 		case T_IF:
@@ -186,12 +302,14 @@ static struct ASTnode *single_statement(void) {
 			return (break_statement());
 		case T_CONTINUE:
 			return (continue_statement());
+		case T_SWITCH:
+			return (switch_statement());
 		default:
 			// For now, see if this is an expression.
-			// This catches assignement statements.
+			// This catches assignment statements.
 			return (binexpr(0));
 	}
-	return (NULL);
+	return (NULL);		// Keep -Wall happy
 }
 
 // Parse a compound statement and return its AST
@@ -205,10 +323,10 @@ struct ASTnode *compound_statement(void) {
 	while (1) {
 		// Parse a single statement
 		tree = single_statement();
-	
+
 		// Some statements must be followed by a semicolon
 		if (tree != NULL && (tree->op == A_ASSIGN ||
-			 	     tree->op == A_RETURN ||
+				     tree->op == A_RETURN ||
 				     tree->op == A_FUNCCALL ||
 				     tree->op == A_BREAK || tree->op == A_CONTINUE))
 			semi();
@@ -227,5 +345,5 @@ struct ASTnode *compound_statement(void) {
 			rbrace();
 			return (left);
 		}
-	}	
+	}
 }

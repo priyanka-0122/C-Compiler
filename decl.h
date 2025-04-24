@@ -41,6 +41,8 @@ int cgor(int r1, int r2);
 int cgxor(int r1, int r2);
 int cgshl(int r1, int r2);
 int cgshr(int r1, int r2);
+void cgswitch(int reg, int casecount, int toplabel,
+	int *caselabel, int *caseval, int defaultlabel);
 
 // decl.c
 struct symtable *var_declaration(int type, struct symtable *ctype, int class);

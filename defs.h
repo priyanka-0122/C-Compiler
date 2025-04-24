@@ -42,13 +42,15 @@ enum {
 	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
 	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,
 	T_EXTERN, T_BREAK, T_CONTINUE,
+	T_SWITCH, T_CASE, T_DEFAULT,
 	
 	// Structural tokens
 	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
 	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
 	T_LBRACKET, T_RBRACKET,
 	T_COMMA,
-	T_DOT, T_ARROW
+	T_DOT, T_ARROW,
+	T_COLON
 };
 
 // Token structure
@@ -74,7 +76,8 @@ enum {
 	A_DEREF, A_ADDR, A_SCALE,
 	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
 	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,
-	A_BREAK, A_CONTINUE
+	A_BREAK, A_CONTINUE,
+	A_SWITCH, A_CASE, A_DEFAULT
 };
 
 // Primitive types. The bottom 4 bits is an integer value that represents the level

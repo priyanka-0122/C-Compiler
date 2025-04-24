@@ -2,8 +2,9 @@
  #define extern_ extern
 #endif
 
-// extern_ is a custom extension of extern
+// Global variables
 
+// extern_ is a custom extension of extern
 extern_ int Line;				// Current line number
 extern_ int Putback;				// Character put back by scanner
 extern_ struct symtable *Functionid;		// Symbol ptr of the current function
@@ -14,6 +15,7 @@ extern_ char *Outfilename;			// Name of file we opened as Outfile
 extern_ struct token Token;			// Last token scanned
 extern_ char Text[TEXTLEN + 1];			// Last identifier scanned
 extern_ int Looplevel;				// Depth of nested loops
+extern_ int Switchlevel;			// Depth of nested switches
 
 // Symbol table lists
 extern_ struct symtable *Globhead, *Globtail;		// Global variables and functions

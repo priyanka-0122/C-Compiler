@@ -46,7 +46,7 @@ int cgalign(int type, int offset, int direction) {
 
 	// We don't need to do this on x86-64, but let's align chars on any offset and align ints/pointers
 	// on a 4-byte alignment
-	switch(type) {
+	switch (type) {
 		case P_CHAR:
 			return (offset);
 		case P_INT:
@@ -57,8 +57,8 @@ int cgalign(int type, int offset, int direction) {
 	}
 
 	// Here we have an int or a long. Align it on a 4-byte offset I put the generic code here so it can be reused elsewhere.
-	alignment= 4;
-	offset = (offset + direction * (alignment-1)) & ~(alignment-1);
+	alignment = 4;
+	offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
 	return (offset);
 }
 
@@ -77,6 +77,7 @@ static int newlocaloffset(int type) {
 // List of available registers and their names.
 // We need a list of byte and doubleword registers, too
 // The list also includes the registers used to hold function parameters
+
 #define NUMFREEREGS	4
 #define FIRSTPARAMREG	9	// Position of first parameter register
 static int freereg[NUMFREEREGS];
@@ -111,6 +112,31 @@ static void free_register(int reg) {
 // Print out the assembly preamble
 void cgpreamble() {
 	freeall_registers();
+  	cgtextseg();
+	fprintf(Outfile,
+	  	"# internal switch(expr) routine\n"
+	  	"# %%rsi = switch table, %%rax = expr\n"
+	  	"# from SubC: http://www.t3x.org/subc/\n"
+	  	"\n"
+	  	"switch:\n"
+	  	"        pushq   %%rsi\n"
+	  	"        movq    %%rdx, %%rsi\n"
+	  	"        movq    %%rax, %%rbx\n"
+	  	"        cld\n"		// Clears the direction flag, ensuring string operations increment
+	  	"        lodsq\n"	// Loads a quadword from the address in %rsi into %rax and increments %rsi by 8
+	  	"        movq    %%rax, %%rcx\n"
+	  	"next:\n"
+	  	"        lodsq\n"
+	  	"        movq    %%rax, %%rdx\n"
+	  	"        lodsq\n"
+	  	"        cmpq    %%rdx, %%rbx\n"
+	  	"        jnz     no\n"
+	  	"        popq    %%rsi\n"
+	  	"        jmp     *%%rax\n"	// Jumps to the address stored in %rax (the address of the matching case)
+	  	"no:\n"
+	  	"        loop    next\n"	// Decrements %rcx and jumps to the next label if %rcx is not zero
+	  	"        lodsq\n"		// Loads the default case address from the address in %rsi into %rax and increments %rsi by 8
+	  	"        popq    %%rsi\n" "        jmp     *%%rax\n" "\n");
 }
 
 // Nothing to do
@@ -309,7 +335,7 @@ int cgmul(int r1, int r2) {
 int cgdiv(int r1, int r2) {
 	fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[r1]);	//dividend is loaded to %rax
 	fprintf(Outfile, "\tcqo\n");				//cqo is used to extend to eight bytes
-	fprintf(Outfile, "\tdivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax with 
+	fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);		//idivq divides the content in %rax with 
 								//the r2 and stores quotient in %rax
 	fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
 	free_register(r2);
@@ -417,6 +443,7 @@ int cgshlconst(int r, int val) {
 
 // Store a register's value into a variable
 int cgstorglob(int r, struct symtable *sym) {
+
 	if (cgprimsize(sym->type) == 8) {
 		fprintf(Outfile, "\tmovq\t%s, %s(%%rip)\n", reglist[r], sym->name);
 	} else
@@ -438,7 +465,7 @@ int cgstorlocal(int r, struct symtable *sym) {
 
 	if (cgprimsize(sym->type) == 8) {
 		fprintf(Outfile, "\tmovq\t%s, %d(%%rbp)\n", reglist[r], sym->posn);
-	} else 
+	} else
 		switch (sym->type) {
 			case P_CHAR:
 				fprintf(Outfile, "\tmovb\t%s, %d(%%rbp)\n", breglist[r], sym->posn);
@@ -629,4 +656,35 @@ int cgstorderef(int r1, int r2, int type) {
 			fatald("Can't cgstoderef on type:", type);
 	}
 	return (r1);
+}
+
+// Generate a switch jump table and the code to load the registers
+// and call the switch() code
+void cgswitch(int reg, int casecount, int toplabel,
+	      int *caselabel, int *caseval, int defaultlabel) {
+	int i, label;
+
+	// Get a label for the switch table
+	label = genlabel();
+	cglabel(label);
+
+	// Heuristic. If we have no cases, create one case which points
+	// to the default case
+	if (casecount == 0) {
+		caseval[0] = 0;
+		caselabel[0] = defaultlabel;
+		casecount = 1;
+	}
+
+	// Generate the switch jump table.
+	fprintf(Outfile, "\t.quad\t%d\n", casecount);
+	for (i = 0; i < casecount; i++)
+		fprintf(Outfile, "\t.quad\t%d, L%d\n", caseval[i], caselabel[i]);
+	fprintf(Outfile, "\t.quad\tL%d\n", defaultlabel);
+
+	// Load the specific registers
+	cglabel(toplabel);
+	fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+	fprintf(Outfile, "\tleaq\tL%d(%%rip), %%rdx\n", label);
+	fprintf(Outfile, "\tjmp\tswitch\n");
 }

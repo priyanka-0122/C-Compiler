@@ -76,7 +76,6 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 		if (op == 0 && ltype == rtype)
 			return (tree);
 	}
-
 	// We can scale only on A_ADD or A_SUBTRACT operation
 	if (op == A_ADD || op == A_SUBTRACT) {
 		
@@ -87,7 +86,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 			if (rsize > 1)
 				return (mkastunary(A_SCALE, rtype, tree, NULL, rsize));
 			else
-				return (tree);	//Size 1, no need to scale
+				return (tree);	// Size 1, no need to scale
 		}
 	}
 	
