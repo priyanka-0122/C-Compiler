@@ -2,6 +2,8 @@
 #include "data.h"
 #include "decl.h"
 
+// Parsing of declarations
+
 static struct symtable *composite_declaration(int type);
 static void enum_declaration(void);
 int typedef_declaration(struct symtable **ctype);
@@ -9,8 +11,21 @@ int type_of_typedef(char *name, struct symtable **ctype);
 
 // Parse the current token and return a primitive type enum value and a pointer to any composite type.
 // also scan in the next token
-int parse_type(struct symtable **ctype) {
-	int type;
+int parse_type(struct symtable **ctype, int *class) {
+	int type, exstatic=1;
+
+	// See if the class has been changed to extern (later, static)
+	while (exstatic) {
+		switch (Token.token) {
+			case T_EXTERN:
+				*class= C_EXTERN;
+				scan(&Token);
+				break;
+			default:
+				exstatic= 0;
+		}
+	}
+
 	switch (Token.token) {
 		case T_VOID:
 			type = P_VOID;
@@ -81,6 +96,7 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class) {
 
 	// See if this has already been declared
 	switch (class) {
+		case C_EXTERN:
 		case C_GLOBAL:
 			if (findglob(Text) != NULL)
 				fatals("Duplicate global variable declaration", Text);
@@ -103,24 +119,26 @@ struct symtable *var_declaration(int type, struct symtable *ctype, int class) {
 			// Add this as a known array and generate its space in assembly.
 			// We treat the array as a pointer to its elements' type
 			switch (class) {
+				case C_EXTERN:
 				case C_GLOBAL:
-					sym = addglob(Text, pointer_to(type), ctype, S_ARRAY, Token.intvalue);
+					sym = addglob(Text, pointer_to(type), ctype, S_ARRAY, class, Token.intvalue);
 					break;
 				case C_LOCAL:
 				case C_PARAM:
 				case C_MEMBER:
-					fatal
-					("For now, declaration of non-global arrays is not implemented");
+					fatal("For now, declaration of non-global arrays is not implemented");
 			}
 		}
+
 		// Ensure we have a following ']'
 		scan(&Token);
 		match(T_RBRACKET, "]");
 	} else {
 		// Add this as a known scalar and generate its space in assembly
 			switch (class) {
+				case C_EXTERN:
 				case C_GLOBAL:
-					sym = addglob(Text, type, ctype, S_VARIABLE, 1);
+					sym = addglob(Text, type, ctype, S_VARIABLE, class, 1);
 					while (1) {
 						if (Token.token == T_COMMA) {
 							scan(&Token);
@@ -176,7 +194,7 @@ static int var_declaration_list(struct symtable *funcsym, int class,
 	// Loop until the final end token
 	while (Token.token != end_token) {
 		// Get the type and identifier
-		type = parse_type(&ctype);
+		type = parse_type(&ctype, &class);
 		ident();
 
 	// Check that this type matches the prototype if there is one
@@ -220,7 +238,7 @@ struct ASTnode *function_declaration(int type) {
 	if (oldfuncsym == NULL) {
 		endlabel = genlabel();
 		// Assumtion: functions only return scalar types, so NULL below
-		newfuncsym = addglob(Text, type, NULL, S_FUNCTION, endlabel);
+		newfuncsym = addglob(Text, type, NULL, S_FUNCTION, C_GLOBAL, endlabel);
 	}
 
 	// Scan in the '(' and any parameters and ')'. Pass in any existing function prototype pointer
@@ -424,13 +442,13 @@ static void enum_declaration(void) {
 
 // Parse a typedef declaration and return the type and ctype that it represents
 int typedef_declaration(struct symtable **ctype) {
-	int type;
+	int type, class=0;
 
 	// Skip the typedef keyword.
 	scan(&Token);
 
 	// Get the actual type following the keyword
-	type = parse_type(ctype);
+	type = parse_type(ctype, &class);
 
 	// See if the typedef identifier already exists
 	if (findtypedef(Text) != NULL)
@@ -459,7 +477,7 @@ int type_of_typedef(char *name, struct symtable **ctype) {
 void global_declarations(void) {
 	struct ASTnode *tree;
 	struct symtable *ctype;
-	int type;
+	int type, class= C_GLOBAL;
 
 	while (1) {
 		// Stop when we have reached EOF
@@ -467,7 +485,7 @@ void global_declarations(void) {
 			break;
 
 		// Get the type
-		type = parse_type(&ctype);
+		type = parse_type(&ctype, &class);
 
 		// We might have just parsed a struct, union or enum declaration with no associated variable.
 		// The next token might be a ';'. Loop back if it is. XXX. I'm not happy with this as

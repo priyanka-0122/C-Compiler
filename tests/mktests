@@ -3,7 +3,7 @@
 
 # Build our compiler if needed
 if [ ! -f ../comp ]
-then (cd ..; make)
+then (cd ..; make install)
 fi
 
 for i in input*c

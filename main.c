@@ -6,62 +6,84 @@
 #include <errno.h>
 #include <unistd.h>
 
+// Compiler setup and top-level execution
+
 // Given a string with a '.' and at least a 1-character suffix
 // after the '.', change the suffix to be the given character.
 // Return the new string or NULL if the original string could
 // not be modified
 char *alter_suffix(char *str, char suffix) {
 	char *posn;
-  	char *newstr;
+	char *newstr;
 
-  	// Clone the string
-  	if ((newstr = strdup(str)) == NULL)
-    		return (NULL);
+	// Clone the string
+	if ((newstr = strdup(str)) == NULL)
+		return (NULL);
 
-  	// Find the '.'
-  	if ((posn = strrchr(newstr, '.')) == NULL)
-    	return (NULL);
+	// Find the '.'
+	if ((posn = strrchr(newstr, '.')) == NULL)
+		return (NULL);
 
-  	// Ensure there is a suffix
-  	posn++;
-  	if (*posn == '\0')
-    		return (NULL);
+	// Ensure there is a suffix
+	posn++;
+	if (*posn == '\0')
+		return (NULL);
 
-  	// Change the suffix and NUL-terminate the string
-  	*posn++ = suffix;
-  	*posn = '\0';
-  	return (newstr);
+	// Change the suffix and NUL-terminate the string
+	*posn++ = suffix;
+	*posn = '\0';
+	return (newstr);
 }
 
 // Given an input filename, compile that file
 // down to assembly code. Return the new file's name
 static char *do_compile(char *filename) {
+	char cmd[TEXTLEN];
+
+	// Change the input file's suffix to .s
 	Outfilename = alter_suffix(filename, 's');
-  	if (Outfilename == NULL) {
-    		fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
-    		exit(1);
-  	}
+	if (Outfilename == NULL) {
+		fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
+		exit(1);
+	}
 
-  	// Open up the input file
-  	if ((Infile = fopen(filename, "r")) == NULL) {
-    		fprintf(stderr, "Unable to open %s: %s\n", filename, strerror(errno));
-    		exit(1);
-  	}
+	// Generate the pre-processor command
+	if (O_genpreprocess) {
+		char *PreprocessOutfile = alter_suffix(filename, 'i');
+		snprintf(cmd, TEXTLEN, "%s %s %s > %s", CPPCMD, INCDIR, filename, PreprocessOutfile);
 
-  	// Create the output file
-  	if ((Outfile = fopen(Outfilename, "w")) == NULL) {
+		if (system(cmd) != 0) {
+			fprintf(stderr, "Error: Preprocessing %s failed\n", filename);
+			exit(1);
+		}
+
+		// Exit after generating pre-processor file
+		exit(0);
+	} else {
+		snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+
+		// Open up the pre-processor pipe
+		if ((Infile = popen(cmd, "r")) == NULL) {
+			fprintf(stderr, "Unable to open %s: %s\n", filename, strerror(errno));
+			exit(1);
+		}
+		Infilename = filename;
+	}
+
+	// Create the output file
+	if ((Outfile = fopen(Outfilename, "w")) == NULL) {
     		fprintf(stderr, "Unable to create %s: %s\n", Outfilename,
 	    	strerror(errno));
-    		exit(1);
+		exit(1);
   	}
 
-  	Line = 1;			// Reset the scanner
-  	Putback = '\n';
-  	clear_symtable();		// Clear the symbol table
-  	if (O_verbose)
-    		printf("compiling %s\n", filename);
+	Line = 1;			// Reset the scanner
+	Putback = '\n';
+	clear_symtable();		// Clear the symbol table
+	if (O_verbose)
+		printf("compiling:\t%s\n", cmd);
 
-  	scan(&Token);			// Get the first token from the input
+	scan(&Token);			// Get the first token from the input
 	genpreamble();			// Output the preamble
 	global_declarations();		// Parse the global declarations
 	genpostamble();			// Output the postamble
@@ -81,9 +103,9 @@ char *do_assemble(char *filename) {
 		exit(1);
 	}
 	// Build the assembly command and run it
-  	snprintf(cmd, TEXTLEN, "%s %s %s", ASCMD, outfilename, filename);
-  	if (O_verbose)
-		printf("%s\n", cmd);
+	snprintf(cmd, TEXTLEN, "%s %s %s", ASCMD, outfilename, filename);
+	if (O_verbose)
+		printf("Assembling:\t%s\n", cmd);
 	err = system(cmd);
 	if (err != 0) {
 		fprintf(stderr, "Assembly of %s failed\n", filename);
@@ -114,7 +136,7 @@ void do_link(char *outfilename, char *objlist[]) {
 	}
 
 	if (O_verbose)
-		printf("%s\n", cmd);
+		printf("Linking:\t%s\n", cmd);
 	err = system(cmd);
 	if (err != 0) {
 		fprintf(stderr, "Linking failed\n");
@@ -125,12 +147,13 @@ void do_link(char *outfilename, char *objlist[]) {
 // Print out a usage if started incorrectly
 static void usage(char *prog) {
 	fprintf(stderr, "Usage: %s [-vcST] [-o outfile] file [file ...]\n", prog);
-  	fprintf(stderr, "       -v give verbose output of the compilation stages\n");
+	fprintf(stderr, "       -v give verbose output of the compilation stages\n");
   	fprintf(stderr, "       -c generate object files but don't link them\n");
-  	fprintf(stderr, "       -S generate assembly files but don't link them\n");
-  	fprintf(stderr, "       -T dump the AST trees for each input file\n");
-  	fprintf(stderr, "       -o outfile, produce the outfile executable file\n");
-  	exit(1);
+	fprintf(stderr, "	-E generate pre-process files but don't proceed\n");
+	fprintf(stderr, "       -S generate assembly files but don't link them\n");
+	fprintf(stderr, "       -T dump the AST trees for each input file\n");
+	fprintf(stderr, "       -o outfile, produce the outfile executable file\n");
+	exit(1);
 }
 
 // Main program: check arguments and print a usage
@@ -138,32 +161,36 @@ static void usage(char *prog) {
 // file and call scanfile() to scan the tokens in it.
 #define MAXOBJ 100
 int main(int argc, char *argv[]) {
-  	char *outfilename = AOUT;
-  	char *asmfile, *objfile;
-  	char *objlist[MAXOBJ];
-  	int i, objcnt = 0;
+	char *outfilename = AOUT;
+	char *asmfile, *objfile;
+	char *objlist[MAXOBJ];
+	int i, objcnt = 0;
 
-  	// Initialise our variables
-  	O_dumpAST = 0;
-  	O_keepasm = 0;
-  	O_assemble = 0;
-  	O_verbose = 0;
-  	O_dolink = 1;
+	// Initialise our variables
+	O_dumpAST = 0;
+	O_genpreprocess = 0;
+	O_keepasm = 0;
+	O_assemble = 0;
+	O_verbose = 0;
+	O_dolink = 1;
 
-  	// Scan for command-line options
-  	for (i = 1; i < argc; i++) {
-    		// No leading '-', stop scanning for options
-    		if (*argv[i] != '-')
-      			break;
+	// Scan for command-line options
+	for (i = 1; i < argc; i++) {
+		// No leading '-', stop scanning for options
+		if (*argv[i] != '-')
+			break;
 
-    		// For each option in this argument
-    		for (int j = 1; (*argv[i] == '-') && argv[i][j]; j++) {
-      			switch (argv[i][j]) {
-      				case 'o':
+		// For each option in this argument
+		for (int j = 1; (*argv[i] == '-') && argv[i][j]; j++) {
+			switch (argv[i][j]) {
+     				case 'o':
 					outfilename = argv[++i];	// Save & skip to next argument
 					break;
       				case 'T':
 					O_dumpAST = 1;
+					break;
+				case 'E':
+					O_genpreprocess = 1;		// Generating a pre-processor file
 					break;
       				case 'c':
 					O_assemble = 1;

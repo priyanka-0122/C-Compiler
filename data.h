@@ -4,11 +4,12 @@
 
 // extern_ is a custom extension of extern
 
-extern_ int Line;				// Current line number			
+extern_ int Line;				// Current line number
 extern_ int Putback;				// Character put back by scanner
 extern_ struct symtable *Functionid;		// Symbol ptr of the current function
 extern_ FILE *Infile;				// Input file
 extern_ FILE *Outfile;				// Output file
+extern_ char *Infilename;			// Name of file we are parsing
 extern_ char *Outfilename;			// Name of file we opened as Outfile
 extern_ struct token Token;			// Last token scanned
 extern_ char Text[TEXTLEN + 1];			// Last identifier scanned
@@ -29,3 +30,4 @@ extern_ int O_keepasm;		// If true, keep any assembly files
 extern_ int O_assemble;		// If true, assemble the assembly files
 extern_ int O_dolink;		// If true, link the object files
 extern_ int O_verbose;		// If true, print info on compilation stages
+extern_ int O_genpreprocess;	// If true, generate a preprocessing file

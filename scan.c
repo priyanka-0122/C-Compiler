@@ -2,7 +2,9 @@
 #include "data.h"
 #include "decl.h"
 
-//Return the position of character c in string s, or -1 if c not found
+// Lexical scanning
+
+// Return the position of character c in string s, or -1 if c not found
 static int chrpos(char *s, int c) {
 	char *p;
 
@@ -10,39 +12,59 @@ static int chrpos(char *s, int c) {
 	return (p ? p - s : -1);
 }
 
+// Get the next character from the input file
+static int next(void) {
+	int c, l;
+
+	if (Putback) {					// Use the character put
+		c = Putback;				// back if there is one
+		Putback = 0;
+		return (c);
+	}
+
+	c = fgetc(Infile);				// Read from input file
+	//printf("%d ",(int)c);
+
+	while (c == '#') {				// We've hit a pre-processor statement
+		scan(&Token);				// Get the line number into l
+		if (Token.token != T_INTLIT)
+			fatals("Expecting pre-processor line number, got:", Text);
+		l = Token.intvalue;
+
+		scan(&Token);				// Get the filename in Text
+		if (Token.token != T_STRLIT)
+			fatals("Expecting pre-processor file name, got:", Text);
+
+		if (Text[0] != '<') {			// If this is a real filename and not the one we have now
+			if (strcmp(Text, Infilename))	// save it. Then update the line num
+				Infilename = strdup(Text);
+			Line = l;
+		}
+
+		while ((c = fgetc(Infile)) != '\n');	// Skip to the end of the line
+		c = fgetc(Infile);			// and get the next character
+	}
+
+	if ('\n' == c)
+		Line++;					// Increment line count
+	return (c);
+}
+
 // Put back an unwanted character
 static void putback(int c) {
 	Putback = c;
 }
 
-// Get the next character from the input file
-static int next(void) {
+// Skip past input that we don't need to deal with, i.e whitespace, newlines.
+// Return the first character we do need to deal with
+static int skip(void) {
 	int c;
-	if (Putback) {			//Use the character put
-		c = Putback;		//back if there is one
-		Putback = 0;
-		return c;
-	}
 
-	c = fgetc(Infile);		//Read from input file
-	//printf("%d ",(int)c);
-	if ('\n' == c)
-		Line++;			//Increment line count
-	return c;
-}
-
-// Scan and return an integer literal value from the input file
-static int scanint(int c) {
-	int k, val = 0;
-	 
-	//Convert each character into an int value
-	while ((k = chrpos("0123456789", c)) >= 0) {
-		val = val * 10 + k;
+	c = next();
+	while (' ' == c || '\t' == c || '\n' == c || '\r' == c || '\f' == c) {
 		c = next();
 	}
-	//We hit a non-integer character, put it back
-	putback(c);
-	return val;
+	return (c);
 }
 
 // Return the next character from a character or string literal
@@ -80,6 +102,21 @@ static int scanch(void) {
 	return (c);		// Just an ordinary old character!
 }
 
+// Scan and return an integer literal value from the input file
+static int scanint(int c) {
+	int k, val = 0;
+
+	// Convert each character into an int value
+	while ((k = chrpos("0123456789", c)) >= 0) {
+		val = val * 10 + k;
+		c = next();
+	}
+
+	// We hit a non-integer character, put it back.
+	putback(c);
+	return (val);
+}
+
 // Scan in a string literal from the input file, and store it in buf[]. REturn the length of the string
 static int scanstr(char *buf) {
 	int i, c;
@@ -99,17 +136,6 @@ static int scanstr(char *buf) {
 	return (0);
 }
 	
-//Skip past input that we don't need to deal with, i.e whitespace, newlines.
-//Return the first character we do need to deal with
-static int skip(void) {
-	int c;
-	c = next();
-	while (' ' == c || '\t' == c || '\n' == c || '\r' == c || '\f' == c) {
-		c = next();
-	}
-	return (c);
-}
-
 // Scan an identifier from the input file and store it in buf[]. Return the identifier's length
 static int scanident(int c, char *buf, int lim) {
 	int i = 0;
@@ -145,6 +171,8 @@ static int keyword( char *s) {
 				return (T_ELSE);
 			if (!strcmp(s, "enum"))
 				return (T_ENUM);
+			if (!strcmp(s, "extern"))
+				return (T_EXTERN);
 			break;
 		case 'f':
 			if (!strcmp(s, "for"))

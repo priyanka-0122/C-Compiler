@@ -16,10 +16,11 @@ enum {
 #define ASCMD "as -o "
 #define LDCMD "cc -o "
 #endif
+#define CPPCMD "cpp -nostdinc -isystem "
 
 // Token types
 enum {
-	 T_EOF,
+	T_EOF,
 
 	// Binary operators
 	T_ASSIGN, T_LOGOR, T_LOGAND,
@@ -38,6 +39,7 @@ enum {
 	// Other keywords
 	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
 	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,
+	T_EXTERN,
 	
 	// Structural tokens
 	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
@@ -89,6 +91,7 @@ enum {
 	C_GLOBAL = 1,		// Globally visible symbol
 	C_LOCAL,		// Locally visible symbol
 	C_PARAM,		// Locally visible function parameter
+	C_EXTERN,		// External globally visible symbol
 	C_STRUCT,		// A struct
 	C_UNION,		// A union
 	C_MEMBER,		// Member of a struct or union
@@ -109,9 +112,9 @@ struct symtable {
 		int endlabel;		// For functions, the end label
 	};
 	union {
-		int nelems;	// For functions, # of params
-		int posn;	// For locals, the negative offset from the stack base
-				// pointer
+		int nelems;		// For functions, # of params
+		int posn;		// For locals, the negative offset
+					// from the stack base pointer
 	};
 	struct symtable *next;		// Next symbol in one list
 	struct symtable *member;	// First member of a function, struct, union or enum
