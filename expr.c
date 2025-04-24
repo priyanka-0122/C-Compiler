@@ -230,6 +230,9 @@ static struct ASTnode *primary(void) {
 	struct symtable *ctype;
 
 	switch (Token.token) {
+		case T_STATIC:
+		case T_EXTERN:
+			fatal("Compiler doesn't support static or extern local declarations");
 		case T_SIZEOF:
 			// Skip the T_SIZEOF and ensure we have a left parenthesis
 			scan(&Token);
@@ -335,10 +338,10 @@ static int OpPrec[] = { 0,			// T_EOF,
 			20, 30,			// T_LOGOR, T_LOGAND
 			40, 50, 60,		// T_OR, T_XOR, T_AMPER 
 			70, 70,			// T_EQ, T_NE
-			80, 80, 80, 80,	// T_LT, T_GT, T_LE, T_GE
-			90, 90,		// T_LSHIFT, T_RSHIFT
-			100, 100,	// T_PLUS, T_MINUS
-			110, 110	// T_STAR, T_SLASH	
+			80, 80, 80, 80,		// T_LT, T_GT, T_LE, T_GE
+			90, 90,			// T_LSHIFT, T_RSHIFT
+			100, 100,		// T_PLUS, T_MINUS
+			110, 110		// T_STAR, T_SLASH
 		      };
 
 // Check that we have a binary operator and
@@ -536,7 +539,6 @@ struct ASTnode *binexpr(int ptp) {
 		// Join that sub-tree with ours. Convert the token
 		// into an AST operation at the same time.
     		left = mkastnode(binastop(tokentype), left->type, left, NULL, right, NULL, 0);
-
 
     		// Update the details of the current token.
 		// If we hit a terminating token, return just the left node

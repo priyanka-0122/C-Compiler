@@ -45,7 +45,7 @@ enum {
 	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,
 	T_EXTERN, T_BREAK, T_CONTINUE,
 	T_SWITCH, T_CASE, T_DEFAULT,
-	T_SIZEOF,
+	T_SIZEOF, T_STATIC,
 	
 	// Structural tokens
 	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
@@ -105,6 +105,7 @@ enum {
 	C_LOCAL,		// Locally visible symbol
 	C_PARAM,		// Locally visible function parameter
 	C_EXTERN,		// External globally visible symbol
+	C_STATIC,		// Static symbol, visible in one file
 	C_STRUCT,		// A struct
 	C_UNION,		// A union
 	C_MEMBER,		// Member of a struct or union
