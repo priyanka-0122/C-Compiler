@@ -1,3 +1,5 @@
+// Function prototypes for all compiler files
+
 // cg.c
 int cgprimsize(int type);
 int cgalign(int type, int offset, int direction);
@@ -50,6 +52,7 @@ struct ASTnode *function_declaration(int type);
 void global_declarations(void);
 
 // expr.c
+struct ASTnode *expression_list(int endtoken);
 struct ASTnode *binexpr(int ptp);
 
 // gen.c
@@ -84,7 +87,7 @@ void reject_token(struct token *t);
 int scan(struct token *t);
 
 // stmt.c
-struct ASTnode *compound_statement(void);
+struct ASTnode *compound_statement(int inswitch);
 
 // sym.c
 void appendsym(struct symtable **head, struct symtable **tail,

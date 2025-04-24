@@ -649,9 +649,6 @@ int cgstorderef(int r1, int r2, int type) {
 		case 8:
 			fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
 			break;
-//		case P_LONG:
-//			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
-//			break;
 		default:
 			fatald("Can't cgstoderef on type:", type);
 	}

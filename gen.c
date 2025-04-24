@@ -144,8 +144,8 @@ static int gen_funccall(struct ASTnode *n) {
 		gluetree = gluetree->left;
 	}
 
-  	// Call the function, clean up the stack (based on numargs), and return its result
-  	return (cgcall(n->sym, numargs));
+	// Call the function, clean up the stack (based on numargs), and return its result
+	return (cgcall(n->sym, numargs));
 }
 
 // Given an AST, an optional label, and the AST op of the parent, generate assembly code recursively.
@@ -154,7 +154,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	   int loopendlabel, int parentASTop) {
 	int leftreg, rightreg;
 
-  	switch (n->op) {
+	switch (n->op) {
 		case A_IF:
 			return(genIF(n, looptoplabel, loopendlabel));
 		case A_WHILE:
@@ -165,9 +165,11 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			return (gen_funccall(n));
 		case A_GLUE:
 			// Do each child statement, and free the registers after each child
-			genAST (n->left, iflabel, looptoplabel, loopendlabel, n->op);
+			if (n->left != NULL)
+				genAST (n->left, iflabel, looptoplabel, loopendlabel, n->op);
 			genfreeregs();
-			genAST(n->right, iflabel, looptoplabel, loopendlabel, n->op);
+			if (n->right != NULL)
+				genAST(n->right, iflabel, looptoplabel, loopendlabel, n->op);
 			genfreeregs();
 			return (NOREG);
 		case A_FUNCTION:
@@ -191,8 +193,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
     			return (cgsub(leftreg, rightreg));
   		case A_MULTIPLY:
     			return (cgmul(leftreg, rightreg));
-  		case A_DIVIDE:
-    			return (cgdiv(leftreg, rightreg));
+		case A_DIVIDE:
+			return (cgdiv(leftreg, rightreg));
 		case A_AND:
 			return (cgand(leftreg, rightreg));
 		case A_OR:

@@ -183,67 +183,67 @@ int main(int argc, char *argv[]) {
 		// For each option in this argument
 		for (int j = 1; (*argv[i] == '-') && argv[i][j]; j++) {
 			switch (argv[i][j]) {
-     				case 'o':
+				case 'o':
 					outfilename = argv[++i];	// Save & skip to next argument
 					break;
-      				case 'T':
+				case 'T':
 					O_dumpAST = 1;
 					break;
 				case 'E':
 					O_genpreprocess = 1;		// Generating a pre-processor file
 					break;
-      				case 'c':
+				case 'c':
 					O_assemble = 1;
 					O_keepasm = 0;
 					O_dolink = 0;
 					break;
-      				case 'S':
+				case 'S':
 					O_keepasm = 1;
 					O_assemble = 0;
 					O_dolink = 0;
 					break;
-      				case 'v':
+				case 'v':
 					O_verbose = 1;
 					break;
-      				default:
+				default:
 					usage(argv[0]);
-      			}
-    		}
-  	}
+			}
+		}
+	}
 
-  	// Ensure we have at lease one input file argument
-  	if (i >= argc)
-    		usage(argv[0]);
+	// Ensure we have at lease one input file argument
+	if (i >= argc)
+		usage(argv[0]);
 
-  	// Work on each input file in turn
-  	while (i < argc) {
-    		asmfile = do_compile(argv[i]);	// Compile the source file
+	// Work on each input file in turn
+	while (i < argc) {
+		asmfile = do_compile(argv[i]);	// Compile the source file
 
-    		if (O_dolink || O_assemble) {
-      			objfile = do_assemble(asmfile);	// Assemble it to object forma
-      			if (objcnt == (MAXOBJ - 2)) {
+		if (O_dolink || O_assemble) {
+			objfile = do_assemble(asmfile);	// Assemble it to object forma
+			if (objcnt == (MAXOBJ - 2)) {
 				fprintf(stderr, "Too many object files for the compiler to handle\n");
 				exit(1);
-      			}
-      			objlist[objcnt++] = objfile;	// Add the object file's name
-      			objlist[objcnt] = NULL;		// to the list of object files
-    		}
+			}
+			objlist[objcnt++] = objfile;	// Add the object file's name
+			objlist[objcnt] = NULL;		// to the list of object files
+		}
 
-    		if (!O_keepasm)			// Remove the assembly file if
-      		unlink(asmfile);			// we don't need to keep it
-    		i++;
-  	}
+		if (!O_keepasm)			// Remove the assembly file if
+		unlink(asmfile);			// we don't need to keep it
+		i++;
+	}
 
-  	// Now link all the object files together
-  	if (O_dolink) {
-    		do_link(outfilename, objlist);
+	// Now link all the object files together
+	if (O_dolink) {
+		do_link(outfilename, objlist);
 
-    		// If we don't need to keep the object files, then remove them
-    		if (!O_assemble) {
+		// If we don't need to keep the object files, then remove them
+		if (!O_assemble) {
 			for (i = 0; objlist[i] != NULL; i++)
 				unlink(objlist[i]);
-    		}
-  	}
+		}
+	}
 
-  	return (0);
+	return (0);
 }

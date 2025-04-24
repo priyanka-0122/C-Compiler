@@ -15,13 +15,13 @@
 // child being the next expression. Each A_GLUE node will have size field
 // set to the number of expressions in the tree at this point. If no
 // expressions are parsed, NULL is returned
-static struct ASTnode *expression_list(void) {
+struct ASTnode *expression_list(int endtoken) {
 	struct ASTnode *tree = NULL;
 	struct ASTnode *child = NULL;
 	int exprcount = 0;
 
-	// Loop until the final right parentheses
-	while (Token.token != T_RPAREN) {
+	// Loop until the end token
+	while (Token.token != endtoken) {
 
 		// Parse the next expression and increment the expression count
 		child = binexpr(0);
@@ -31,16 +31,12 @@ static struct ASTnode *expression_list(void) {
 		// and the new expression as the right child. Store the expression count.
 		tree = mkastnode(A_GLUE, P_NONE, tree, NULL, child, NULL, exprcount);
 
-		// Must have a ',' or ')' at this point
-		switch (Token.token) {
-			case T_COMMA:
-				scan(&Token);
-				break;
-			case T_RPAREN:
-				break;
-			default:
-				fatald("Unexpected token in expression list", Token.token);
-		}
+		// Stop when we reach the end token
+		if (Token.token == endtoken)
+			break;
+
+		// Must have a ',' at this point
+		match(T_COMMA, ",");
 	}
 
 	// Return the tree of expressions
@@ -61,7 +57,7 @@ static struct ASTnode *funccall(void) {
 	lparen();
 
 	// Parse the following expression
-	tree = expression_list();
+	tree = expression_list(T_RPAREN);
 
 	// XXX Check type of each argument against the function's prototype
 
@@ -250,7 +246,7 @@ static struct ASTnode *primary(void) {
 			return (n);
 
 		default:
-			fatald("Expecting a primary expression, got token", Token.token);
+			fatals("Expecting a primary expression, got token", Token.tokstr);
 	}
 
 	// Scan in the next token and return the leaf node
@@ -328,62 +324,62 @@ struct ASTnode *prefix(void) {
 			break;
 
 		case T_MINUS:
-      			// Get the next token and parse it recursively as a prefix expression
+			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
-      			tree = prefix();
+			tree = prefix();
 
-      			// Prepend a A_NEGATE operation to the tree and make the child an rvalue. Because chars are unsigned,
-      			// also widen this to int so that it's signed
+			// Prepend a A_NEGATE operation to the tree and make the child an rvalue. Because chars are unsigned,
+			// also widen this to int so that it's signed
       			tree->rvalue = 1;
-      			tree = modify_type(tree, P_INT, 0);
-      			tree = mkastunary(A_NEGATE, tree->type, tree, NULL, 0);
+			tree = modify_type(tree, P_INT, 0);
+			tree = mkastunary(A_NEGATE, tree->type, tree, NULL, 0);
+			break;
+
+		case T_INVERT:
+			// Get the next token and parse it recursively as a prefix expression
+			scan(&Token);
+			tree = prefix();
+
+			// Prepend a A_INVERT operation to the tree and make the child an rvalue.
+			tree->rvalue = 1;
+			tree = mkastunary(A_INVERT, tree->type, tree, NULL, 0);
       			break;
 
-    		case T_INVERT:
-      			// Get the next token and parse it recursively as a prefix expression
-      			scan(&Token);
-      			tree = prefix();
+		case T_LOGNOT:
+			// Get the next token and parse it recursively as a prefix expression
+			scan(&Token);
+			tree = prefix();
 
-      			// Prepend a A_INVERT operation to the tree and make the child an rvalue.
-      			tree->rvalue = 1;
-      			tree = mkastunary(A_INVERT, tree->type, tree, NULL, 0);
-      			break;
-
-    		case T_LOGNOT:
-      			// Get the next token and parse it recursively as a prefix expression
-      			scan(&Token);
-      			tree = prefix();
-
-      			// Prepend a A_LOGNOT operation to the tree and	make the child an rvalue.
-      			tree->rvalue = 1;
-      			tree = mkastunary(A_LOGNOT, tree->type, tree, NULL, 0);
-      			break;
+			// Prepend a A_LOGNOT operation to the tree and	make the child an rvalue.
+			tree->rvalue = 1;
+			tree = mkastunary(A_LOGNOT, tree->type, tree, NULL, 0);
+			break;
 
 		case T_INC:
-      			// Get the next token and parse it recursively as a prefix expression
-      			scan(&Token);
-      			tree = prefix();
+			// Get the next token and parse it recursively as a prefix expression
+			scan(&Token);
+			tree = prefix();
 
-      			// For now, ensure it's an identifier
-      			if (tree->op != A_IDENT)
+			// For now, ensure it's an identifier
+			if (tree->op != A_IDENT)
 				fatal("++ operator must be followed by an identifier");
 
-      			// Prepend an A_PREINC operation to the tree
+			// Prepend an A_PREINC operation to the tree
       			tree = mkastunary(A_PREINC, tree->type, tree, NULL, 0);
-      			break;
+			break;
 
 		case T_DEC:
       			// Get the next token and parse it recursively as a prefix expression
-      			scan(&Token);
-      			tree = prefix();
+			scan(&Token);
+			tree = prefix();
 
-      			// For now, ensure it's an identifier
-      			if (tree->op != A_IDENT)
+			// For now, ensure it's an identifier
+			if (tree->op != A_IDENT)
 				fatal("-- operator must be followed by an identifier");
 
-      			// Prepend an A_PREDEC operation to the tree
+			// Prepend an A_PREDEC operation to the tree
       			tree = mkastunary(A_PREDEC, tree->type, tree, NULL, 0);
-      			break;
+			break;
 
 		default:
 			tree = primary();
@@ -402,24 +398,24 @@ struct ASTnode *binexpr(int ptp) {
 
 	// If we hit one of several terminating tokens, return just the left node
   	tokentype = Token.token;
-  	
+
 	// If we hit a semicolon or ')', return just the left node
-  	if (tokentype == T_SEMI || tokentype == T_RPAREN ||
+	if (tokentype == T_SEMI || tokentype == T_RPAREN ||
 	    tokentype == T_RBRACKET || tokentype == T_COMMA ||
 	    tokentype == T_COLON) {
-    		left->rvalue = 1;
+		left->rvalue = 1;
 		return (left);
 	}
 
-  	// While the precedence of this token is more than that of the previous token precedence,
+	// While the precedence of this token is more than that of the previous token precedence,
 	// or it's right associative and equal to the previous token's precedence
-  	while ((op_precedence(tokentype) > ptp) ||
+	while ((op_precedence(tokentype) > ptp) ||
 		(rightassoc(tokentype) && op_precedence(tokentype) == ptp)) {
-    		// Fetch in the next integer literal
-    		scan(&Token);
+		// Fetch in the next integer literal
+		scan(&Token);
 
-    		// Recursively call binexpr() with the precedence of our token to build a sub-tree
-    		right = binexpr(OpPrec[tokentype]);
+		// Recursively call binexpr() with the precedence of our token to build a sub-tree
+		right = binexpr(OpPrec[tokentype]);
 
 		// Determine the operation to be performed on the sub-trees
 		ASTop = binastop(tokentype);
@@ -433,7 +429,7 @@ struct ASTnode *binexpr(int ptp) {
 			right = modify_type(right, left->type, 0);
 			if (right == NULL)
 				fatal("Incompatible expression in assignment");
-			
+
 			// Make an assignment AST tree. However, switch left and right around, so that the right
 			// expression's code will be generated before the left expression
 			ltemp = left;
@@ -445,7 +441,7 @@ struct ASTnode *binexpr(int ptp) {
 			left->rvalue = 1;
 			right->rvalue = 1;
 
-    			// Ensure the two types are compatible by trying to modify each tree to match the other's type
+			// Ensure the two types are compatible by trying to modify each tree to match the other's type
 			ltemp = modify_type(left, right->type, ASTop);
 			rtemp = modify_type(right, left->type, ASTop);
 			if (ltemp == NULL && rtemp == NULL)
@@ -456,20 +452,20 @@ struct ASTnode *binexpr(int ptp) {
 				right = rtemp;
 		}
 
-    		// Join that sub-tree with ours. Convert the token into an AST operation at the same time.
+		// Join that sub-tree with ours. Convert the token into an AST operation at the same time.
     		left = mkastnode(binastop(tokentype), left->type, left, NULL, right, NULL, 0);
 
     		// Update the details of the current token. If we hit a semicolon, ')', ']', return just the left node
-    		tokentype = Token.token;
-    		if (tokentype == T_SEMI || tokentype == T_RPAREN ||
+		tokentype = Token.token;
+		if (tokentype == T_SEMI || tokentype == T_RPAREN ||
 		    tokentype == T_RBRACKET || tokentype == T_COMMA ||
 		    tokentype == T_COLON) {
 			left->rvalue = 1;
-      			return (left);
+			return (left);
 		}
-  	}
+	}
 
   	// Return the tree we have when the precedence is the same or lower
-  	left->rvalue = 1;
+	left->rvalue = 1;
 	return (left);
 }

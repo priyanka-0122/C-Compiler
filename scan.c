@@ -236,6 +236,21 @@ void reject_token(struct token *t) {
 	Rejtoken = t;
 }
 
+// List of token strings, for debugging purposes
+char *Tstring[] = {
+	"EOF", "=", "||", "&&", "|", "^", "&",
+	"==", "!=", ",", ">", "<=", ">=", "<<", ">>",
+	"+", "-", "*", "/", "++", "--", "~", "!",
+	"void", "char", "int", "long",
+	"if", "else", "while", "for", "return",
+	"struct", "union", "enum", "typedef",
+	"extern", "break", "continue", "switch",
+	"case", "default",
+	"intlit", "strlit", ";", "identifier",
+	"{", "}", "(", ")", "[", "]", ",", ".",
+	"->", ":"
+};
+
 // Scan and return the next token found in the input.
 // Return 1 if the token is valid, 0 if no tokens left.
 int scan(struct token *t) {
@@ -404,5 +419,6 @@ int scan(struct token *t) {
 			fatalc("Unrecognised character", c);
 	}
 	// We found a token
+	t->tokstr = Tstring[t->token];
 	return (1);
 }

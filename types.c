@@ -54,13 +54,13 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 	// Compare scalar int types
 	if (inttype(ltype) && inttype(rtype)) {
 
-  		// Both types same, nothing to do
-  		if (ltype == rtype)
+		// Both types same, nothing to do
+		if (ltype == rtype)
 			return (tree);
 
 		// Get the sizes for each type
-  		lsize = typesize(ltype, NULL);	// XXX Fix soon
-  		rsize = typesize(rtype, NULL);	// XXX Fix soon
+		lsize = typesize(ltype, NULL);	// XXX Fix soon
+		rsize = typesize(rtype, NULL);	// XXX Fix soon
 
 		// Tree's size is too big
 		if (lsize > rsize)
