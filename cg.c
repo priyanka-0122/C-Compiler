@@ -11,20 +11,20 @@ static char *dreglist[4] = { "%r8d", "%r9d", "%r10d", "%r11d" };
 // Set all registers as available
 void freeall_registers(void)
 {
-	freereg[0]= freereg[1]= freereg[2]= freereg[3] = 1;
+	freereg[0] = freereg[1] = freereg[2] = freereg[3] = 1;
 }
 
 // Allocate a free register. Return the number of the register. Die if no available registers.
 static int alloc_register(void)
 {
-	for (int i=0; i<4; i++) {
+	for (int i = 0; i < 4; i++) {
 		if (freereg[i]) {
 			freereg[i] = 0;
 			return(i);
 		}
 	}
 	fatal("Out of registers!");
-	return 0;
+	return (NOREG);
 }
 
 // Return a register to the list of available registers. Check to see if it's not already there
@@ -50,11 +50,11 @@ void cgpostamble() {
 void cgfuncpreamble(int id) {
 	char *name = Gsym[id].name;
 	fprintf(Outfile,
-			"\t.text\n"
-			"\t.globl\t%s\n"
-			"\t.type\t%s, @function\n"
-			"%s:\n" "\tpushq\t%%rbp\n"
-			"\tmovq\t%%rsp, %%rbp\n", name, name, name);
+		"\t.text\n"
+		"\t.globl\t%s\n"
+		"\t.type\t%s, @function\n"
+		"%s:\n" "\tpushq\t%%rbp\n"
+		"\tmovq\t%%rsp, %%rbp\n", name, name, name);
 }
 
 // Print out a function postamble
@@ -92,7 +92,7 @@ int cgmul(int r1, int r2) {
 int cgsub(int r1, int r2) {
 	fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
 	free_register(r2);
-	return(r1);
+	return (r1);
 }
 
 // Divide the first register by the second and return the number of the register with the result
@@ -103,7 +103,7 @@ int cgdiv(int r1, int r2) {
 								//the r2 and stores quotient in %rax
 	fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
 	free_register(r2);
-	return(r1);
+	return (r1);
 }
 
 // Call printint() with the register
@@ -194,10 +194,10 @@ int cgstorglob(int r, int id) {
 }
 
 // List of comparisons instructions in AST order:
-//			     A_EQ,  A_NE,   A_LT,   A_GT,    A_LE, A_GE
+//			     A_EQ,  A_NE,    A_LT,   A_GT,    A_LE, A_GE
 static char *cmplist[] = { "sete", "setne", "setl", "setg", "setle", "setge"};
 
-// Compare two registers and set if trues.
+// Compare two registers and set if true.
 int cgcompare_and_set(int ASTop, int r1, int r2) {
 	//Check two randge of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)

@@ -25,8 +25,10 @@ int cgaddress(int id);
 int cgderef(int r, int type);
 
 //decl.c
-void var_declaration(void);
-struct ASTnode *function_declaration(void);
+int parse_type(void);
+void var_declaration(int type);
+struct ASTnode *function_declaration(int type);
+void global_declarations(void);
 
 //expr.c
 struct ASTnode *funccall(void);
