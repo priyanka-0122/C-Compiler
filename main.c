@@ -18,7 +18,7 @@ static void usage(int argc, char *prog)
 	}
 }
 
-void main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
 	struct ASTnode *tree;
 
 	usage(argc, argv[0]);
@@ -47,7 +47,8 @@ void main(int argc, char *argv[]) {
 		if (Token.token == T_EOF)	// Stop when we reached EOF
 			break;
 	}
+	genpostamble();
 	fclose(Outfile);
 	fclose(Infile);
-	exit(0);
+	return(0);
 }

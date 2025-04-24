@@ -87,7 +87,7 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 			return (NOREG);
 		case A_FUNCTION:
 			// Generate the function's preamble before the code
-			cgfuncpreamble(Gsym[n->v.id].name);
+			cgfuncpreamble(n->v.id);
 			genAST(n->left, NOREG, n->op);
 			cgfuncpostamble(n->v.id);
 			return (NOREG);
@@ -146,10 +146,15 @@ int genAST(struct ASTnode *n, int reg, int parentASTop) {
 		default:
     			fatald("Unknown AST operator", n->op);
   	}
+	return(NOREG);	// Keep -Wall happy
 }
 
 void genpreamble() {
   	cgpreamble();
+}
+
+void genpostamble() {
+	cgpostamble();
 }
 
 void genfreeregs() {

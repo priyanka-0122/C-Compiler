@@ -4,11 +4,16 @@
 
 // Parse the current token and return a primitive type enum value
 int parse_type(int t ) {
-	if (t == T_CHAR)	return (P_CHAR);
-	if (t == T_INT)		return (P_INT);
-	if (t == T_LONG)	return (P_LONG);
-	if (t == T_VOID)	return (P_VOID);
+	if (t == T_CHAR)
+		return (P_CHAR);
+	if (t == T_INT)
+		return (P_INT);
+	if (t == T_LONG)
+		return (P_LONG);
+	if (t == T_VOID)
+		return (P_VOID);
 	fatald("Illegal type,token", t);
+	return (0);
 }
 
 // For now we have a vwery simplistic function declaration grammar

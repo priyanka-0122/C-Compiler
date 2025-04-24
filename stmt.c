@@ -7,7 +7,6 @@ static struct ASTnode *single_statement(void);
 static struct ASTnode *print_statement(void) {
   	struct ASTnode *tree;
 	int lefttype, righttype;
-  	int reg;
 
   	// Match a 'print' as the first token
   	match(T_PRINT, "print");
@@ -223,6 +222,7 @@ static struct ASTnode *single_statement(void) {
 		default:
 			fatald("Syntax error, token", Token.token);
 	}
+	return (NULL);
 }
 
 // Parse a compound statement and return its AST
