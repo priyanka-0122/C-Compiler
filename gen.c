@@ -52,7 +52,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	return (NOREG);
 }
 
-// Generate the code for a WHILE statement and optional ELSE clause
+// Generate the code for a WHILE statement
 static int genWHILE(struct ASTnode *n) {
 	int Lstart, Lend;
 	

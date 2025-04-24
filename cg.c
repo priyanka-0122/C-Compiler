@@ -86,7 +86,6 @@ static int newlocaloffset(int type) {
 // We need a list of byte and doubleword registers, too
 // The list also includes the registers used to
 // hold function parameters
-
 #define NUMFREEREGS	4
 #define FIRSTPARAMREG	9	// Position of first parameter register
 static int freereg[NUMFREEREGS];
@@ -416,7 +415,9 @@ int cgboolean(int r, int op, int label) {
 	return (r);
 }
 
-// Call a function with one argument from the given register. Return the register with the result
+// Call a function with the given symbol id
+// Pop off any arguments pushed on the stack
+// Return the register with the result
 int cgcall(struct symtable *sym, int numargs) {
 	// Get a new register
 	int outr = alloc_register();
