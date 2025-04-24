@@ -1,10 +1,12 @@
-int   c;
-int   d;
-int  *e;
-int   f;
-
-int main() {
-  c= 12; d=18; printint(c);
-  e= &c + 1; f= *e; printint(f);
+int a;
+int b;
+int c;
+int d;
+int e;
+int main()
+{
+  a= 2; b= 4; c= 3; d= 2;
+  e= (a+b) * (c+d);
+  printint(e);
   return(0);
 }

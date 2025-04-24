@@ -43,7 +43,7 @@ struct ASTnode *function_declaration(int type) {
 	// Get a label id for the end label, add the function to the symbol table, and set the 
 	// Functionid global to the function's symbol id
 	endlabel = genlabel();
-	nameslot = addglob(Text, type, S_FUNCTION, endlabel);
+	nameslot = addglob(Text, type, S_FUNCTION, endlabel, 0);
 	Functionid = nameslot;
 
 	// Scan in the parantheses
@@ -74,30 +74,47 @@ struct ASTnode *function_declaration(int type) {
 // Parse the declaration of a list of variables.
 // The identifier has been scanned & we have the type
 void var_declaration(int type) {
-  int id;
+  	int id;
 
-  while (1) {
-    // Text now has the identifier's name.
-    // Add it as a known identifier
-    // and generate its space in assembly
-    id = addglob(Text, type, S_VARIABLE, 0);
-    genglobsym(id);
+	// Text now has the identifier's name. If the next token is a '['
+	if (Token.token == T_LBRACKET) {
+		// Skip past the '['
+		scan(&Token);
 
-    // If the next token is a semicolon,
-    // skip it and return.
-    if (Token.token == T_SEMI) {
-      scan(&Token);
-      return;
-    }
-    // If the next token is a comma, skip it,
-    // get the identifier and loop back
-    if (Token.token == T_COMMA) {
-      scan(&Token);
-      ident();
-      continue;
-    }
-    fatal("Missing , or ; after identifier");
-  }
+		// Check we have an array size
+		if (Token.token == T_INTLIT) {
+			// Add this as a known array and generate its apace in assembly.
+			// We treat the array as a pointer to its elements' type
+			id = addglob(Text, pointer_to(type), S_ARRAY, 0, Token.intvalue);
+			genglobsym(id);
+		}
+	
+		// Ensure we have a following ']'
+		scan(&Token);
+		match(T_RBRACKET, "]");
+	} else {	
+    		while(1) {
+			// Text now has the identifier's name. Add it as a known identifier
+    			// and generate its space in assembly
+    			id = addglob(Text, type, S_VARIABLE, 0, 1);
+    			genglobsym(id);
+
+			// If the next token is a semicolon, skip it and return.
+			if (Token.token == T_SEMI) {
+				scan(&Token);
+				return;
+			}
+			// If the next token is a comma, skip it, get the identifier and loop back
+    				if (Token.token == T_COMMA) {
+      					scan(&Token);
+      					ident();
+      					continue;
+    				}
+    				fatal("Missing , or ; after identifier");
+			}		
+	}
+	// Get the trailing semicolon
+	semi();
 }
 
 // Parse one or more global declarations, either variable or functions

@@ -75,7 +75,7 @@ void cgpostamble() {
 	// Print out the global variables
 	fprintf(Outfile, ".L2:\n");
 	for (int i = 0; i < Globs; i++) {
-		if (Gsym[i].stype == S_VARIABLE)
+		if (Gsym[i].stype == S_VARIABLE || Gsym[i].stype == S_ARRAY)
 		fprintf(Outfile, "\t.word %s\n", Gsym[i].name);
 	}
 
@@ -124,10 +124,10 @@ int cgloadint(int value, int type) {
 static void set_var_offset(int id) {
 	int offset = 0;
 	
-	// Walk the symbol table up to id. Find S_VARIABLEs and add on 4 until
+	// Walk the symbol table up to id. Find S_VARIABLEs and S_ARRAYs and add on 4 until
 	// we get to our variable
 	for (int i = 0; i < id; i++) {
-		if (Gsym[i].stype == S_VARIABLE)
+		if (Gsym[i].stype == S_VARIABLE || Gsym[i].stype == S_ARRAY)
 			offset += 4;
 	}
 	// Load r3 with this offset
@@ -136,8 +136,8 @@ static void set_var_offset(int id) {
 	
 // Load a value from a variable into a register. Return the number of the register
 int cgloadglob(int id) {
-  	// Get a new register
-  	int r = alloc_register();
+	// Get a new register
+	int r = alloc_register();
 
 	// Get the offset to the variable
 	set_var_offset(id);
@@ -150,28 +150,28 @@ int cgloadglob(int id) {
 			fprintf(Outfile, "\tldr\t%s, [r3]\n", reglist[r]);
 			break;
 	}
-  	return (r);
+	return (r);
 }
 
 // Add two registers together and return the number of the register with the result
 int cgadd(int r1, int r2) {
 	fprintf(Outfile, "\tadd\t%s, %s, %s\n", reglist[r2], reglist[r1], reglist[r2]);
 	free_register(r1);
-	return(r2);
+	return (r2);
 }
 
 // Subtract the second register from the first and return the number of the register with the result
 int cgsub(int r1, int r2) {
 	fprintf(Outfile, "\tsub\t%s, %s, %s\n", reglist[r1], reglist[r1], reglist[r2]);
 	free_register(r2);
-	return(r1);
+	return (r1);
 }
 
 // Multiply two registers together and return the number of the register with the result
 int cgmul(int r1, int r2) {
 	fprintf(Outfile, "\tmul\t%s, %s, %s\n", reglist[r2], reglist[r1], reglist[r2]);
 	free_register(r1);
-	return(r2);
+	return (r2);
 }
 
 // Divide the first register by the second and return the number of the register with the result
@@ -224,40 +224,48 @@ int cgstorglob(int r, int id) {
 		case P_INTPTR:
 		case P_LONGPTR:
       			fprintf(Outfile, "\tstr\t%s, [r3]\n", reglist[r]);
-      			break;
-    		default:
-      			fatald("Bad type in cgstorglob:", Gsym[id].type);
-  	}
-  	return (r);
+			break;
+		default:
+			fatald("Bad type in cgstorglob:", Gsym[id].type);
+	}
+	return (r);
 }
 
 // Array of type sizes in P_XXX order. 0 means no size.
-//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG, P_CHARPTR, P_INTPTR, P_LONGPTR
-static int psize[] = { 0,      0,      1,     4,      4,	 4,	   4,	     4, 4};
+//		  P_NONE, P_VOID, P_CHAR, P_INT, P_LONG, P_VOIDPTR, P_CHARPTR, P_INTPTR, P_LONGPTR
+static int psize[] = { 0, 0, 1, 4, 8, 8, 8, 8, 8};
 
 // Given a P_XXX type value, return the size of a primitive type in bytes.
 int cgprimsize(int type) {
 	// Check the type is valid
-  	if (type < P_NONE || type > P_LONGPTR)
-    		fatal("Bad type in cgprimsize()");
-  	return (psize[type]);
+	if (type < P_NONE || type > P_LONGPTR)
+		fatal("Bad type in cgprimsize()");
+	return (psize[type]);
 }
 
 // Generate a global symbol
 void cgglobsym(int id) {
 	int typesize;
-  	// Get the size of the type
-  	typesize = cgprimsize(Gsym[id].type);
+	// Get the size of the type
+	typesize = cgprimsize(Gsym[id].type);
+	
+	fprintf(Outfile, "\t.data\n" "\t.globl\t%s\n", Gsym[id].name);
+	fprintf(Outfile, "%s:", Gsym[id].name);
 
-  	fprintf(Outfile, "\t.data\n" "\t.globl\t%s\n", Gsym[id].name);
-  	switch(typesize) {
-    		case 1:
-			fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[id].name);
-			break;
-    		case 4:
-			fprintf(Outfile, "%s:\t.long\t0\n", Gsym[id].name);
-			break;
-    		default: fatald("Unknown typesize in cgglobsym: ", typesize);
+	for ( int i = 0; i < Gsym[id].size; i++) {
+		switch(typesize) {
+    			case 1:
+				fprintf(Outfile, "\t.byte\t0\n");
+				break;
+    			case 4:
+				fprintf(Outfile, "\t.long\t0\n");
+				break;
+			case 8:
+				fprintf(Outfile, "\t.quad\t0\n");
+				break;
+    			default:
+				fatald("Unknown typesize in cgglobsym: ", typesize);
+		}
   	}
 }
 
@@ -303,7 +311,7 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 
 	// Check the range of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
-		fatal("Bad ASTop in cgcompare_and_set()");
+		fatal("Bad ASTop in cgcompare_and_jump()");
 
 	fprintf(Outfile, "\tcmp\t%s, %s\n", reglist[r1], reglist[r2]);
 	fprintf(Outfile, "\t%s\tL%d\n", brlist[ASTop - A_EQ], label);
@@ -319,16 +327,24 @@ int cgwiden (int r, int oldtype, int newtype) {
 
 // Generate code to return a value from a function
 void cgreturn(int reg, int id) {
-	fprintf(Outfile, "\tmov\tr0, %s\n", reglist[reg]);
-  	cgjump(Gsym[id].endlabel);
+	// Generate code depending on the function's type
+	switch (Gsym[id].type) {
+		case P_CHAR:
+		case P_INT:
+		case P_LONG:
+			fprintf(Outfile, "\tmov\tr0, %s\n", reglist[reg]);
+			break;
+		default:
+			fatald("Bad function type in cgreturn:", Gsym[id].type);
+	}
+	cgjump(Gsym[id].endlabel);
 }
 
-// Generate code to load the address of a global identifier int a variable.
-// Return a new register
+// Generate code to load the address of a global identifier into a variable. Return a new register
 int cgaddress(int id) {
 	// Get a new register
 	int r = alloc_register();
-	
+
 	// Get the offset to the variable
 	set_var_offset(id);
 	fprintf(Outfile, "\tmov\t%s, r3\n", reglist[r]);
@@ -341,8 +357,6 @@ int cgderef(int r, int type) {
 			fprintf(Outfile, "\tldrb\t%s, [%s]\n", reglist[r], reglist[r]);
 			break;
 		case P_INTPTR:
-			fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
-			break;
 		case P_LONGPTR:
 			fprintf(Outfile, "\tldr\t%s, [%s]\n", reglist[r], reglist[r]);
 			break;

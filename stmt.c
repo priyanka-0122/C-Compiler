@@ -41,8 +41,7 @@ struct ASTnode *while_statement(void) {
 	match(T_WHILE, "while");
 	lparen();
 	
-	// Parse the following expression and the ')' following. Ensure
-	// the tree's operation is a comparison
+	// Parse the following expression and the ')' following. Ensure the tree's operation is a comparison
 	condAST = binexpr(0);
 	if (condAST->op < A_EQ || condAST->op > A_GE)
 		fatal("Bad comparison operator");
@@ -82,8 +81,8 @@ static struct ASTnode *for_statement(void) {
 	// Get the compound statement which is the body
 	bodyAST = compound_statement();
 
-	// For now, all four sub-trees have to be non-NULL. Later on,
-	// we'll change the semantics for when some are missing
+	// For now, all four sub-trees have to be non-NULL. Later on, we'll change the semantics for
+	// when some are missing
 	
 	// Glue the compound statement and the postop tree
 	tree = mkastnode(A_GLUE, P_NONE, bodyAST, NULL, postopAST, 0);
@@ -146,7 +145,8 @@ static struct ASTnode *single_statement(void) {
 		case T_RETURN:
 			return (return_statement());
 		default:
-			// For now, see if this is an expression. This catches assignement statements.
+			// For now, see if this is an expression.
+			// This catches assignement statements.
 			return (binexpr(0));
 	}
 	return (NULL);

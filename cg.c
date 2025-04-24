@@ -161,7 +161,7 @@ int cgshlconst(int r, int val) {
 int cgstorglob(int r, int id) {
 	switch (Gsym[id].type) {
 		case P_CHAR:
-			fprintf(Outfile, "\tmovb\t%s, %s(\%%rip)\n", breglist[r], Gsym[id].name);
+			fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], Gsym[id].name);
 			break;
 		case P_INT:
 			fprintf(Outfile, "\tmovl\t%s, %s(\%%rip)\n", dreglist[r], Gsym[id].name);
@@ -195,20 +195,26 @@ void cgglobsym(int id) {
 	int typesize;
 	// Get the size of the type
 	typesize = cgprimsize(Gsym[id].type);
-
+	
+	// Generate the global identity and teh label
 	fprintf(Outfile, "\t.data\n" "\t.globl\t%s\n", Gsym[id].name);
-	switch(typesize) {
-    		case 1:
-			fprintf(Outfile, "%s:\t.byte\t0\n", Gsym[id].name);
-			break;
-    		case 4:
-			fprintf(Outfile, "%s:\t.long\t0\n", Gsym[id].name);
-			break;
-    		case 8:
-			fprintf(Outfile, "%s:\t.quad\t0\n", Gsym[id].name);
-			break;
-    		default:
-			fatald("Unknown typesize in cgglobsym: ", typesize);
+	fprintf(Outfile, "%s:", Gsym[id].name);
+
+	// Generate the space
+	for ( int i = 0; i < Gsym[id].size; i++) {
+		switch(typesize) {
+    			case 1:
+				fprintf(Outfile, "\t.byte\t0\n");
+				break;
+    			case 4:
+				fprintf(Outfile, "\t.long\t0\n");
+				break;
+    			case 8:
+				fprintf(Outfile, "\t.quad\t0\n");
+				break;
+    			default:
+				fatald("Unknown typesize in cgglobsym: ", typesize);
+		}
   	}
 }
 
@@ -291,7 +297,7 @@ int cgaddress(int id) {
 int cgderef(int r, int type) {
 	switch (type) {
 		case P_CHARPTR:
-			fprintf(Outfile, "\tmovzbq\t(%s), %s\n", reglist[r], reglist[r]);
+			fprintf(Outfile, "\tmovb\t(%s), %s\n", reglist[r], breglist[r]);
 			break;
 		case P_INTPTR:
 			fprintf(Outfile, "\tmovl\t(%s), %s\n", reglist[r], dreglist[r]);
@@ -307,10 +313,10 @@ int cgderef(int r, int type) {
 int cgstorderef(int r1, int r2, int type) {
   	switch (type) {
     		case P_CHAR:
-      			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+      			fprintf(Outfile, "\tmovb\t%s, (%s)\n", breglist[r1], reglist[r2]);
       			break;
     		case P_INT:
-      			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);
+      			fprintf(Outfile, "\tmovl\t%s, (%s)\n", dreglist[r1], reglist[r2]);
       			break;
     		case P_LONG:
       			fprintf(Outfile, "\tmovq\t%s, (%s)\n", reglist[r1], reglist[r2]);

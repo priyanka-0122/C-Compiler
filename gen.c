@@ -160,8 +160,6 @@ int genAST(struct ASTnode *n, int label, int parentASTop) {
 			// Small optimisation: use shift if the scale value is a known
 			// power of two
 			switch (n->v.size) {
-				case 1:
-					return(cgshlconst(leftreg, 0));
 				case 2:
 					return(cgshlconst(leftreg, 1));
 				case 4:

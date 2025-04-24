@@ -1,16 +1,9 @@
-long c;
-long d;
-long *e;
-long f;
-int main()
-{
-        c = 12;
-        d = 20;
-        e = &c + 1;
-        f = *e;
-        printint(f);
-        e = &d - 1;
-        f = *e;
-        printint(f);
-        return(0);
+int a;
+int b[25];
+
+int main() {
+  b[3]= 12;
+  a= b[3];
+  printint(a);
+  return(0);
 }

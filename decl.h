@@ -69,7 +69,7 @@ struct ASTnode *compound_statement(void);
 
 //sym.c
 int findglob(char *s);
-int addglob(char *name, int type, int stype, int endlabel);
+int addglob(char *name, int type, int stype, int endlabel, int size);
 
 //tree.c
 struct ASTnode *mkastnode (int op, int type, struct ASTnode *left, struct ASTnode *mid, struct ASTnode *right, int intvalue);
@@ -78,6 +78,7 @@ struct ASTnode *mkastunary(int op, int type, struct ASTnode *left, int intvalue)
 void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
 //types.c
+int inttype(int type);
 int type_compatible(int *left, int *right, int onlyright);
 int pointer_to(int type);
 int value_at(int type);
