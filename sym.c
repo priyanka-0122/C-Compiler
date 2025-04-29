@@ -66,7 +66,7 @@ struct symtable *addglob(char *name, int type, struct symtable *ctype,
 			 int stype, int class, int nelems, int posn) {
 	struct symtable *sym = newsym(name, type, ctype, stype, class, nelems, posn);
 	// For structs and unions, copy the size from the type node
-	if (type== P_STRUCT || type== P_UNION)
+	if (type == P_STRUCT || type == P_UNION)
 		sym->size = ctype->size;
 	appendsym(&Globhead, &Globtail, sym);
 	return (sym);
@@ -77,7 +77,7 @@ struct symtable *addlocl(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
 	struct symtable *sym = newsym(name, type, ctype, stype, C_LOCAL, nelems, 0);
 	// For structs and unions, copy the size from the type node
-	if (type== P_STRUCT || type== P_UNION)
+	if (type == P_STRUCT || type == P_UNION)
 		sym->size = ctype->size;
 	appendsym(&Loclhead, &Locltail, sym);
 	return (sym);
@@ -96,7 +96,7 @@ struct symtable *addmemb(char *name, int type, struct symtable *ctype,
 			 int stype, int nelems) {
 	struct symtable *sym = newsym(name, type, ctype, stype, C_MEMBER, nelems, 0);
 	// For structs and unions, copy the size from the type node
-	if (type== P_STRUCT || type== P_UNION)
+	if (type == P_STRUCT || type == P_UNION)
 		sym->size = ctype->size;
 	appendsym(&Membhead, &Membtail, sym);
 	return (sym);
@@ -136,7 +136,7 @@ struct symtable *addtypedef(char *name, int type, struct symtable *ctype) {
 static struct symtable *findsyminlist(char *s, struct symtable *list, int class) {
 	for (; list != NULL; list = list->next)
 		if ((list->name != NULL) && !strcmp(s, list->name))
-			if (class==0 || class== list->class)
+			if (class == 0 || class == list->class)
 				return (list);
 	return (NULL);
 }
@@ -228,10 +228,10 @@ void freeloclsyms(void) {
 // Remove all static symbols from the global symbol table
 void freestaticsyms(void) {
 	// g points at current node, prev at the previous one
-	struct symtable *g, *prev= NULL;
+	struct symtable *g, *prev = NULL;
 
 	// Walk the global table looking for static entries
-	for (g= Globhead; g != NULL; g= g->next) {
+	for (g = Globhead; g != NULL; g = g->next) {
 		if (g->class == C_STATIC) {
 
 			// If there's a previous node, rearrange the prev pointer
@@ -239,15 +239,15 @@ void freestaticsyms(void) {
 			if (prev != NULL)
 				prev->next = g->next;
 			else
-				Globhead->next= g->next;
+				Globhead->next = g->next;
 
 			// If g is the tail, point Globtail at the previous node
 			// (if there is one), or Globhead
 			if (g == Globtail) {
 				if (prev != NULL)
-					Globtail= prev;
+					Globtail = prev;
 				else
-					Globtail= Globhead;
+					Globtail = Globhead;
 			}
 		}
 	}

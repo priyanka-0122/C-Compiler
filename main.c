@@ -78,13 +78,14 @@ static char *do_compile(char *filename) {
   	}
 
 	Line = 1;			// Reset the scanner
+	Linestart = 1;
 	Putback = '\n';
 	clear_symtable();		// Clear the symbol table
 	if (O_verbose)
 		printf("compiling:\t%s\n", cmd);
 
 	scan(&Token);			// Get the first token from the input
-	Peektoken.token= 0;		// and set there is no lookahead token
+	Peektoken.token = 0;		// and set there is no lookahead token
 	genpreamble();			// Output the preamble
 	global_declarations();		// Parse the global declarations
 	genpostamble();			// Output the postamble
@@ -244,7 +245,7 @@ int main(int argc, char *argv[]) {
 			objlist[objcnt] = NULL;		// to the list of object files
 		}
 
-		if (!O_keepasm)			// Remove the assembly file if
+		if (!O_keepasm)				// Remove the assembly file if
 		unlink(asmfile);			// we don't need to keep it
 		i++;
 	}

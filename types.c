@@ -39,7 +39,8 @@ int typesize(int type, struct symtable *ctype) {
 // scaling so that it is compatible with this type. Return the original tree if no changes occured,
 // a modified tree, or NULL if the tree is not compatible with the guven type. If this will be part
 // of a binary operation, the AST op is not zero
-struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
+			    struct symtable *rctype, int op) {
 	int ltype;
 	int lsize, rsize;
 
@@ -68,14 +69,14 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 
 		// Widen to the right
 		if (rsize > lsize)
-			return (mkastunary(A_WIDEN, rtype, tree, NULL, 0));
+			return (mkastunary(A_WIDEN, rtype, NULL, tree, NULL, 0));
 	}
 
 	// For pointers
 	if (ptrtype(ltype) && ptrtype(rtype)) {
 		// We can compare them
 		if (op >= A_EQ && op <= A_GE)
-			return(tree);
+			return (tree);
 
 		// A comparison of the same type for a non-binary operation is OK,
 		// or when the left tree is of  `void *` type.
@@ -91,7 +92,7 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op) {
 		if (inttype(ltype) && ptrtype(rtype)) {
 			rsize = genprimsize(value_at(rtype));
 			if (rsize > 1)
-				return (mkastunary(A_SCALE, rtype, tree, NULL, rsize));
+				return (mkastunary(A_SCALE, rtype, rctype, tree, NULL, rsize));
 			else
 				return (tree);		// Size 1, no need to scale
 		}

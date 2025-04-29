@@ -6,14 +6,18 @@ int scan(struct token *t);
 
 // tree.c
 struct ASTnode *mkastnode(int op, int type,
+			  struct symtable *ctype,
 			  struct ASTnode *left,
 			  struct ASTnode *mid,
 			  struct ASTnode *right,
 			  struct symtable *sym, int intvalue);
 struct ASTnode *mkastleaf(int op, int type,
+			  struct symtable *ctype,
 			  struct symtable *sym, int intvalue);
-struct ASTnode *mkastunary(int op, int type, struct ASTnode *left,
-			    struct symtable *sym, int intvalue);
+struct ASTnode *mkastunary(int op, int type,
+			   struct symtable *ctype,
+			   struct ASTnode *left,
+			   struct symtable *sym, int intvalue);
 void dumpAST(struct ASTnode *n, int label, int parentASTop);
 
 // gen.c
@@ -57,7 +61,6 @@ void cgglobsym(struct symtable *node);
 void cgglobstr(int l, char *strvalue);
 int cgcompare_and_set(int ASTop, int r1, int r2);
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
-int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2);
 void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);
@@ -132,7 +135,7 @@ void dumpsymtables(void);
 // decl.c
 int parse_type(struct symtable **ctype, int *class);
 int parse_stars(int type);
-int parse_cast(void);
+int parse_cast(struct symtable **ctype);
 int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 		     struct ASTnode **gluetree);
 void global_declarations(void);
@@ -143,7 +146,8 @@ int ptrtype(int type);
 int pointer_to(int type);
 int value_at(int type);
 int typesize(int type, struct symtable *ctype);
-struct ASTnode *modify_type(struct ASTnode *tree, int rtype, int op);
+struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
+			    struct symtable *rctype, int op);
 
 // opt.c
 struct ASTnode *optimise(struct ASTnode *n);

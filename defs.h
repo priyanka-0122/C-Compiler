@@ -12,7 +12,7 @@ enum {
 // Commands and default filenames
 #define AOUT "a.out"
 #ifdef __NASM__
-#define ASCMD "nasm -f elf64 -o "
+#define ASCMD "nasm -f elf64 -w-ptr -o "
 #define LDCMD "cc -no-pie -fno-plt -Wall -o "
 #else
 #define ASCMD "as -o "
@@ -136,8 +136,9 @@ struct symtable {
 
 // Abstract Syntax Tree structure
 struct ASTnode {
-	int op;			// "Operation" to be performed on this tree
+	int op;				// "Operation" to be performed on this tree
 	int type;			// Type of any expression this tree generates
+	struct symtable *ctype;		// If struct/union, ptr to that type
 	int rvalue;			// True if the node is an rvalue
 	struct ASTnode *left;		// Left, middle and right child trees
 	struct ASTnode *mid;

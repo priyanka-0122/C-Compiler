@@ -6,6 +6,7 @@
 
 // extern_ is a custom extension of extern
 extern_ int Line;				// Current line number
+extern_ int Linestart;				// True if at start of a line
 extern_ int Putback;				// Character put back by scanner
 extern_ struct symtable *Functionid;		// Symbol ptr of the current function
 extern_ FILE *Infile;				// Input file
@@ -17,6 +18,7 @@ extern_ struct token Peektoken;			// A look-ahead token
 extern_ char Text[TEXTLEN + 1];			// Last identifier scanned
 extern_ int Looplevel;				// Depth of nested loops
 extern_ int Switchlevel;			// Depth of nested switches
+extern char *Tstring[];				// List of token strings
 
 // Symbol table lists
 extern_ struct symtable *Globhead, *Globtail;		// Global variables and functions
