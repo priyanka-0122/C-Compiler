@@ -35,7 +35,7 @@ installn: compn
 	chmod +x $(BINDIR)/compn
 
 clean:
-	rm -f comp comp_arm compn comp_old *.o *.out out
+	rm -f comp comp_arm compn *.o *.out out
 
 clean_assem:
 	rm *.s

@@ -30,6 +30,7 @@ extern_ struct symtable *Typehead,  *Typetail;		// List of typedefs
 
 // Command-line flags
 extern_ int O_dumpAST;		// If true, dump the AST trees
+extern_ int O_dumpsym;		// If true, dump the symbol table
 extern_ int O_keepasm;		// If true, keep any assembly files
 extern_ int O_assemble;		// If true, assemble the assembly files
 extern_ int O_dolink;		// If true, link the object files

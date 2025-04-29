@@ -131,8 +131,8 @@ int parse_literal(int type) {
 	// If there's a cast, get the child and
 	// mark it as having the type from the cast
 	if (tree->op == A_CAST) {
-		tree->left->type= tree->type;
-		tree= tree->left;
+		tree->left->type = tree->type;
+		tree = tree->left;
 	}
 
 	// The tree must now have an integer or string literal
@@ -216,7 +216,6 @@ static struct symtable *scalar_declaration(char *varname, int type,
 
 			// Make an assignment AST tree
 			*tree = mkastnode(A_ASSIGN, exprnode->type, exprnode, NULL, varnode, NULL, 0);
-
 		}
 	}
 
@@ -472,6 +471,7 @@ static struct symtable *function_declaration(char *funcname, int type,
 		dumpAST(tree, NOLABEL, 0);
 		fprintf(stdout, "\n\n");
 	}
+
 	// Generate the assembly code for it
 	genAST(tree, NOLABEL, NOLABEL, NOLABEL, 0);
 

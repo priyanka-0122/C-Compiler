@@ -29,7 +29,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	genfreeregs(NOREG);
 
 	// Generate the true compound statement
-	genAST(n->mid, NOLABEL, looptoplabel, loopendlabel, n->op);		// Statements after 'if'
+	genAST(n->mid, NOLABEL, looptoplabel, loopendlabel, n->op);	// Statements after 'if'
 	genfreeregs(NOREG);
 
 	// If there is an optional ELSE clause,
@@ -44,9 +44,9 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	// false compound statement and the
 	// end label
 	if (n->right) {
-		genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);		// Statements after 'else'
+		genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);	// Statements after 'else'
 		genfreeregs(NOREG);
-		cglabel(Lend);				// Lend: label
+		cglabel(Lend);			// Lend: label
 	}
 	
 	return (NOREG);
@@ -117,8 +117,10 @@ static int genSWITCH(struct ASTnode *n) {
 		else
 			casecount++;
 
-		// Generate the case code. Pass in the end label for the breaks
-		genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
+		// Generate the case code. Pass in the end label for the breaks.
+		// If case has no body, we will fall into the following body.
+		if (c->left)
+			genAST(c->left, NOLABEL, NOLABEL, Lend, 0);
 		genfreeregs(NOREG);
 	}
 
@@ -186,7 +188,7 @@ static int gen_ternary(struct ASTnode *n) {
 				reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
 				return (reg);
 		}
-	} 
+	}
 
 	// Generate two labels: one for the
 	// false expression, and one for the
@@ -280,13 +282,14 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		leftreg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
 	if (n->right)
 		rightreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+
 	switch (n->op) {
-  		case A_ADD:
-    			return (cgadd(leftreg, rightreg));
-  		case A_SUBTRACT:
-    			return (cgsub(leftreg, rightreg));
-  		case A_MULTIPLY:
-    			return (cgmul(leftreg, rightreg));
+		case A_ADD:
+			return (cgadd(leftreg, rightreg));
+		case A_SUBTRACT:
+			return (cgsub(leftreg, rightreg));
+		case A_MULTIPLY:
+			return (cgmul(leftreg, rightreg));
 		case A_DIVIDE:
 			return (cgdiv(leftreg, rightreg));
 		case A_AND:
@@ -345,20 +348,20 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			// make it the right child so that we can fall into the assignment code.
 			switch (n->op) {
 				case A_ASPLUS:
-					leftreg= cgadd(leftreg, rightreg);
-					n->right= n->left;
+					leftreg = cgadd(leftreg, rightreg);
+					n->right = n->left;
 					break;
 				case A_ASMINUS:
-					leftreg= cgsub(leftreg, rightreg);
-					n->right= n->left;
+					leftreg = cgsub(leftreg, rightreg);
+					n->right = n->left;
 					break;
 				case A_ASSTAR:
-					leftreg= cgmul(leftreg, rightreg);
-					n->right= n->left;
+					leftreg = cgmul(leftreg, rightreg);
+					n->right = n->left;
 					break;
 				case A_ASSLASH:
-					leftreg= cgdiv(leftreg, rightreg);
-					n->right= n->left;
+					leftreg = cgdiv(leftreg, rightreg);
+					n->right = n->left;
 					break;
 			}
 
@@ -366,7 +369,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			// Are we assigning to an identifier or through a pointer
 			switch (n->right->op) {
 				case A_IDENT:
-					if (n->right->sym->class == C_GLOBAL || n->right->sym->class == C_STATIC) {
+					if (n->right->sym->class == C_GLOBAL ||
+					    n->right->sym->class == C_STATIC) {
 						return (cgstorglob(leftreg, n->right->sym));
 					} else {
 						return (cgstorlocal(leftreg, n->right->sym));
@@ -382,8 +386,6 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		case A_RETURN:
 			cgreturn(leftreg, Functionid);
 			return (NOREG);
-		case A_FUNCCALL:
-			return (gen_funccall(n));
 		case A_ADDR:
 			return (cgaddress(n->sym));
 		case A_DEREF:
@@ -428,6 +430,10 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			return (cginvert(leftreg));
 		case A_LOGNOT:
 			return (cglognot(leftreg));
+		case A_LOGOR:
+			return (cglogor(leftreg, rightreg));
+		case A_LOGAND:
+			return (cglogand(leftreg, rightreg));
 		case A_TOBOOL:
 			// If the parent AST node is an A_IF or A_WHILE, generate a compare followed by a jump. Otherwise, set the register
 			// to 0 or 1 based on it's zeroeness or non-zeroeness

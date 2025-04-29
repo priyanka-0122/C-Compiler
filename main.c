@@ -84,10 +84,19 @@ static char *do_compile(char *filename) {
 		printf("compiling:\t%s\n", cmd);
 
 	scan(&Token);			// Get the first token from the input
+	Peektoken.token= 0;		// and set there is no lookahead token
 	genpreamble();			// Output the preamble
 	global_declarations();		// Parse the global declarations
 	genpostamble();			// Output the postamble
 	fclose(Outfile);		// Close the output file
+
+	// Dump the symbol table if requested
+	if (O_dumpsym) {
+		printf("Symbols for %s\n", filename);
+		dumpsymtables();
+		fprintf(stdout, "\n\n");
+	}
+
 	freestaticsyms();		// Free any static symbols in the file
 	return (Outfilename);
 }
@@ -153,6 +162,7 @@ static void usage(char *prog) {
 	fprintf(stderr, "	-E generate pre-process files but don't proceed\n");
 	fprintf(stderr, "       -S generate assembly files but don't link them\n");
 	fprintf(stderr, "       -T dump the AST trees for each input file\n");
+	fprintf(stderr, "       -M dump the symbol table for each input file\n");
 	fprintf(stderr, "       -o outfile, produce the outfile executable file\n");
 	exit(1);
 }
@@ -166,8 +176,10 @@ int main(int argc, char *argv[]) {
 	char *asmfile, *objfile;
 	char *objlist[MAXOBJ];
 	int i, objcnt = 0;
+
 	// Initialise our variables
 	O_dumpAST = 0;
+	O_dumpsym = 0;
 	O_genpreprocess = 0;
 	O_keepasm = 0;
 	O_assemble = 0;
@@ -188,6 +200,9 @@ int main(int argc, char *argv[]) {
 					break;
 				case 'T':
 					O_dumpAST = 1;
+					break;
+				case 'M':
+					O_dumpsym = 1;
 					break;
 				case 'E':
 					O_genpreprocess = 1;		// Generating a pre-processor file

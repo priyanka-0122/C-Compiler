@@ -196,9 +196,11 @@ static struct ASTnode *postfix(void) {
 	if (Token.token == T_ARROW)
 		return (member_access(1));
 
-	// A variable. Check that the variable exists.
-	if ((varptr = findsymbol(Text)) == NULL || varptr->stype != S_VARIABLE)
+	// A variable or name of an array. Check that it exists.
+	if ((varptr = findsymbol(Text)) == NULL ||
+	     (varptr->stype != S_VARIABLE && varptr->stype != S_ARRAY)) {
 		fatals("Unknown variable", Text);
+	}
 
 	switch (Token.token) {
 		// Post-increment: skip over the token
@@ -225,7 +227,7 @@ static struct ASTnode *postfix(void) {
 static struct ASTnode *primary(void) {
 	struct ASTnode *n;
 	int id;
-	int type=0;
+	int type = 0;
 	int size, class;
 	struct symtable *ctype;
 
@@ -551,7 +553,7 @@ struct ASTnode *binexpr(int ptp) {
 
 		// Join that sub-tree with ours. Convert the token
 		// into an AST operation at the same time.
-    		left = mkastnode(binastop(tokentype), left->type, left, NULL, right, NULL, 0);
+		left = mkastnode(binastop(tokentype), left->type, left, NULL, right, NULL, 0);
 
     		// Update the details of the current token.
 		// If we hit a terminating token, return just the left node

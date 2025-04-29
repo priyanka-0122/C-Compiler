@@ -191,7 +191,8 @@ static struct ASTnode *continue_statement(void) {
 
 // Parse a switch statement and return its AST
 static struct ASTnode *switch_statement(void) {
-	struct ASTnode *left, *n, *c, *casetree= NULL, *casetail;
+	struct ASTnode *left, *body, *n, *c;
+	struct ASTnode *casetree= NULL, *casetail;
 	int inloop=1, casecount=0;
 	int seendefault=0;
 	int ASTop, casevalue;
@@ -250,18 +251,24 @@ static struct ASTnode *switch_statement(void) {
 							fatal("Duplicate case value");
 				}
 
-				// Scan the ':' and get the compound expression
+				// Scan the ':' and increment the casecount
 				match(T_COLON, ":");
-				left= compound_statement(1);
 				casecount++;
 
-				// Build a sub-tree with the compound statement as the left child
+				// If the next token is a T_CASE, T_DEFAULT or T_BRACE(i.e. default with no body) the existing case
+				// will fall into the next case. Otherwise, parse the case body.
+				if ((Token.token == T_CASE) || (Token.token == T_DEFAULT) || (Token.token == T_RBRACE)) 
+					body = NULL;
+				else
+					body = compound_statement(1);
+
+				// Build a sub-tree with any compound statement as the left child
 				// and link it in to the growing A_CASE tree
-				if (casetree==NULL) {
-					casetree= casetail= mkastunary(ASTop, 0, left, NULL, casevalue);
+				if (casetree == NULL) {
+					casetree = casetail = mkastunary(ASTop, 0, body, NULL, casevalue);
 				} else {
-					casetail->right= mkastunary(ASTop, 0, left, NULL, casevalue);
-					casetail= casetail->right;
+					casetail->right = mkastunary(ASTop, 0, body, NULL, casevalue);
+					casetail = casetail->right;
 				}
 				break;
 			default:
