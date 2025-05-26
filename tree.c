@@ -219,6 +219,21 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 		case A_LOGAND:
 			fprintf(stdout, "A_LOGAND\n");
 			return;
+		case A_LSHIFT:
+			fprintf(stdout, "A_LSHIFT\n");
+			return;
+		case A_RSHIFT:
+			fprintf(stdout, "A_RSHIFT\n");
+			return;
+		case A_AND:
+			fprintf(stdout, "A_AND\n");
+			return;
+		case A_OR:
+			fprintf(stdout, "A_OR\n");
+			return;
+		case A_XOR:
+			fprintf(stdout, "A_XOR\n");
+			return;
 		default:
 			fatald("Unknown dumpAST operator", n->op);
 	}
