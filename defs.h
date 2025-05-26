@@ -23,39 +23,39 @@ enum {
 
 // Token types
 enum {
-	T_EOF,
+	T_EOF,							// 0
 
 	// Binary operators
-	T_ASSIGN,
-	T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
-	T_QUESTION,
-	T_LOGOR, T_LOGAND,
-	T_OR, T_XOR, T_AMPER,
-	T_EQ, T_NE,
-	T_LT, T_GT, T_LE, T_GE,
-	T_LSHIFT, T_RSHIFT,
-	T_PLUS, T_MINUS, T_STAR, T_SLASH,
+	T_ASSIGN,						// 1
+	T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH, T_ASMOD,	// 2
+	T_QUESTION,						// 7
+	T_LOGOR, T_LOGAND,					// 8
+	T_OR, T_XOR, T_AMPER,					// 10
+	T_EQ, T_NE,						// 13
+	T_LT, T_GT, T_LE, T_GE,					// 15
+	T_LSHIFT, T_RSHIFT,					// 19
+	T_PLUS, T_MINUS, T_STAR, T_SLASH, T_MOD,		// 21
 
 	// Other operators
-	T_INC, T_DEC, T_INVERT, T_LOGNOT,
+	T_INC, T_DEC, T_INVERT, T_LOGNOT,			// 26
 
 	// Type keywords
-	T_VOID, T_CHAR, T_INT, T_LONG,
+	T_VOID, T_CHAR, T_INT, T_LONG,				// 30
 
 	// Other keywords
-	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,
-	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,
-	T_EXTERN, T_BREAK, T_CONTINUE,
-	T_SWITCH, T_CASE, T_DEFAULT,
-	T_SIZEOF, T_STATIC,
+	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,			// 34
+	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,			// 38
+	T_EXTERN, T_BREAK, T_CONTINUE,				// 42
+	T_SWITCH, T_CASE, T_DEFAULT,				// 45
+	T_SIZEOF, T_STATIC,					// 48
 	
 	// Structural tokens
-	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,
-	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,
-	T_LBRACKET, T_RBRACKET,
-	T_COMMA,
-	T_DOT, T_ARROW,
-	T_COLON
+	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 50
+	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,			// 54
+	T_LBRACKET, T_RBRACKET,					// 58
+	T_COMMA,						// 60
+	T_DOT, T_ARROW,						// 61
+	T_COLON							// 63
 };
 
 // Token structure
@@ -68,26 +68,27 @@ struct token {
 // AST node types. The first few line up
 // with the related tokens
 enum {
-	A_ASSIGN= 1,					// 1
-	A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH,	// 2
-	A_TERNARY,					// 6
-	A_LOGOR, A_LOGAND,				// 7
-	A_OR, A_XOR, A_AND,				// 9
-	A_EQ, A_NE,					// 12
-	A_LT, A_GT, A_LE, A_GE,				// 14
-	A_LSHIFT, A_RSHIFT,				// 18
-	A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,	// 20
-	A_INTLIT, A_STRLIT,				// 24
-	A_IDENT, A_GLUE,				// 26
-	A_IF, A_WHILE, A_FUNCTION,			// 28
-	A_WIDEN,					// 31
-	A_RETURN, A_FUNCCALL,				// 32
-	A_DEREF, A_ADDR, A_SCALE,			// 34
-	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,	// 37
-	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,		// 41
-	A_BREAK, A_CONTINUE,				// 45
-	A_SWITCH, A_CASE, A_DEFAULT,			// 47
-	A_CAST						// 50
+	A_ASSIGN= 1,						// 1
+	A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH, A_ASMOD,	// 2
+	A_TERNARY,						// 7
+	A_LOGOR, A_LOGAND,					// 8
+	A_OR, A_XOR, A_AND,					// 10
+	A_EQ, A_NE,						// 13
+	A_LT, A_GT, A_LE, A_GE,					// 15
+	A_LSHIFT, A_RSHIFT,					// 19
+	A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, A_MOD,		// 21
+	A_INTLIT, A_STRLIT,					// 26
+	A_IDENT, A_GLUE,					// 28
+	A_IF, A_WHILE, A_FUNCTION,				// 30
+	A_WIDEN,						// 33
+	A_RETURN, A_FUNCCALL,					// 34
+	A_DEREF, A_ADDR, A_SCALE,				// 36
+	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,		// 39
+	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,			// 43
+	A_BREAK, A_CONTINUE,					// 47
+	A_SWITCH, A_CASE, A_DEFAULT,				// 49
+	A_SIZEOF,						// 52
+	A_CAST							// 53
 };
 
 // Primitive types. The bottom 4 bits is an integer value that represents the level

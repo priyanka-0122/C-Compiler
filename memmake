@@ -1,0 +1,14 @@
+#!/bin/sh
+make install
+
+rm *.s *.o
+
+for i in cg.c decl.c expr.c gen.c main.c misc.c \
+        opt.c scan.c stmt.c sym.c tree.c types.c
+do echo "./comp -c $i"; ./comp -c $i ; ./comp -S $i
+done
+
+cc -o cwj cg.o decl.o expr.o gen.o main.o misc.o \
+        opt.o scan.o stmt.o sym.o tree.o types.o
+
+rm -rf *.s *.o

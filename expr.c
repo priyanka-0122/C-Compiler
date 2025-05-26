@@ -226,14 +226,34 @@ static struct ASTnode *primary(int ptp) {
 			scan(&Token);
 			if (Token.token != T_LPAREN)
 				fatal("Left parenthesis expected after sizeof");
+
 			scan(&Token);
 
-			// Get the type inside the parentheses
-			type = parse_stars(parse_type(&ctype, &class));
+			if (Token.token == T_STRLIT) {
+				n = primary(ptp);
+				size = 0;
+				while (Text[size])
+					++size;
+				size++;
+				scan(&Token);
+			} else {
+				if ((Token.token == T_IDENT) && (findtypedef(Text) == NULL)) {
+					struct symtable *type_symtable;
+					type_symtable = findsymbol(Text);
+					type = type_symtable->type;
+					scan(&Token);
+				} else if (Token.token == T_INTLIT) {
+					type = P_INT;
+					scan(&Token);
+				} else {
+					// Get the type inside the parentheses
+					type = parse_stars(parse_type(&ctype, &class));
+				}
 
-			// Get the type's size
-			size = typesize(type, ctype);
-			rparen();
+				// Get the type's size
+				size = typesize(type, ctype);
+				rparen();
+			}
 
 			// Make a leaf node int literal with the size
 			return (mkastleaf(A_INTLIT, P_INT, NULL, NULL, size));
@@ -373,7 +393,7 @@ static struct ASTnode *postfix(int ptp) {
 // Convert a binary operator token into a binary AST operation.
 // We rely on a 1:1 mapping from token to AST operation
 static int binastop(int tokentype) {
-	if (tokentype > T_EOF && tokentype <= T_SLASH)
+	if (tokentype > T_EOF && tokentype <= T_MOD)
 		return (tokentype);
 	fatals("Syntax error, token", Tstring[tokentype]);
 	return (0);			// Keep -Wall happy
@@ -391,7 +411,7 @@ static int rightassoc(int tokentype) {
 // match up with the order of tokens in defs.h
 static int OpPrec[] = { 0,			// T_EOF, 
 			10,			// T_ASSIGN,
-			10, 10, 10, 10,		// T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
+			10, 10, 10, 10, 10,	// T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
 			15,			// T_QUESTION,
 			20, 30,			// T_LOGOR, T_LOGAND
 			40, 50, 60,		// T_OR, T_XOR, T_AMPER 
@@ -399,14 +419,14 @@ static int OpPrec[] = { 0,			// T_EOF,
 			80, 80, 80, 80,		// T_LT, T_GT, T_LE, T_GE
 			90, 90,			// T_LSHIFT, T_RSHIFT
 			100, 100,		// T_PLUS, T_MINUS
-			110, 110		// T_STAR, T_SLASH
+			110, 110, 110		// T_STAR, T_SLASH, T_MOD
 		      };
 
 // Check that we have a binary operator and
 // return its precedence.
 static int op_precedence(int tokentype) {
 	int prec;
-	if (tokentype > T_SLASH)
+	if (tokentype > T_MOD)
 		fatals("Token with no precedence in op_precedence:", Tstring[tokentype]);
 	prec = OpPrec[tokentype];
 	if (prec == 0)
@@ -424,7 +444,7 @@ static int op_precedence(int tokentype) {
 
 // Parse a prefix expression and return 
 // a sub-tree representing it.
-struct ASTnode *prefix(int ptp) {
+static struct ASTnode *prefix(int ptp) {
 	struct ASTnode *tree;
 	switch (Token.token) {
 		case T_AMPER:

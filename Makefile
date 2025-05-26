@@ -37,11 +37,18 @@ installn: compn
 	cp compn $(BINDIR)
 	chmod +x $(BINDIR)/compn
 
+cwj:
+	chmod +x ./memmake
+	./memmake
+
 clean:
-	rm -f comp comp_arm compn *.o *.out out incdir.h
+	rm -f comp comp_arm compn cwj *.o *.out out incdir.h
 
 clean_assem:
 	rm *.s
+
+clean_pre:
+	rm *.i
 
 test: install tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)

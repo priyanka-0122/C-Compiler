@@ -144,7 +144,7 @@ static int scanch(void) {
 				putback(c);		// Put back the first non-octalchar
 				return (c2);
 			case 'x':
-				return hexchar();
+				return (hexchar());
 			default:
 				fatalc("Unknown escape sequence", c);
 		}
@@ -211,7 +211,7 @@ static int scanident(int c, char *buf, int lim) {
 			printf("Identifier too long on line %d\n",Line);
 			exit(1);
 		} else if (i < lim - 1) {
-			buf[i++] = c;
+			buf[i++] = (char)c;
 		}
 		c = next();
 	}
@@ -299,18 +299,28 @@ static int keyword(char *s) {
 
 // List of token strings, for debugging purposes
 char *Tstring[] = {
-	"EOF", "=", "+=", "-=", "*=", "/=",
-	"?", "||", "&&", "|", "^", "&",
-	"==", "!=", ",", ">", "<=", ">=", "<<", ">>",
-	"+", "-", "*", "/", "++", "--", "~", "!",
+	"EOF",				// 0
+	"=",				// 1
+	"+=", "-=", "*=", "/=", "%=",	// 2
+	"?",				// 7
+	"||", "&&",			// 8
+	"|", "^", "&",			// 10
+	"==", "!=",			// 13	
+	"<", ">", "<=", ">=",		// 15
+	"<<", ">>",			// 19
+	"+", "-", "*", "/", "%",	// 21
+	"++", "--", "~", "!",		// 26
 	"void", "char", "int", "long",
 	"if", "else", "while", "for", "return",
 	"struct", "union", "enum", "typedef",
-	"extern", "break", "continue", "switch",
-	"case", "default", "sizeof", "static",
+	"extern", "break", "continue",
+	"switch", "case", "default",
+	"sizeof", "static",
 	"intlit", "strlit", ";", "identifier",
-	"{", "}", "(", ")", "[", "]", ",", ".",
-	"->", ":"
+	"{", "}", "(", ")", "[", "]",
+	",",
+	".", "->",
+	":"
 };
 
 // Scan and return the next token found in the input.
@@ -374,6 +384,14 @@ int scan(struct token *t) {
 			} else {
 				putback(c);
 				t->token = T_SLASH;
+			}
+			break;
+		case '%':
+			if ((c = next()) == '=') {
+				t->token = T_ASMOD;
+			} else {
+				putback(c);
+				t->token = T_MOD;
 			}
 			break;
 		case ';':

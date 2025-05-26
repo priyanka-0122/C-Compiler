@@ -44,7 +44,7 @@ static int genIF(struct ASTnode *n, int looptoplabel, int loopendlabel) {
 	// false compound statement and the
 	// end label
 	if (n->right) {
-		genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+		genAST(n->right, NOLABEL, NOLABEL, loopendlabel, n->op);
 		genfreeregs(NOREG);
 		cglabel(Lend);
 	}
@@ -207,6 +207,7 @@ static int gen_ternary_constant(struct ASTnode *n) {
 	reg2 = cgloadint(n->right->a_intvalue, n->right->type);
 
 	reg = genAST(n->left, NOLABEL, reg1, reg2, n->op);
+	genfreeregs(reg);
 	return (reg);
 }
 
@@ -214,19 +215,6 @@ static int gen_ternary_constant(struct ASTnode *n) {
 static int gen_ternary(struct ASTnode *n) {
 	int Lfalse = NOLABEL, Lend = NOLABEL;
 	int reg, expreg;
-
-	// Check if the true and false condition are identifiers
-	if ((n->mid->op == A_IDENT) && (n->right->op == A_IDENT)) {
-		// Check if the same identifiers are used in conditions
-		// and true and false expression
-		if (((n->mid->sym->name == n->left->right->sym->name) ||
-		     (n->mid->sym->name == n->left->left->sym->name))
-		 && ((n->right->sym->name == n->left->right->sym->name) ||
-		     (n->right->sym->name == n->left->left->sym->name))) {	
-				reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
-				return (reg);
-		}
-	}
 
 	// Generate two labels: one for the
 	// false expression, and one for the
@@ -241,37 +229,23 @@ static int gen_ternary(struct ASTnode *n) {
 
 	// Generate the true expression and the false label.
 	// Move the expression result into the known register.
-	if (n->mid->op == A_INTLIT) {
-		// When ternary operator has just the integer values to be assigned
-		reg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
-		genfreeregs(NOREG);
-	} else {
-		// Get a register to hold the result if there is expression
-		reg = alloc_register();
-		expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
-		cgmove(expreg, reg);
-
-		// Don't free the register holding the result, though!
-		genfreeregs(reg);
-	}
+	// Get a register to hold the result if there is expression
+	reg = alloc_register();
+	expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+	cgmove(expreg, reg);
 
 	// Don't free the register holding the result, though!
 	genfreeregs(reg);
+
 	cgjump(Lend);
 	cglabel(Lfalse);
 
 	// Generate the false expression and the end label.
 	// Move the expression result into the known register.
-	if (n->right->op == A_INTLIT) {
-		// When ternary operator has just the integer values to be assigned
-		reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
-		genfreeregs(NOREG);
-	} else {
-		expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
-		cgmove(expreg, reg);
-		// Don't free the register holding the result, though!
-		genfreeregs(reg);
-	}
+	expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+	cgmove(expreg, reg);
+	// Don't free the register holding the result, though!
+	genfreeregs(reg);
 
 	cglabel(Lend);
 	return (reg);
@@ -339,7 +313,9 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		case A_MULTIPLY:
 			return (cgmul(leftreg, rightreg));
 		case A_DIVIDE:
-			return (cgdiv(leftreg, rightreg));
+			return (cgdivmod(leftreg, rightreg, A_DIVIDE));
+		case A_MOD:
+			return (cgdivmod(leftreg, rightreg, A_MOD));
 		case A_AND:
 			return (cgand(leftreg, rightreg));
 		case A_OR:
@@ -379,18 +355,14 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		case A_IDENT:
 			// Load our value if we are an rvalue or we are being dereferenced
 			if (n->rvalue || parentASTop == A_DEREF) {
-				if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC
-				    || n->sym->class == C_EXTERN) {
-					return (cgloadglob(n->sym, n->op));
-				} else {
-					return (cgloadlocal(n->sym, n->op));
-				}
+					return (cgloadvar(n->sym, n->op));
 			} else
 				return (NOREG);
 		case A_ASPLUS:
 		case A_ASMINUS:
 		case A_ASSTAR:
 		case A_ASSLASH:
+		case A_ASMOD:
   		case A_ASSIGN:
 			// For the '+=' and friends operators, generate suitable code
 			// and get the register with the result. Then take the left child,
@@ -409,7 +381,11 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 					n->right = n->left;
 					break;
 				case A_ASSLASH:
-					leftreg = cgdiv(leftreg, rightreg);
+					leftreg = cgdivmod(leftreg, rightreg, A_DIVIDE);
+					n->right = n->left;
+					break;
+				case A_ASMOD:
+					leftreg = cgdivmod(leftreg, rightreg, A_MOD);
 					n->right = n->left;
 					break;
 			}
@@ -419,14 +395,13 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			switch (n->right->op) {
 				case A_IDENT:
 					if (n->right->sym->class == C_GLOBAL ||
-					    n->right->sym->class == C_STATIC) {
+					    n->right->sym->class == C_STATIC)
 						return (cgstorglob(leftreg, n->right->sym));
-					} else {
+					else
 						return (cgstorlocal(leftreg, n->right->sym));
-					}
 				case A_DEREF:
 					return (cgstorderef(leftreg, rightreg, n->right->type));
-				default: 
+				default:
 					fatald("Can't A_ASSIGN in genAST(), op", n->op);
 			}
   		case A_WIDEN:
@@ -438,7 +413,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		case A_ADDR:
 			return (cgaddress(n->sym));
 		case A_DEREF:
-			// If we are an rvalue, dereference to get the value we point at otherwise leave it for A_ASSIGN to store through the pointer
+			// If we are an rvalue, dereference to get the value we point at,
+			// otherwise leave it for A_ASSIGN to store through the pointer
 			if (n->rvalue)
 				return (cgderef(leftreg, n->left->type));
 			else
@@ -461,18 +437,12 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 		case A_POSTDEC:
       			// Load the variable's value into a register, then increment it
 			// Load the variable's value into a register, then decrement it
-			if (n->sym->class == C_GLOBAL || n->sym->class == C_STATIC)
-				return (cgloadglob(n->sym, n->op));
-			else
-				return (cgloadlocal(n->sym, n->op));		
+			return (cgloadvar(n->sym, n->op));		
 		case A_PREINC:
 		case A_PREDEC:
 			// Load and increment the variable's value into a register
 			// Load and decrement the variable's value into a register
-			if (n->left->sym->class == C_GLOBAL || n->left->sym->class == C_STATIC)
-				return (cgloadglob(n->left->sym, n->op));
-			else
-				return (cgloadlocal(n->left->sym, n->op));
+			return (cgloadvar(n->left->sym, n->op));
 		case A_NEGATE:
 			return (cgnegate(leftreg));
 		case A_INVERT:

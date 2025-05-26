@@ -621,9 +621,10 @@ static struct symtable *composite_declaration(int type) {
 		}
 
 		// Structure padding
-		if (type == P_STRUCT) 
-			if (m->type == P_CHAR && m->next->type != P_CHAR)
-				offset = offset + (4 - (offset % 4));
+		if (type == P_STRUCT)
+			if (m->next != NULL)
+ 				if ((m->type == P_CHAR) && (m->next->type != P_CHAR))
+					offset += (4 - (offset % 4));
 	}
 
 	// Set the overall size of the composite type
