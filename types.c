@@ -46,6 +46,15 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
 
 	ltype = tree->type;
 
+	// For A_LOGOR and A_LOGAND, both types have to be int or pointer types
+	if (op == A_LOGOR || op == A_LOGAND) {
+		if (!inttype(ltype) && !ptrtype(ltype))
+			return(NULL);
+		if (!inttype(ltype) && !ptrtype(rtype))
+			return(NULL);
+		return (tree);
+	}
+
 	// XXX No idea on these yet
 	if (ltype == P_STRUCT || ltype == P_UNION)
 		fatal("Don't know how to do this yet");

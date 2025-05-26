@@ -58,7 +58,6 @@ static struct ASTnode *if_statement(void) {
 	return (mkastnode(A_IF, P_NONE, NULL, condAST, trueAST, falseAST, NULL, 0));
 }
 
-
 // while_statement: 'while' '(' true_false_expression ')' statement  ;
 //
 // Parse a WHILE statement and return its AST
@@ -138,29 +137,39 @@ static struct ASTnode *for_statement(void) {
 //
 // Parse a return statement and return its AST
 static struct ASTnode *return_statement(void) {
-	struct ASTnode *tree;
-
-	// Can't return a value if function returns P_VOID
-	if (Functionid->type == P_VOID)
-		fatal("Can't return from a void function");
+	struct ASTnode *tree = NULL;
 
 	// Ensure we have 'return' '('
 	match(T_RETURN, "return");
-	lparen();
 
-	// Parse the following expression
-	tree = binexpr(0);
+	// See if we have a return value
+	if (Token.token == T_LPAREN) {
+		// Can't return a value if function returns P_VOID
+		if (Functionid->type == P_VOID)
+			fatal("Can't return from a void function");
 
-	// Ensure this is compatible with the function's type
-	tree = modify_type(tree, Functionid->type, Functionid->ctype, 0);
-	if (tree == NULL)
-		fatal("Incompatible type to return");
+		// Skip the left parenthesis
+		lparen();
+
+		// Parse the following expression
+		tree = binexpr(0);
+
+		// Ensure this is compatible with the function's type
+		tree = modify_type(tree, Functionid->type, Functionid->ctype, 0);
+		if (tree == NULL)
+			fatal("Incompatible type to return");
+
+		// Get the ')'
+		rparen();
+	} else {
+		if (Functionid->type != P_VOID)
+			fatal("Must return a value from a non-void function");
+	}
 
 	// Add on the A_RETURN node
 	tree = mkastunary(A_RETURN, P_NONE, NULL, tree, NULL, 0);
 
-	// Get the ')' and ';'
-	rparen();
+	// Get the ';'
 	semi();
 	return (tree);
 }
@@ -292,6 +301,10 @@ static struct ASTnode *single_statement(void) {
 	struct symtable *ctype;
 
 	switch (Token.token) {
+		case T_SEMI:
+			// An empty statement
+			semi();
+			break;
 		case T_LBRACE:
 			// We have a '{', so this is a compound statement
 			lbrace();
@@ -351,6 +364,13 @@ struct ASTnode *compound_statement(int inswitch) {
 	struct ASTnode *tree;
 
 	while (1) {
+		// Leave if we've hit the end token. We do this first to allow
+		// an empty compound statement
+		if (Token.token == T_RBRACE)
+			return (left);
+		if (inswitch && (Token.token == T_CASE || Token.token == T_DEFAULT))
+			return (left);
+
 		// Parse a single statement
 		tree = single_statement();
 	
@@ -363,13 +383,6 @@ struct ASTnode *compound_statement(int inswitch) {
 			else
 				left = mkastnode(A_GLUE, P_NONE, NULL, left, NULL, tree, NULL, 0);
 		}
-		
-		// Leave if we've hit the end token
-		if (Token.token == T_RBRACE)
-			return (left);
-
-		if (inswitch && (Token.token == T_CASE || Token.token == T_DEFAULT))
-			return (left);
 	}
 	return (NULL);		// Keep -Wall happy
 }

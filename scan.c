@@ -92,7 +92,7 @@ static int hexchar(void) {
 		fatal("missing digits after '\\x'");
 	if (n > 255)
 		fatal("value out of range after '\\x'");
-	return n;
+	return (n);
 }
 
 // Return the next character from a character or string literal
@@ -205,7 +205,8 @@ static int scanident(int c, char *buf, int lim) {
 
 	// Allow digits, alpha and underscores
 	while (isalpha(c) || isdigit(c) || '_' == c) {
-		// Error if we hit the identifier length limit, else append to buf[] and get next character
+		// Error if we hit the identifier length limit,
+		// else append to buf[] and get next character
 		if (lim - 1 == i) {
 			printf("Identifier too long on line %d\n",Line);
 			exit(1);
@@ -223,7 +224,6 @@ static int scanident(int c, char *buf, int lim) {
 
 // Given a word from the input, return the matching keyword token number or 0 if it's not a keyword.
 // Switch on the first letter so that we don't have to waste strcmp()ing against all the keywords.
-
 static int keyword(char *s) {
 	switch (*s) {
 		case 'b':

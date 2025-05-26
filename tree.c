@@ -71,7 +71,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			return;
 		case A_WHILE:
 			Lstart = gendumplabel();
-			for (int i = 0; i < level; i++)
+			for (i = 0; i < level; i++)
 				fprintf(stdout, " ");
 			fprintf(stdout, "A_WHILE, start L%d\n", Lstart);
 			Lend = gendumplabel();
@@ -90,7 +90,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 	if (n->right)
 		dumpAST(n->right, NOLABEL, level + 2);
 
-	for (int i = 0; i < level; i++)
+	for (i = 0; i < level; i++)
 		fprintf(stdout, " ");
 	switch (n->op) {
 		case A_GLUE:
@@ -196,7 +196,7 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			fprintf(stdout, "A_SWITCH\n");
 			return;
 		case A_CAST:
-			// fprintf(stdout, "A_CAST %d\n", n->type);
+			fprintf(stdout, "A_CAST %d\n", n->type);
 			return;
 		case A_ASPLUS:
 			fprintf(stdout, "A_ASPLUS\n");
@@ -209,6 +209,15 @@ void dumpAST(struct ASTnode *n, int label, int level) {
 			return;
 		case A_ASSLASH:
 			fprintf(stdout, "A_ASSLASH\n");
+			return;
+		case A_TOBOOL:
+			fprintf(stdout, "A_TOBOOL\n");
+			return;
+		case A_LOGOR:
+			fprintf(stdout, "A_LOGOR\n");
+			return;
+		case A_LOGAND:
+			fprintf(stdout, "A_LOGAND\n");
 			return;
 		default:
 			fatald("Unknown dumpAST operator", n->op);

@@ -18,7 +18,7 @@ struct ASTnode *mkastunary(int op, int type,
 			   struct symtable *ctype,
 			   struct ASTnode *left,
 			   struct symtable *sym, int intvalue);
-void dumpAST(struct ASTnode *n, int label, int parentASTop);
+void dumpAST(struct ASTnode *n, int label, int level);
 
 // gen.c
 int genlabel(void);
@@ -28,7 +28,8 @@ void genpreamble();
 void genpostamble();
 void genfreeregs(int keepreg);
 void genglobsym(struct symtable *node);
-int genglobstr(char *strvalue);
+int genglobstr(char *strvalue, int append);
+void genglobstrend(void);
 int genprimsize(int type);
 int genalign(int type, int offset, int direction);
 void genreturn(int reg, int id);
@@ -58,9 +59,11 @@ void cgcopyarg(int r, int argposn);
 int cgstorglob(int r, struct symtable *sym);
 int cgstorlocal(int r, struct symtable *sym);
 void cgglobsym(struct symtable *node);
-void cgglobstr(int l, char *strvalue);
+void cgglobstr(int l, char *strvalue, int append);
+void cgglobstrend(void);
 int cgcompare_and_set(int ASTop, int r1, int r2);
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label);
+int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2);
 void cglabel(int l);
 void cgjump(int l);
 int cgwiden(int r, int oldtype, int newtype);

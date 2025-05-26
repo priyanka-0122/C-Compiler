@@ -3,8 +3,8 @@
 #endif
 
 // Global variables
-
 // extern_ is a custom extension of extern
+
 extern_ int Line;				// Current line number
 extern_ int Linestart;				// True if at start of a line
 extern_ int Putback;				// Character put back by scanner

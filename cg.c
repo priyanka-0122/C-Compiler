@@ -105,7 +105,9 @@ void freeall_registers(int keepreg) {
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
 int alloc_register(void) {
-	for (int i = 0; i < NUMFREEREGS; i++) {
+	int i;
+
+	for (i = 0; i < NUMFREEREGS; i++) {
 		if (freereg[i]) {
 			freereg[i] = 0;
 			return (i);
@@ -126,31 +128,31 @@ static void free_register(int reg) {
 // Print out the assembly preamble
 void cgpreamble() {
 	freeall_registers(NOREG);
-  	cgtextseg();
+	cgtextseg();
 	fprintf(Outfile,
-	  	"# internal switch(expr) routine\n"
-	  	"# %%rsi = switch table, %%rax = expr\n"
-	  	"# from SubC: http://www.t3x.org/subc/\n"
-	  	"\n"
-	  	"switch:\n"
-	  	"        pushq   %%rsi\n"
-	  	"        movq    %%rdx, %%rsi\n"
-	  	"        movq    %%rax, %%rbx\n"
-	  	"        cld\n"		// Clears the direction flag, ensuring string operations increment
-	  	"        lodsq\n"	// Loads a quadword from the address in %rsi into %rax and increments %rsi by 8
-	  	"        movq    %%rax, %%rcx\n"
-	  	"next:\n"
-	  	"        lodsq\n"
-	  	"        movq    %%rax, %%rdx\n"
-	  	"        lodsq\n"
-	  	"        cmpq    %%rdx, %%rbx\n"
-	  	"        jnz     no\n"
-	  	"        popq    %%rsi\n"
-	  	"        jmp     *%%rax\n"	// Jumps to the address stored in %rax (the address of the matching case)
-	  	"no:\n"
-	  	"        loop    next\n"	// Decrements %rcx and jumps to the next label if %rcx is not zero
-	  	"        lodsq\n"		// Loads the default case address from the address in %rsi into %rax and increments %rsi by 8
-	  	"        popq    %%rsi\n" "        jmp     *%%rax\n" "\n");
+	 	"# internal switch(expr) routine\n"
+	 	"# %%rsi = switch table, %%rax = expr\n"
+	 	"# from SubC: http://www.t3x.org/subc/\n"
+	 	"\n"
+	 	"switch:\n"
+	 	"        pushq   %%rsi\n"
+	 	"        movq    %%rdx, %%rsi\n"
+	 	"        movq    %%rax, %%rbx\n"
+	 	"        cld\n"		// Clears the direction flag, ensuring string operations increment
+	 	"        lodsq\n"	// Loads a quadword from the address in %rsi into %rax and increments %rsi by 8
+	 	"        movq    %%rax, %%rcx\n"
+	 	"next:\n"
+	 	"        lodsq\n"
+	 	"        movq    %%rax, %%rdx\n"
+	 	"        lodsq\n"
+	 	"        cmpq    %%rdx, %%rbx\n"
+	 	"        jnz     no\n"
+	 	"        popq    %%rsi\n"
+	 	"        jmp     *%%rax\n"	// Jumps to the address stored in %rax (the address of the matching case)
+	 	"no:\n"
+	 	"        loop    next\n"	// Decrements %rcx and jumps to the next label if %rcx is not zero
+	 	"        lodsq\n"		// Loads the default case address from the address in %rsi into %rax and increments %rsi by 8
+	 	"        popq    %%rsi\n" "        jmp     *%%rax\n" "\n");
 }
 
 // Nothing to do
@@ -202,7 +204,7 @@ void cgfuncpreamble(struct symtable *sym) {
 void cgfuncpostamble(struct symtable *sym) {
 	cglabel(sym->st_endlabel);
 	fprintf(Outfile, "\taddq\t$%d,%%rsp\n", stackOffset);
-  	fputs("\tpopq\t%rbp\n" "\tret\n", Outfile);
+	fputs("\tpopq\t%rbp\n" "\tret\n", Outfile);
 }
 
 // Load an integer literal value into a register.
@@ -407,6 +409,7 @@ int cglognot(int r) {
 // Logically OR two registers and return a
 // register with the result, 1 or 0
 int cglogor(int r1, int r2) {
+
 	// Generate two labels
 	int Ltrue = genlabel();
 	int Lend = genlabel();
@@ -429,7 +432,7 @@ int cglogor(int r1, int r2) {
 	fprintf(Outfile, "\tmovq\t$1, %s\n", reglist[r1]);
 	cglabel(Lend);
 	free_register(r2);
-	return(r1);
+	return (r1);
 }
 
 // Logically AND two registers and return a
@@ -599,19 +602,24 @@ void cgglobsym(struct symtable *node) {
 					fprintf(Outfile, "\t.quad\t%d\n", initvalue);
 				break;
 			default:
-				for (int i = 0; i < size; i++)
+				for (i = 0; i < size; i++)
 					fprintf(Outfile, "\t.byte\t0\n");
 		}
 	}
 }
 
 // Generate a global string and its start label
-void cgglobstr(int l, char *strvalue) {
+// Don't output the label if append is true.
+void cgglobstr(int l, char *strvalue, int append) {
 	char *cptr;
-	cglabel(l);
+	if (!append)
+		cglabel(l);
 	for (cptr = strvalue; *cptr; cptr++) {
 		fprintf(Outfile, "\t.byte\t%d\n", *cptr);
 	}
+}
+
+void cgglobstrend(void) {
 	fprintf(Outfile, "\t.byte\t0\n");
 }
 
@@ -647,6 +655,30 @@ void cgjump(int l) {
 //			       A_EQ, A_NE,  A_LT,  A_GT, A_LE, A_GE
 static char *invcmplist[] = { "jne", "je", "jge", "jle", "jg", "jl" };
 
+// List of cmovc instructions, in AST order:
+//			      A_EQ,    A_NE,     A_LT,     A_GT,     A_LE,     A_GE
+static char *cmovlist[] = { "cmovne", "cmove", "cmovle", "cmovge", "cmovle", "cmovge" };
+
+// Compare two registers and move
+// perform a little differently incase if gen_ternary_constant call
+// const1 and const2 are true and false constant respectively
+int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2) {
+
+	// Check the range of the AST operation
+	if (ASTop < A_EQ || ASTop > A_GE)
+		fatal("Bad ASTop in cgcompare_and_jump()");
+
+	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r1], reglist[r2]);
+	if (const1 == const2)
+		fprintf(Outfile, "\t%s\t%s, %s\n", cmovlist[ASTop - A_EQ], reglist[r2], reglist[r1]);
+	else {
+		fprintf(Outfile, "\t%s\t%s, %s\n", cmovlist[ASTop - A_EQ], reglist[const2], reglist[const1]);
+		r1 = const1;
+	}		
+	freeall_registers(r1);
+	return (r1);
+}
+
 // Compare two registers and jump if false.
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
 
@@ -669,26 +701,30 @@ int cgwiden (int r, int oldtype, int newtype) {
 // Generate code to return a value from a function
 void cgreturn(int reg, struct symtable *sym) {
 
-	// Deal with pointers here as we can't put them in
-	// the switch statement
-	if (ptrtype(sym->type))
-		fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
-	else {
-		// Generate code depending on the function's type
-		switch (sym->type) {
-			case P_CHAR:
-				fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
-				break;
-			case P_INT:
-				fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
-				break;
-			case P_LONG:
-				fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
-				break;
-			default:
-				fatald("Bad function type in cgreturn:", sym->type);
+	// Only return a value if we have a value to return
+	if (reg != NOREG) {
+		// Deal with pointers here as we can't put them in
+		// the switch statement
+		if (ptrtype(sym->type))
+			fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+		else {
+			// Generate code depending on the function's type
+			switch (sym->type) {
+				case P_CHAR:
+					fprintf(Outfile, "\tmovzbl\t%s, %%eax\n", breglist[reg]);
+					break;
+				case P_INT:
+					fprintf(Outfile, "\tmovl\t%s, %%eax\n", dreglist[reg]);
+					break;
+				case P_LONG:
+					fprintf(Outfile, "\tmovq\t%s, %%rax\n", reglist[reg]);
+					break;
+				default:
+					fatald("Bad function type in cgreturn:", sym->type);
+			}
 		}
 	}
+
 	cgjump(sym->st_endlabel);
 }
 
