@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "incdir.h"
 
 // Structure and enum definitions
 
@@ -12,7 +13,7 @@ enum {
 // Commands and default filenames
 #define AOUT "a.out"
 #ifdef __NASM__
-#define ASCMD "nasm -f elf64 -w-ptr -o "
+#define ASCMD "nasm -f elf64 -w-ptr -pnasmext.inc -o "
 #define LDCMD "cc -no-pie -fno-plt -Wall -o "
 #else
 #define ASCMD "as -o "
@@ -25,7 +26,7 @@ enum {
 	T_EOF,
 
 	// Binary operators
-	T_ASSIGN, 
+	T_ASSIGN,
 	T_ASPLUS, T_ASMINUS, T_ASSTAR, T_ASSLASH,
 	T_QUESTION,
 	T_LOGOR, T_LOGAND,
@@ -67,26 +68,26 @@ struct token {
 // AST node types. The first few line up
 // with the related tokens
 enum {
-	A_ASSIGN= 1,
-	A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH,
-	A_TERNARY,
-	A_LOGOR, A_LOGAND,
-	A_OR, A_XOR, A_AND,
-	A_EQ, A_NE,
-	A_LT, A_GT, A_LE, A_GE,
-	A_LSHIFT, A_RSHIFT,
-	A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,
-	A_INTLIT, A_STRLIT,
-	A_IDENT, A_GLUE,
-	A_IF, A_WHILE, A_FUNCTION,
-	A_WIDEN,
-	A_RETURN, A_FUNCCALL,
-	A_DEREF, A_ADDR, A_SCALE,
-	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,
-	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,
-	A_BREAK, A_CONTINUE,
-	A_SWITCH, A_CASE, A_DEFAULT,
-	A_CAST
+	A_ASSIGN= 1,					// 1
+	A_ASPLUS, A_ASMINUS, A_ASSTAR, A_ASSLASH,	// 2
+	A_TERNARY,					// 6
+	A_LOGOR, A_LOGAND,				// 7
+	A_OR, A_XOR, A_AND,				// 9
+	A_EQ, A_NE,					// 12
+	A_LT, A_GT, A_LE, A_GE,				// 14
+	A_LSHIFT, A_RSHIFT,				// 18
+	A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE,	// 20
+	A_INTLIT, A_STRLIT,				// 24
+	A_IDENT, A_GLUE,				// 26
+	A_IF, A_WHILE, A_FUNCTION,			// 28
+	A_WIDEN,					// 31
+	A_RETURN, A_FUNCCALL,				// 32
+	A_DEREF, A_ADDR, A_SCALE,			// 34
+	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,	// 37
+	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,		// 41
+	A_BREAK, A_CONTINUE,				// 45
+	A_SWITCH, A_CASE, A_DEFAULT,			// 47
+	A_CAST						// 50
 };
 
 // Primitive types. The bottom 4 bits is an integer value that represents the level
@@ -120,16 +121,16 @@ enum {
 struct symtable {
 	char *name;			// Name of a symbol
 	int type;			// Primitive type for the symbol
-	struct symtable *ctype;	// If struct/union, ptr to that type
+	struct symtable *ctype;		// If struct/union, ptr to that type
 	int stype;			// Structural type for the symbol
 	int class;			// Storage class for the symbol
 	int size;			// Total size in bytes of this symbol
 	int nelems;			// Functions: # params. Arrays: # elements
-#define st_endlabel st_posn	// For functions, the end label
+#define st_endlabel st_posn		// For functions, the end label
 	int st_posn;			// For locals, the negative offset
 					// from the stack base pointer
-	int *initlist;		// List of initial values
-	struct symtable *next;	// Next symbol in one list
+	int *initlist;			// List of initial values
+	struct symtable *next;		// Next symbol in one list
 	struct symtable *member;	// First member of a function, struct,
 					// union or enum
 };

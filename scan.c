@@ -192,7 +192,7 @@ static int scanstr(char *buf) {
 			buf[i] = 0;
 			return (i);
 		}
-		buf[i] = c;
+		buf[i] = (char)c;
 	}
 	// Ran out of buf[] space
 	fatal("String literal too long");
@@ -210,8 +210,7 @@ static int scanident(int c, char *buf, int lim) {
 		if (lim - 1 == i) {
 			printf("Identifier too long on line %d\n",Line);
 			exit(1);
-		} 
-		else if (i < lim - 1) {
+		} else if (i < lim - 1) {
 			buf[i++] = c;
 		}
 		c = next();

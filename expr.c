@@ -160,7 +160,7 @@ static struct ASTnode *member_access(struct ASTnode *left, int withpointer) {
 
 // Parse a parenthesised expression and
 // return an AST node representing it.
-static struct ASTnode *paren_expression(void) {
+static struct ASTnode *paren_expression(int ptp) {
 	struct ASTnode *n;
 	int type = 0;
 	struct symtable *ctype = NULL;
@@ -174,7 +174,7 @@ static struct ASTnode *paren_expression(void) {
 			// We have to see if the identifier matches a typedef.
 			// If not, treat it as an expression.
 			if (findtypedef(Text) == NULL) {
-				n = binexpr(0);
+				n = binexpr(0);		// ptp is zero as expression inside ( )
 				break;
 			}
 		case T_VOID:
@@ -191,7 +191,9 @@ static struct ASTnode *paren_expression(void) {
 			rparen();
 
 		default:
-			n = binexpr(0);			// Scan in the expression
+			n = binexpr(ptp);		// Scan in the expression. We pass in ptp
+							// as the cast doesn't change the
+							// expression's precedence
 	}
 
 	// We now have at least an expression in n, and possibly a non-zero type
@@ -206,7 +208,7 @@ static struct ASTnode *paren_expression(void) {
 
 // Parse a primary factor and return an
 // AST node representing it.
-static struct ASTnode *primary(void) {
+static struct ASTnode *primary(int ptp) {
 	struct ASTnode *n;
 	struct symtable *enumptr;
 	struct symtable *varptr;
@@ -294,7 +296,7 @@ static struct ASTnode *primary(void) {
 			break;
 
 		case T_LPAREN:
-			return (paren_expression());
+			return (paren_expression(ptp));
 
 		default:
 			fatals("Expecting a primary expression, got token", Token.tokstr);
@@ -308,11 +310,11 @@ static struct ASTnode *primary(void) {
 // Parse a postfix expression and return
 // an AST node representing it. The
 // identifier is already in Text.
-static struct ASTnode *postfix(void) {
+static struct ASTnode *postfix(int ptp) {
 	struct ASTnode *n;
 
 	// Get the primary expression
-	n = primary();
+	n = primary(ptp);
 
 	// Loop until there are no more postfix operators
 	while (1) {
@@ -422,14 +424,14 @@ static int op_precedence(int tokentype) {
 
 // Parse a prefix expression and return 
 // a sub-tree representing it.
-struct ASTnode *prefix(void) {
+struct ASTnode *prefix(int ptp) {
 	struct ASTnode *tree;
 	switch (Token.token) {
 		case T_AMPER:
 			// Get the next token and parse it
 			// recursively as a prefix expression
 			scan(&Token);
-			tree = prefix();
+			tree = prefix(ptp);
 			
 			// Ensure that it's an identifier
 			if (tree->op != A_IDENT)
@@ -448,12 +450,11 @@ struct ASTnode *prefix(void) {
 		case T_STAR:
 			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
-			tree = prefix();
+			tree = prefix(ptp);
 
-			// For now, ensure it's either another deref or an
-			// identifier
-			if (tree->op != A_IDENT && tree->op != A_DEREF)
-				fatal("* operator must be followed by an identifier or *");
+			//Ensure the tree's type is a pointer
+			if (!ptrtype(tree->type))
+				fatal("* operator must be followed by an expression of pointer type");
 
 			// Prepend an A_DEREF operation to the tree
 			tree = mkastunary(A_DEREF, value_at(tree->type), tree->ctype, tree, NULL, 0);
@@ -462,7 +463,7 @@ struct ASTnode *prefix(void) {
 		case T_MINUS:
 			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
-			tree = prefix();
+			tree = prefix(ptp);
 
 			// Prepend a A_NEGATE operation to the tree and
 			// make the child an rvalue. Because chars are unsigned,
@@ -476,7 +477,7 @@ struct ASTnode *prefix(void) {
 		case T_INVERT:
 			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
-			tree = prefix();
+			tree = prefix(ptp);
 
 			// Prepend a A_INVERT operation to the tree and
 			// make the child an rvalue.
@@ -487,7 +488,7 @@ struct ASTnode *prefix(void) {
 		case T_LOGNOT:
 			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
-			tree = prefix();
+			tree = prefix(ptp);
 
 			// Prepend a A_LOGNOT operation to the tree and
 			// make the child an rvalue.
@@ -498,7 +499,7 @@ struct ASTnode *prefix(void) {
 		case T_INC:
 			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
-			tree = prefix();
+			tree = prefix(ptp);
 
 			// For now, ensure it's an identifier
 			if (tree->op != A_IDENT)
@@ -511,7 +512,7 @@ struct ASTnode *prefix(void) {
 		case T_DEC:
 			// Get the next token and parse it recursively as a prefix expression
 			scan(&Token);
-			tree = prefix();
+			tree = prefix(ptp);
 
 			// For now, ensure it's an identifier
 			if (tree->op != A_IDENT)
@@ -522,7 +523,7 @@ struct ASTnode *prefix(void) {
 			break;
 
 		default:
-			tree = postfix();
+			tree = postfix(ptp);
 	}
 	return (tree);
 }
@@ -537,7 +538,7 @@ struct ASTnode *binexpr(int ptp) {
 
 	// Get the tree on the left.
 	// Fetch the next token at the same time.
-	left = prefix();
+	left = prefix(ptp);
 
 	// If we hit one of several terminating tokens, return just the left node
   	tokentype = Token.token;

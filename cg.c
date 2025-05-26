@@ -106,6 +106,7 @@ static void popreg(int r) {
 // But if reg is positive, don't free that one.
 void freeall_registers(int keepreg) {
 	int i;
+	fprintf(Outfile, "# freeing all registers\n");
 	for (i = 0; i < NUMFREEREGS; i++)
 		if (i != keepreg)
 			freereg[i] = 1;
@@ -126,6 +127,7 @@ int alloc_register(void) {
 	for (reg = 0; reg < NUMFREEREGS; reg++) {
 		if (freereg[reg]) {
 			freereg[reg] = 0;
+			fprintf(Outfile, "# allocated register %s\n", reglist[reg]);
 			return (reg);
 		}
 	}
@@ -133,7 +135,7 @@ int alloc_register(void) {
 	// We have no registers, so we must spill one
 	reg= (spillreg % NUMFREEREGS);
 	spillreg++;
-	fprintf(Outfile, "# spilling reg %d\n", reg);
+	fprintf(Outfile, "# spilling reg %s\n", reglist[reg]);
 	pushreg(reg);
 	return (reg);
 }
@@ -142,7 +144,7 @@ int alloc_register(void) {
 // Check to see if it's not already there.
 static void free_register(int reg) {
 	if (freereg[reg] != 0) {
-		fprintf(Outfile, "# error trying to free register %d\n", reg);
+		fprintf(Outfile, "# error trying to free register %s\n", reglist[reg]);
 		fatald("Error trying to free register", reg);
 	}
 
@@ -150,9 +152,10 @@ static void free_register(int reg) {
 	if (spillreg > 0) {
 		spillreg--;
 		reg= (spillreg % NUMFREEREGS);
-		fprintf(Outfile, "# unspilling reg %d\n", reg);
+		fprintf(Outfile, "# unspilling reg %s\n", reglist[reg]);
 		popreg(reg);
 	} else {
+		fprintf(Outfile, "# freeing reg %s\n", reglist[reg]);
 		freereg[reg] = 1;
 	}
 }
@@ -461,7 +464,7 @@ void cgloadboolean(int r, int val) {
 	fprintf(Outfile, "\tmovq\t$%d, %s\n", val, reglist[r]);
 }
 
-// Convert an integer value to a boolean value. Jump if it's an IF or WHILE operation
+// Convert an integer value to a boolean value. Jump if it's an IF, WHILE LOGAND or LOGOR operation
 int cgboolean(int r, int op, int label) {
 	fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
 

@@ -274,6 +274,7 @@ static struct symtable *array_declaration(char *varname, int type,
 	int maxelems;		// The maximum number of elements in the init list
 	int *initlist;		// The list of initial elements 
 	int i = 0, j;
+
 	// Skip past the '['
 	scan(&Token);
 
@@ -774,7 +775,7 @@ static struct symtable *symbol_declaration(int type, struct symtable *ctype,
 	// Add the array or scalar variable to the symbol table
 	if (Token.token == T_LBRACKET) {
 		sym = array_declaration(varname, type, ctype, class);
-		*tree = NULL;
+		*tree = NULL;			// Local arrays are not initialised
 	} else
 		sym = scalar_declaration(varname, type, ctype, class, tree);
 	return (sym);
@@ -822,7 +823,8 @@ int declaration_list(struct symtable **ctype, int class, int et1, int et2,
 
 		// Otherwise, we need a comma as separator
 		comma();
-		}
+	}
+	return(0);	// Keep -Wall happy
 }
 
 // Parse one or more global declarations, either

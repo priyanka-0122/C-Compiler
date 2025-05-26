@@ -161,9 +161,6 @@ static struct ASTnode *return_statement(void) {
 
 		// Get the ')'
 		rparen();
-	} else {
-		if (Functionid->type != P_VOID)
-			fatal("Must return a value from a non-void function");
 	}
 
 	// Add on the A_RETURN node
@@ -284,6 +281,7 @@ static struct ASTnode *switch_statement(void) {
 				fatals("Unexpected token in switch", Token.tokstr);
 		}
 	}
+
 	Switchlevel--;
 
 	// We have a sub-tree with the cases and any default. Put the
@@ -292,7 +290,7 @@ static struct ASTnode *switch_statement(void) {
 	n->right = casetree;
 	rbrace();
 
-	return(n);
+	return (n);
 }
 
 // Parse a single statement and return its AST.
