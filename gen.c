@@ -154,12 +154,15 @@ static int gen_logandor(struct ASTnode *n) {
 
 	// We didn't jump so set the right boolean value
 	if (n->op== A_LOGAND) {
+		cgloadboolean(reg, 1);
 		cgjump(Lend);
 		cglabel(Lfalse);
 		cgloadboolean(reg, 0);
 	} else {
+		cgloadboolean(reg, 0);
 		cgjump(Lend);
 		cglabel(Lfalse);
+		cgloadboolean(reg, 1);
 	}
 
 	cglabel(Lend);

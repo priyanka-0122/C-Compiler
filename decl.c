@@ -270,7 +270,7 @@ static struct symtable *array_declaration(char *varname, int type,
 					  struct symtable *ctype, int class) {
 
 	struct symtable *sym;	// New symbol table entry
-	int nelems = -1;		// Assume the number of elements won't be given
+	int nelems = -1;	// Assume the number of elements won't be given
 	int maxelems;		// The maximum number of elements in the init list
 	int *initlist;		// The list of initial elements 
 	int i = 0, j;
@@ -298,8 +298,11 @@ static struct symtable *array_declaration(char *varname, int type,
 			if (is_new_symbol(sym, class, pointer_to(type), ctype))
 				sym = addglob(varname, pointer_to(type), ctype, S_ARRAY, class, 0, 0);
 			break;
+		case C_LOCAL:
+			sym = addlocl(varname, pointer_to(type), ctype, S_ARRAY, 0);
+			break;
 		default:
-			fatal("For now, declaration of non-global arrays is not implemented");
+			fatal("Declaration of array parameters is not implemented");
 	}
 
 	// Array initialisation
@@ -357,6 +360,10 @@ static struct symtable *array_declaration(char *varname, int type,
 	}
 
 	// Set the size of the array and the number of elements
+	// Only externs can have no elements.
+	if (class != C_EXTERN && nelems <= 0)
+		fatals("Array must have non-zero elements", sym->name);
+
 	sym->nelems = nelems;
 	sym->size = sym->nelems * typesize(type, ctype);
 
@@ -765,9 +772,10 @@ static struct symtable *symbol_declaration(int type, struct symtable *ctype,
 	}
 
 	// Add the array or scalar variable to the symbol table
-	if (Token.token == T_LBRACKET)
+	if (Token.token == T_LBRACKET) {
 		sym = array_declaration(varname, type, ctype, class);
-	else
+		*tree = NULL;
+	} else
 		sym = scalar_declaration(varname, type, ctype, class, tree);
 	return (sym);
 }
