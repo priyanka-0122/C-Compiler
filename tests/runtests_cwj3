@@ -3,8 +3,20 @@
 # against known good output
 
 # Build our compiler if needed
-if [ ! -f ../comp ]
-	then (cd ..; make)
+if [ ! -f ../cwj3 ]
+	then
+		if [ ! -f ../cwj2 ]
+			then
+			if [ ! -f ../cwj ]
+				then
+				if [ ! -f ../comp ]
+					then (cd ..; make;)
+				fi
+				./memmake_2 > ERR
+			fi
+			./memmake > ERR
+		fi
+		./memmake_2 > ERR
 fi
 
 # Try to use each input source file
@@ -22,7 +34,7 @@ do
 			# Print the test name, compile it
 			# with our compiler
 			echo -n $i
-			../comp -o out $i
+			../cwj3 -o out $i
 			./out > trial.$i
 
 			# Compare this agains the correct output
@@ -46,7 +58,7 @@ do
 	else if [ -f "err.$i" ]
 		then
 			echo -n $i
-			../comp $i 2> "trial.$i"
+			../cwj3 $i 2> "trial.$i"
 			cmp -s "err.$i" "trial.$i"
 			if [ "$?" -eq "1" ]
 				then echo ": failed"

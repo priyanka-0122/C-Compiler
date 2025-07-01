@@ -1,1 +1,1 @@
-Cannot ++ on rvalue on line 6 of input137.c
+Cannot ++ on rvalue on line 24 of input137.c

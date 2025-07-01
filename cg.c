@@ -76,9 +76,13 @@ static int stackOffset;
 
 // Create the position of a new local variable.
 static int newlocaloffset(int size) {
+//	printf("localOffset = %d\t cg.c:82\n", localOffset);
+	
 	// Decrement the offset by a minimum of 4 bytes
 	// and allocate on the stack
-	localOffset += (size > 4) ? size : 4;
+//	localOffset += (size > 4) ? size : 4;
+	localOffset = (size > 4) ? localOffset + size : localOffset + 4;
+//	printf("localoffset = %d cg.c:83\n", localOffset);
 	return (-localOffset);
 }
 
@@ -133,7 +137,7 @@ int alloc_register(void) {
 	}
 
 	// We have no registers, so we must spill one
-	reg= (spillreg % NUMFREEREGS);
+	reg = (spillreg % NUMFREEREGS);
 	spillreg++;
 	fprintf(Outfile, "# spilling reg %s\n", reglist[reg]);
 	pushreg(reg);
@@ -142,7 +146,7 @@ int alloc_register(void) {
 
 // Return a register to the list of available registers.
 // Check to see if it's not already there.
-static void free_register(int reg) {
+void cgfreereg(int reg) {
 	if (freereg[reg] != 0) {
 		fprintf(Outfile, "# error trying to free register %s\n", reglist[reg]);
 		fatald("Error trying to free register", reg);
@@ -151,7 +155,7 @@ static void free_register(int reg) {
 	// If this was a spilled register, get it back
 	if (spillreg > 0) {
 		spillreg--;
-		reg= (spillreg % NUMFREEREGS);
+		reg = (spillreg % NUMFREEREGS);
 		fprintf(Outfile, "# unspilling reg %s\n", reglist[reg]);
 		popreg(reg);
 	} else {
@@ -164,6 +168,7 @@ static void free_register(int reg) {
 void spill_all_regs(void) {
 	int i;
 
+	fprintf(Outfile, "# spilling all regs\n");
 	for (i = 0; i < NUMFREEREGS; i++)
 		pushreg(i);
 }
@@ -172,6 +177,7 @@ void spill_all_regs(void) {
 static void unspill_all_regs(void) {
 	int i;
 
+	fprintf(Outfile, "# unspilling all regs\n");
 	for (i = NUMFREEREGS - 1; i >= 0; i--)
 		popreg(i);
 }
@@ -284,11 +290,11 @@ int cgloadvar(struct symtable *sym, int op) {
 	// of the type that it points to as any
 	// increment or decrement. If not, it's one.
 	if (ptrtype(sym->type))
-		offset= typesize(value_at(sym->type), sym->ctype);
+		offset = typesize(value_at(sym->type), sym->ctype);
 
 	// Negate the offset for decrements
 	if (op == A_PREDEC || op == A_POSTDEC)
-		offset= -offset;
+		offset = -offset;
 
 	// If we have a pre-operation
 	if (op == A_PREINC || op == A_PREDEC) {
@@ -361,11 +367,11 @@ int cgloadvar(struct symtable *sym, int op) {
 				break;
 		}
 		// and free the register
-		free_register(postreg);
+		cgfreereg(postreg);
 	}
 
 	// Return the register with the value
-	return(r);
+	return (r);
 }
 
 // Given the label number of a global string, load its address into a new register
@@ -379,21 +385,21 @@ int cgloadglobstr(int label) {
 // Add two registers together and return the number of the register with the result
 int cgadd(int r1, int r2) {
 	fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r2], reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
 // Subtract the second register from the first and return the number of the register with the result
 int cgsub(int r1, int r2) {
 	fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
 // Multiply two registers together and return the number of the register with the result
 int cgmul(int r1, int r2) {
 	fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r2], reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
@@ -406,39 +412,39 @@ int cgdivmod(int r1, int r2, int op) {
 		fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
 	else
 		fprintf(Outfile, "\tmovq\t%%rdx,%s\n", reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
 int cgand(int r1, int r2) {
 	fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r2], reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
 int cgor(int r1, int r2) {
 	fprintf(Outfile, "\torq\t%s, %s\n", reglist[r2], reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
 int cgxor(int r1, int r2) {
 	fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r2], reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
 int cgshl(int r1, int r2) {
 	fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
 	fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
 int cgshr(int r1, int r2) {
 	fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
 	fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);
-	free_register(r2);
+	cgfreereg(r2);
 	return (r1);
 }
 
@@ -472,7 +478,7 @@ void cgloadboolean(int r, int val) {
 int cgboolean(int r, int op, int label) {
 	fprintf(Outfile, "\ttest\t%s, %s\n", reglist[r], reglist[r]);
 
-	switch(op) {
+	switch (op) {
 		case A_IF:
 		case A_WHILE:
 		case A_LOGAND:
@@ -524,7 +530,7 @@ void cgcopyarg(int r, int argposn) {
 		fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r],
 			reglist[FIRSTPARAMREG - argposn + 1]);
 	}
-	free_register(r);
+	cgfreereg(r);
 }
 
 // Shift a register left by a constant
@@ -649,16 +655,26 @@ void cgglobstrend(void) {
 static char *cmplist[] = { "sete", "setne", "setl", "setg", "setle", "setge"};
 
 // Compare two registers and set if true.
-int cgcompare_and_set(int ASTop, int r1, int r2) {
+int cgcompare_and_set(int ASTop, int r1, int r2, int type) {
+	int size = cgprimsize(type);
 
 	// Check the range of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
 		fatal("Bad ASTop in cgcompare_and_set()");
 
-	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+	switch (size) {
+		case 1:
+			fprintf(Outfile, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
+			break;
+		case 4:
+			fprintf(Outfile, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
+			break;
+		default:
+			fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+	}
 	fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
 	fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
-	free_register(r1);
+	cgfreereg(r1);
 	return (r2);
 }
 
@@ -695,21 +711,33 @@ int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2) {
 	else {
 		fprintf(Outfile, "\t%s\t%s, %s\n", cmovlist[ASTop - A_EQ], reglist[const2], reglist[const1]);
 		r1 = const1;
-	}		
-	freeall_registers(r1);
+	}
+	cgfreereg(r2);
 	return (r1);
 }
 
 // Compare two registers and jump if false.
-int cgcompare_and_jump(int ASTop, int r1, int r2, int label) {
-
+int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
+	int size = cgprimsize(type);
 	// Check the range of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
 		fatal("Bad ASTop in cgcompare_and_jump()");
 
-	fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+	switch (size) {
+		case 1:
+			fprintf(Outfile, "\tcmpb\t%s, %s\n", breglist[r2], breglist[r1]);
+			break;
+		case 4:
+			fprintf(Outfile, "\tcmpl\t%s, %s\n", dreglist[r2], dreglist[r1]);
+			break;
+		default:
+			fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
+	}
+
 	fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
-	freeall_registers(NOREG);
+	cgfreereg(r1);
+	cgfreereg(r2);
+//	freeall_registers(NOREG);
 	return (NOREG);
 }
 
@@ -753,7 +781,8 @@ void cgreturn(int reg, struct symtable *sym) {
 int cgaddress(struct symtable *sym) {
 	int r = alloc_register();
 
-	if (sym->class == C_GLOBAL || sym->class == C_STATIC)
+	if (sym->class == C_GLOBAL ||
+	    sym->class == C_EXTERN || sym->class == C_STATIC)
 		fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[r]);
 	else
 		fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->st_posn, reglist[r]);

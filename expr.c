@@ -469,10 +469,12 @@ static struct ASTnode *prefix(int ptp) {
 
 		case T_STAR:
 			// Get the next token and parse it recursively as a prefix expression
+			// Make it an rvalue
 			scan(&Token);
 			tree = prefix(ptp);
+			tree->rvalue= 1;
 
-			//Ensure the tree's type is a pointer
+			// Ensure the tree's type is a pointer
 			if (!ptrtype(tree->type))
 				fatal("* operator must be followed by an expression of pointer type");
 

@@ -7,10 +7,10 @@ rm cg.s decl.s expr.s gen.s main.s misc.s opt.s scan.s stmt.s sym.s tree.s types
 
 for i in cg.c decl.c expr.c gen.c main.c misc.c \
         opt.c scan.c stmt.c sym.c tree.c types.c
-do echo "./comp -c $i"; ./comp -c $i ; ./comp -S $i
+do echo "./cwj2 -c $i"; ./cwj2 -c $i ; ./cwj2 -S $i
 done
 
-cc -o cwj cg.o decl.o expr.o gen.o main.o misc.o \
+cc -o cwj3 cg.o decl.o expr.o gen.o main.o misc.o \
         opt.o scan.o stmt.o sym.o tree.o types.o
 
 rm cg.o decl.o expr.o gen.o main.o misc.o opt.o scan.o stmt.o sym.o tree.o types.o

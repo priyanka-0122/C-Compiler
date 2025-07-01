@@ -7,15 +7,18 @@
 // Return the position of character c in string s, or -1 if c not found
 static int chrpos(char *s, int c) {
 	int i;
-	for (i = 0; s[i] != '\0'; i++)
-		if (s[i] == (char) c)
+
+	for (i = 0; s[i] != '\0'; i++) {
+		if (s[i] == (char) c) {
 			return (i);
+		}
+	}
 	return (-1);
 }
 
-// Get the next character from the input file.
 static int next(void) {
 	int c, l;
+
 
 	if (Putback) {			// Use the character put
 		c = Putback;		// back if there is one
@@ -299,28 +302,28 @@ static int keyword(char *s) {
 
 // List of token strings, for debugging purposes
 char *Tstring[] = {
-	"EOF",				// 0
-	"=",				// 1
-	"+=", "-=", "*=", "/=", "%=",	// 2
-	"?",				// 7
-	"||", "&&",			// 8
-	"|", "^", "&",			// 10
-	"==", "!=",			// 13	
-	"<", ">", "<=", ">=",		// 15
-	"<<", ">>",			// 19
-	"+", "-", "*", "/", "%",	// 21
-	"++", "--", "~", "!",		// 26
-	"void", "char", "int", "long",
-	"if", "else", "while", "for", "return",
-	"struct", "union", "enum", "typedef",
-	"extern", "break", "continue",
-	"switch", "case", "default",
-	"sizeof", "static",
-	"intlit", "strlit", ";", "identifier",
-	"{", "}", "(", ")", "[", "]",
-	",",
-	".", "->",
-	":"
+	"EOF",					// 0
+	"=",					// 1
+	"+=", "-=", "*=", "/=", "%=",		// 2
+	"?",					// 7
+	"||", "&&",				// 8
+	"|", "^", "&",				// 10
+	"==", "!=",				// 13	
+	"<", ">", "<=", ">=",			// 15
+	"<<", ">>",				// 19
+	"+", "-", "*", "/", "%",		// 21
+	"++", "--", "~", "!",			// 26
+	"void", "char", "int", "long",		// 30
+	"if", "else", "while", "for", "return",	// 34
+	"struct", "union", "enum", "typedef",	// 39
+	"extern", "break", "continue",		// 43
+	"switch", "case", "default",		// 46
+	"sizeof", "static",			// 49
+	"intlit", "strlit", ";", "identifier",	// 51
+	"{", "}", "(", ")", "[", "]",		// 55
+	",",					// 61
+	".", "->",				// 62
+	":"					// 64
 };
 
 // Scan and return the next token found in the input.
@@ -509,7 +512,6 @@ int scan(struct token *t) {
 			} else if (isalpha(c) || '_' == c) {
 				// Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
-
 				// If it's a recognised keyword, return that token
 				if ((tokentype = keyword(Text)) != 0) {
 					t->token = tokentype;

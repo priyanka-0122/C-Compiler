@@ -1,1 +1,1 @@
-No statements in function with non-void type on line 4 of input049.c
+No statements in function with non-void type on line 3 of input049.c

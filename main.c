@@ -15,6 +15,7 @@
 char *alter_suffix(char *str, char suffix) {
 	char *posn;
 	char *newstr;
+//	printf("Entering alter_suffix main.c:18\n");
 
 	// Clone the string
 	if ((newstr = strdup(str)) == NULL)
@@ -30,7 +31,8 @@ char *alter_suffix(char *str, char suffix) {
 		return (NULL);
 
 	// Change the suffix and NUL-terminate the string
-	*posn++ = suffix;
+	*posn = suffix;
+	posn++;
 	*posn = '\0';
 	return (newstr);
 }
@@ -38,6 +40,8 @@ char *alter_suffix(char *str, char suffix) {
 // Given an input filename, compile that file
 // down to assembly code. Return the new file's name
 static char *do_compile(char *filename) {
+
+//	printf("In do_compile\n");
 	char cmd[TEXTLEN];
 
 	// Change the input file's suffix to .s
@@ -50,7 +54,7 @@ static char *do_compile(char *filename) {
 	// Generate the pre-processor command
 	if (O_genpreprocess) {
 		char *PreprocessOutfile = alter_suffix(filename, 'i');
-		snprintf(cmd, TEXTLEN, "%s %s %s > %s", CPPCMD, INCDIR, filename, PreprocessOutfile);
+		snprintf(cmd, TEXTLEN, "%s %s -P %s > %s", CPPCMD, INCDIR, filename, PreprocessOutfile);
 
 		if (system(cmd) != 0) {
 			fprintf(stderr, "Error: Preprocessing %s failed\n", filename);
@@ -60,7 +64,8 @@ static char *do_compile(char *filename) {
 		// Exit after generating pre-processor file
 		exit(0);
 	} else {
-		snprintf(cmd, TEXTLEN, "%s %s %s", CPPCMD, INCDIR, filename);
+		snprintf(cmd, TEXTLEN, "%s %s -P %s", CPPCMD, INCDIR, filename);
+//		printf("%s\n", cmd);
 
 		// Open up the pre-processor pipe
 		if ((Infile = popen(cmd, "r")) == NULL) {
@@ -69,7 +74,8 @@ static char *do_compile(char *filename) {
 		}
 		Infilename = filename;
 	}
-
+	
+//	printf("Preprocessing done\n");
 	// Create the output file
 	if ((Outfile = fopen(Outfilename, "w")) == NULL) {
     		fprintf(stderr, "Unable to create %s: %s\n", Outfilename,
@@ -84,9 +90,12 @@ static char *do_compile(char *filename) {
 	if (O_verbose)
 		printf("compiling:\t%s\n", cmd);
 
+//	printf("Ready to scan the first token\n");
 	scan(&Token);			// Get the first token from the input
+//	printf("Scanned token %s\n", Token.tokstr);
 	Peektoken.token = 0;		// and set there is no lookahead token
 	genpreamble();			// Output the preamble
+//	printf("Preamble generated\n");
 	global_declarations();		// Parse the global declarations
 	genpostamble();			// Output the postamble
 	fclose(Outfile);		// Close the output file
@@ -187,14 +196,23 @@ int main(int argc, char **argv) {
 	O_verbose = 0;
 	O_dolink = 1;
 
+//	printf("In main.c:199\n");
+
 	// Scan for command-line options
 	for (i = 1; i < argc; i++) {
+//		printf("In main.c:201\n");
 		// No leading '-', stop scanning for options
+//		printf("argv[%d] = %s main.c:205\n", i, argv[i]);
+//		printf("%c main.c:206\n", *argv[i]);
 		if (*argv[i] != '-')
 			break;
+//		printf("argv[%d] = %s main.c:209\n", i, argv[i]);
+
+//		printf("In main.c:211\n");
 
 		// For each option in this argument
 		for (j = 1; (*argv[i] == '-') && argv[i][j]; j++) {
+//			printf("In for main.c:215\n");
 			switch (argv[i][j]) {
 				case 'o':
 					outfilename = argv[++i];	// Save & skip to next argument
@@ -233,6 +251,7 @@ int main(int argc, char **argv) {
 
 	// Work on each input file in turn
 	while (i < argc) {
+//		printf("argv[%d] = %s main.c:254\n", i, argv[i]);
 		asmfile = do_compile(argv[i]);	// Compile the source file
 
 		if (O_dolink || O_assemble) {

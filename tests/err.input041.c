@@ -1,1 +1,1 @@
-Expecting a primary expression, got token:+ on line 5 of input041.c
+Expecting a primary expression, got token:+ on line 4 of input041.c
