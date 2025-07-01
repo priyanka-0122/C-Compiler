@@ -1,1 +1,1 @@
-Incompatible types in binary expression on line 6 of input060.c
+Incompatible types in binary expression on line 5 of input060.c

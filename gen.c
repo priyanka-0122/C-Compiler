@@ -142,18 +142,18 @@ static int gen_logandor(struct ASTnode *n) {
 
 	// Generate the code for the left expression
 	// followed by the jump to the false label
-	reg= genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
+	reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, 0);
 	cgboolean(reg, n->op, Lfalse);
 	genfreeregs(NOREG);
 
 	// Generate the code for the right expression
 	// followed by the jump to the false label
-	reg= genAST(n->right, NOLABEL, NOLABEL, NOLABEL, 0);
+	reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, 0);
 	cgboolean(reg, n->op, Lfalse);
 	genfreeregs(reg);
 
 	// We didn't jump so set the right boolean value
-	if (n->op== A_LOGAND) {
+	if (n->op == A_LOGAND) {
 		cgloadboolean(reg, 1);
 		cgjump(Lend);
 		cglabel(Lfalse);
@@ -202,12 +202,12 @@ static int gen_funccall(struct ASTnode *n) {
 static int gen_ternary_constant(struct ASTnode *n) {
 	int reg, reg1, reg2;
 
-	genfreeregs(NOREG);
 	reg1 = cgloadint(n->mid->a_intvalue, n->mid->type);
 	reg2 = cgloadint(n->right->a_intvalue, n->right->type);
 
 	reg = genAST(n->left, NOLABEL, reg1, reg2, n->op);
-	genfreeregs(reg);
+	cgfreereg(reg1);
+	cgfreereg(reg2);
 	return (reg);
 }
 
@@ -215,6 +215,21 @@ static int gen_ternary_constant(struct ASTnode *n) {
 static int gen_ternary(struct ASTnode *n) {
 	int Lfalse = NOLABEL, Lend = NOLABEL;
 	int reg, expreg;
+
+/****
+	// Check if the true and false condition are identifiers
+	if ((n->mid->op == A_IDENT) && (n->right->op == A_IDENT)) {
+		// Check if the same identifiers are used in conditions
+		// and true and false expression
+		if (((n->mid->sym->name == n->left->right->sym->name) ||
+		     (n->mid->sym->name == n->left->left->sym->name))
+		 && ((n->right->sym->name == n->left->right->sym->name) ||
+		     (n->right->sym->name == n->left->left->sym->name))) {	
+				reg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
+				return (reg);
+		}
+	}
+****/
 
 	// Generate two labels: one for the
 	// false expression, and one for the
@@ -225,27 +240,37 @@ static int gen_ternary(struct ASTnode *n) {
 	// Generate the condition code followed
 	// by a jump to the false label.
 	genAST(n->left, Lfalse, NOLABEL, NOLABEL, n->op);
-	genfreeregs(NOREG);
+	// genfreeregs(NOREG);
 
 	// Generate the true expression and the false label.
 	// Move the expression result into the known register.
-	// Get a register to hold the result if there is expression
 	reg = alloc_register();
-	expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
-	cgmove(expreg, reg);
 
-	// Don't free the register holding the result, though!
-	genfreeregs(reg);
+	if (n->mid->op == A_INTLIT) {
+		// When ternary operator has just the integer values to be assigned
+		reg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+	} else {
+		// Get a register to hold the result if there is expression
+		expreg = genAST(n->mid, NOLABEL, NOLABEL, NOLABEL, n->op);
+		cgmove(expreg, reg);
+		cgfreereg(expreg);
+	}
 
 	cgjump(Lend);
 	cglabel(Lfalse);
 
 	// Generate the false expression and the end label.
 	// Move the expression result into the known register.
-	expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
-	cgmove(expreg, reg);
-	// Don't free the register holding the result, though!
-	genfreeregs(reg);
+
+	if (n->right->op == A_INTLIT) {
+		// When ternary operator has just the integer values to be assigned
+		reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+	} else {
+		// Get a register to hold the result if there is expression
+		expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+		cgmove(expreg, reg);
+		cgfreereg(expreg);
+	}
 
 	cglabel(Lend);
 	return (reg);
@@ -258,7 +283,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	int leftreg = NOREG, rightreg = NOREG;
 
 	// Empty tree, do nothing
-	if (n == NULL) return(NOREG);
+	if (n == NULL)
+		return (NOREG);
 
 	// We have some specific AST node handling at the top
 	// so that we don't evaluate the child sub-trees immediately
@@ -299,6 +325,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	}
 
 	// General AST node handling below.
+
 	// Get the left and right sub-tree values
 	if (n->left)
 		leftreg = genAST(n->left, NOLABEL, NOLABEL, NOLABEL, n->op);
@@ -344,10 +371,10 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 					// in the case where both true and false value is a constant
 					return (cgcompare_and_move(n->op, leftreg, rightreg, looptoplabel, loopendlabel));
 				} else {
-					return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel));
+					return (cgcompare_and_jump(n->op, leftreg, rightreg, iflabel, n->left->type));
 				}
 			} else
-				return (cgcompare_and_set(n->op, leftreg, rightreg));
+				return (cgcompare_and_set(n->op, leftreg, rightreg, n->left->type));
 		case A_INTLIT:
 			return (cgloadint(n->a_intvalue, n->type));
 		case A_STRLIT:
@@ -395,6 +422,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			switch (n->right->op) {
 				case A_IDENT:
 					if (n->right->sym->class == C_GLOBAL ||
+					    n->right->sym->class == C_EXTERN ||
 					    n->right->sym->class == C_STATIC)
 						return (cgstorglob(leftreg, n->right->sym));
 					else

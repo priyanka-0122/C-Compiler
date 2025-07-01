@@ -1,1 +1,1 @@
-Unknown variable or function:pizza on line 4 of input042.c
+Unknown variable or function:pizza on line 3 of input042.c

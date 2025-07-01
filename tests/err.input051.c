@@ -1,1 +1,1 @@
-Can't return from a void function on line 3 of input051.c
+Can't return from a void function on line 2 of input051.c

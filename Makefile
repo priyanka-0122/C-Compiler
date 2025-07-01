@@ -37,12 +37,13 @@ installn: compn
 	cp compn $(BINDIR)
 	chmod +x $(BINDIR)/compn
 
-cwj:
+memmake:
 	chmod +x ./memmake
 	./memmake
 
 clean:
-	rm -f comp comp_arm compn cwj *.o *.out out incdir.h
+	rm -f comp comp_arm compn cwj* *.o *.out out incdir.h
+#	rm cg.s decl.s expr.s gen.s main.s misc.s opt.s scan.s stmt.s sym.s tree.s types.s
 
 clean_assem:
 	rm *.s
@@ -52,6 +53,25 @@ clean_pre:
 
 test: install tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)
+
+test_cwj: install tests/runtests_cwj
+	(cd tests; chmod +x runtests_cwj; ./runtests_cwj)
+
+test_cwj2: install tests/runtests_cwj2
+	(cd tests; chmod +x runtests_cwj2; ./runtests_cwj2)
+
+test_cwj3: install tests/runtests_cwj3
+	(cd tests; chmod +x runtests_cwj3; ./runtests_cwj3)
+
+# Try to do the triple test
+triple: cwj
+	size cwj[01]
+
+cwj2: cwj $(SRCS) $(HSRCS)
+	./cwj -o cwj2 $(SRCS)
+
+cwj: comp $(SRCS) $(HSRCS)
+	./comp -o cwj $(SRCS)
 
 testn: installn tests/runtestsn
 	(cd tests; chmod +x runtestsn; ./runtestsn)

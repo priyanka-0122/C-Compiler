@@ -13,11 +13,11 @@ enum {
 // Commands and default filenames
 #define AOUT "a.out"
 #ifdef __NASM__
-#define ASCMD "nasm -f elf64 -w-ptr -pnasmext.inc -o "
-#define LDCMD "cc -no-pie -fno-plt -Wall -o "
+#define ASCMD "nasm -g -f elf64 -w-ptr -pnasmext.inc -o "
+#define LDCMD "cc -g -no-pie -fno-plt -Wall -o "
 #else
-#define ASCMD "as -o "
-#define LDCMD "cc -o "
+#define ASCMD "as -g -o "
+#define LDCMD "cc -g -o "
 #endif
 #define CPPCMD "cpp -nostdinc -isystem "
 
@@ -44,18 +44,18 @@ enum {
 
 	// Other keywords
 	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,			// 34
-	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,			// 38
-	T_EXTERN, T_BREAK, T_CONTINUE,				// 42
-	T_SWITCH, T_CASE, T_DEFAULT,				// 45
-	T_SIZEOF, T_STATIC,					// 48
+	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,			// 39
+	T_EXTERN, T_BREAK, T_CONTINUE,				// 43
+	T_SWITCH, T_CASE, T_DEFAULT,				// 46
+	T_SIZEOF, T_STATIC,					// 49
 	
 	// Structural tokens
-	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 50
-	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,			// 54
-	T_LBRACKET, T_RBRACKET,					// 58
-	T_COMMA,						// 60
-	T_DOT, T_ARROW,						// 61
-	T_COLON							// 63
+	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 51
+	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,			// 55
+	T_LBRACKET, T_RBRACKET,					// 59
+	T_COMMA,						// 61
+	T_DOT, T_ARROW,						// 62
+	T_COLON							// 64
 };
 
 // Token structure
@@ -80,8 +80,8 @@ enum {
 	A_INTLIT, A_STRLIT,					// 26
 	A_IDENT, A_GLUE,					// 28
 	A_IF, A_WHILE, A_FUNCTION,				// 30
-	A_WIDEN,						// 33
-	A_RETURN, A_FUNCCALL,					// 34
+	A_WIDEN,						// 34
+	A_RETURN, A_FUNCCALL,					// 35
 	A_DEREF, A_ADDR, A_SCALE,				// 36
 	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,		// 39
 	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,			// 43

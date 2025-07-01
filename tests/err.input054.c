@@ -1,1 +1,1 @@
-Unknown variable or function:z on line 3 of input054.c
+Unknown variable or function:z on line 2 of input054.c

@@ -1,1 +1,1 @@
-Expected:comma on line 3 of input047.c
+Expected:comma on line 2 of input047.c
