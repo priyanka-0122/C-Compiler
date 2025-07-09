@@ -16,9 +16,9 @@ static int chrpos(char *s, int c) {
 	return (-1);
 }
 
+// Get the next character from the input file.
 static int next(void) {
 	int c, l;
-
 
 	if (Putback) {			// Use the character put
 		c = Putback;		// back if there is one
@@ -243,6 +243,8 @@ static int keyword(char *s) {
 		case 'd':
 			if (!strcmp(s, "default"))
 				return (T_DEFAULT);
+			if (!strcmp(s, "do"))
+				return (T_DO);
 			break;
 		case 'e':
 			if (!strcmp(s, "else"))
@@ -314,22 +316,24 @@ char *Tstring[] = {
 	"+", "-", "*", "/", "%",		// 21
 	"++", "--", "~", "!",			// 26
 	"void", "char", "int", "long",		// 30
-	"if", "else", "while", "for", "return",	// 34
-	"struct", "union", "enum", "typedef",	// 39
-	"extern", "break", "continue",		// 43
-	"switch", "case", "default",		// 46
-	"sizeof", "static",			// 49
-	"intlit", "strlit", ";", "identifier",	// 51
-	"{", "}", "(", ")", "[", "]",		// 55
-	",",					// 61
-	".", "->",				// 62
-	":"					// 64
+	"if", "else", "while", "do_while",	// 34
+	"for", "return",			// 38
+	"struct", "union", "enum", "typedef",	// 40
+	"extern", "break", "continue",		// 44
+	"switch", "case", "default",		// 47
+	"sizeof", "static",			// 50
+	"intlit", "strlit", ";", "identifier",	// 52
+	"{", "}", "(", ")", "[", "]",		// 56
+	",",					// 62
+	".", "->",				// 63
+	":"					// 65
 };
 
 // Scan and return the next token found in the input.
 // Return 1 if token valid, 0 if no tokens left.
 int scan(struct token *t) {
 	int c, tokentype;
+//	printf("In scan\n");
 
 	// If we have a lookahead token, return this token
 	if (Peektoken.token != 0) {
@@ -342,6 +346,7 @@ int scan(struct token *t) {
 	
 	// Skip whitespace
 	c = skip();
+//	printf("Skipped non-token\n");
 
 	// Determine the token based on the input character
 	switch (c) {
@@ -506,12 +511,15 @@ int scan(struct token *t) {
 			// If it's a digit, scan the
 			// literal integer value in
 			if (isdigit(c)) {
+				// printf("In scan.c:532, c = %d\n", c);
 				t->intvalue = scanint(c);
 				t->token = T_INTLIT;
 				break;
 			} else if (isalpha(c) || '_' == c) {
+//				printf("In scan.c:536\n");
 				// Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
+//				 printf("%d %s:539\n", t->token, t->tokstr);
 				// If it's a recognised keyword, return that token
 				if ((tokentype = keyword(Text)) != 0) {
 					t->token = tokentype;

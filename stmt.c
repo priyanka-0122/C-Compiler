@@ -87,6 +87,41 @@ static struct ASTnode *while_statement(void) {
 	return (mkastnode(A_WHILE, P_NONE, NULL, condAST, NULL, bodyAST, NULL, 0));
 }
 
+// do_while_statement: 'do' '{' statement '}' 'while' '(' true_false_expression ')' ;
+//
+// Parse a DO WHILE statement and return its AST
+static struct ASTnode *do_while_statement(void) {
+	struct ASTnode *condAST, *bodyAST;
+
+	// Ensure we have 'do' '{'
+	match(T_DO, "do");
+	lbrace();
+
+	// Get the AST for the statement.
+	// Update the loop depth in the process
+	Looplevel++;
+	bodyAST = single_statement();
+	Looplevel--;
+
+	// Ensure we have '}' 'while' '('
+	rbrace();
+	match(T_WHILE, "while");
+	lparen();
+	
+	// Parse the following expression
+	// and the ')' following. Force a
+	// non-comparison to be boolean
+	// the tree's operation is a comparison.
+	condAST = binexpr(0);
+	if (condAST->op < A_EQ || condAST->op > A_GE)
+		condAST = mkastunary(A_TOBOOL, condAST->type, condAST->ctype, condAST, NULL, 0);
+	rparen();
+	semi();
+
+	// Build and return the AST for this statement
+	return (mkastnode(A_DO_WHILE, P_NONE, NULL, condAST, NULL, bodyAST, NULL, 0));
+}
+
 // for_statement: 'for' '(' expression_list ';'
 //                          true_false_expression ';'
 //                          expression_list ')' statement  ;
@@ -333,6 +368,8 @@ static struct ASTnode *single_statement(void) {
 			return (if_statement());
 		case T_WHILE:
 			return (while_statement());
+		case T_DO:
+			return (do_while_statement());
 		case T_FOR:
 			return (for_statement());
 		case T_RETURN:

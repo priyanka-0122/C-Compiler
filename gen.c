@@ -78,6 +78,30 @@ static int genWHILE(struct ASTnode *n) {
 	return (NOREG);
 }
 
+// Generate the code for a DO WHILE statement and optional ELSE clause
+static int genDOWHILE(struct ASTnode *n) {
+	int Lstart, Lend;
+
+	// Generate the start and end lables and output the start label
+	Lstart = genlabel();
+	Lend = genlabel();
+	cglabel(Lstart);
+
+	// Generate the compound statement for the body
+	genAST(n->right, NOLABEL, Lstart, Lend, n->op);
+	genfreeregs(NOREG);
+
+	// Generate the condition code followed by a jump to the end label
+	// We cheat by sending the Lfalse label as a register
+	genAST(n->left, Lend, Lstart, Lend, n->op);
+	genfreeregs(NOREG);
+
+	// Finally output the jump back to the condition, and the end label
+	cgjump(Lstart);
+	cglabel(Lend);
+	return (NOREG);
+}
+
 // Generate the code for a SWITCH statement
 static int genSWITCH(struct ASTnode *n) {
 	int *caseval, *caselabel;
@@ -265,6 +289,7 @@ static int gen_ternary(struct ASTnode *n) {
 	if (n->right->op == A_INTLIT) {
 		// When ternary operator has just the integer values to be assigned
 		reg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
+		genfreeregs(NOREG);
 	} else {
 		// Get a register to hold the result if there is expression
 		expreg = genAST(n->right, NOLABEL, NOLABEL, NOLABEL, n->op);
@@ -293,6 +318,8 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			return (genIF(n, looptoplabel, loopendlabel));
 		case A_WHILE:
 			return (genWHILE(n));
+		case A_DO_WHILE:
+			return (genDOWHILE(n));
 		case A_SWITCH:
 			return (genSWITCH(n));
 		case A_FUNCCALL:
@@ -362,7 +389,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			// If the parent AST node is an A_IF or A_WHILE, generate a compare
 			// followed by a jump. Otherwise, compare registers and set one to
 			// 1 or 0 based on the comparison.
-			if (parentASTop == A_IF || parentASTop == A_WHILE ||
+			if (parentASTop == A_IF || parentASTop == A_WHILE || parentASTop == A_DO_WHILE ||
 			    parentASTop == A_TERNARY) {
 				// iflabel is set to 0 only in the case where parentASTop is A_TERNARY and the true and false value is
 				// anything apart from constant(e.g. ? 1 : 2;) and same as comparison variables(e.g a>b ? a : b;)

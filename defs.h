@@ -43,7 +43,7 @@ enum {
 	T_VOID, T_CHAR, T_INT, T_LONG,				// 30
 
 	// Other keywords
-	T_IF, T_ELSE, T_WHILE, T_FOR, T_RETURN,			// 34
+	T_IF, T_ELSE, T_WHILE, T_DO, T_FOR, T_RETURN,			// 34
 	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,			// 39
 	T_EXTERN, T_BREAK, T_CONTINUE,				// 43
 	T_SWITCH, T_CASE, T_DEFAULT,				// 46
@@ -79,7 +79,7 @@ enum {
 	A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, A_MOD,		// 21
 	A_INTLIT, A_STRLIT,					// 26
 	A_IDENT, A_GLUE,					// 28
-	A_IF, A_WHILE, A_FUNCTION,				// 30
+	A_IF, A_WHILE, A_DO_WHILE, A_FUNCTION,				// 30
 	A_WIDEN,						// 34
 	A_RETURN, A_FUNCCALL,					// 35
 	A_DEREF, A_ADDR, A_SCALE,				// 36

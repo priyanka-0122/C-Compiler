@@ -481,6 +481,7 @@ int cgboolean(int r, int op, int label) {
 	switch (op) {
 		case A_IF:
 		case A_WHILE:
+		case A_DO_WHILE:
 		case A_LOGAND:
 			fprintf(Outfile, "\tje\tL%d\n", label);
 		break;
