@@ -443,6 +443,7 @@ static struct symtable *function_declaration(char *funcname, int type,
 	struct ASTnode *tree, *finalstmt;
 	struct symtable *oldfuncsym, *newfuncsym = NULL;
 	int endlabel, paramcnt;
+	int linenum = Line;
 
 	// Text has the identifier's name. If this exists and is a
 	// function, get the id. Otherwise, set oldfuncsym to NULL.
@@ -508,6 +509,7 @@ static struct symtable *function_declaration(char *funcname, int type,
 	// Build the A_FUNCTION node which has the function's symbol pointer
 	// and the compound statement sub-tree
 	tree = mkastunary(A_FUNCTION, type, ctype, tree, oldfuncsym, endlabel);
+	tree->linenum = linenum;
 
 	// Do optimisations on the AST tree
 	tree = optimise(tree);

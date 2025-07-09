@@ -27,6 +27,7 @@ struct ASTnode *mkastnode(int op, int type,
 	n->right = right;
 	n->sym = sym;
 	n->a_intvalue = intvalue;
+	n->linenum= 0;
 	return (n);
 }
 

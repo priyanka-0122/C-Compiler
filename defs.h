@@ -43,11 +43,11 @@ enum {
 	T_VOID, T_CHAR, T_INT, T_LONG,				// 30
 
 	// Other keywords
-	T_IF, T_ELSE, T_WHILE, T_DO, T_FOR, T_RETURN,			// 34
-	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,			// 39
-	T_EXTERN, T_BREAK, T_CONTINUE,				// 43
-	T_SWITCH, T_CASE, T_DEFAULT,				// 46
-	T_SIZEOF, T_STATIC,					// 49
+	T_IF, T_ELSE, T_WHILE, T_DO, T_FOR, T_RETURN,		// 34
+	T_STRUCT, T_UNION, T_ENUM, T_TYPEDEF,			// 40
+	T_EXTERN, T_BREAK, T_CONTINUE,				// 44
+	T_SWITCH, T_CASE, T_DEFAULT,				// 47
+	T_SIZEOF, T_STATIC,					// 50
 	
 	// Structural tokens
 	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 51
@@ -79,13 +79,13 @@ enum {
 	A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, A_MOD,		// 21
 	A_INTLIT, A_STRLIT,					// 26
 	A_IDENT, A_GLUE,					// 28
-	A_IF, A_WHILE, A_DO_WHILE, A_FUNCTION,				// 30
-	A_WIDEN,						// 34
-	A_RETURN, A_FUNCCALL,					// 35
-	A_DEREF, A_ADDR, A_SCALE,				// 36
-	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,		// 39
-	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,			// 43
-	A_BREAK, A_CONTINUE,					// 47
+	A_IF, A_WHILE, A_DO_WHILE, A_FUNCTION,			// 30
+	A_WIDEN,						// 35
+	A_RETURN, A_FUNCCALL,					// 36
+	A_DEREF, A_ADDR, A_SCALE,				// 37
+	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,		// 40
+	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,			// 44
+	A_BREAK, A_CONTINUE,					// 48
 	A_SWITCH, A_CASE, A_DEFAULT,				// 49
 	A_SIZEOF,						// 52
 	A_CAST							// 53
@@ -149,6 +149,7 @@ struct ASTnode {
 					// the symbol in the symbol table
 #define a_intvalue a_size		// For A_INTLIT, the integer value
 	int a_size;			// For A_SCALE, the size to scale by
+	int linenum;			// Line number from where this node comes
 };
 
 enum {

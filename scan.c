@@ -333,7 +333,6 @@ char *Tstring[] = {
 // Return 1 if token valid, 0 if no tokens left.
 int scan(struct token *t) {
 	int c, tokentype;
-//	printf("In scan\n");
 
 	// If we have a lookahead token, return this token
 	if (Peektoken.token != 0) {
@@ -346,7 +345,6 @@ int scan(struct token *t) {
 	
 	// Skip whitespace
 	c = skip();
-//	printf("Skipped non-token\n");
 
 	// Determine the token based on the input character
 	switch (c) {
@@ -511,15 +509,12 @@ int scan(struct token *t) {
 			// If it's a digit, scan the
 			// literal integer value in
 			if (isdigit(c)) {
-				// printf("In scan.c:532, c = %d\n", c);
 				t->intvalue = scanint(c);
 				t->token = T_INTLIT;
 				break;
 			} else if (isalpha(c) || '_' == c) {
-//				printf("In scan.c:536\n");
 				// Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
-//				 printf("%d %s:539\n", t->token, t->tokstr);
 				// If it's a recognised keyword, return that token
 				if ((tokentype = keyword(Text)) != 0) {
 					t->token = tokentype;

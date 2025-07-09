@@ -332,6 +332,7 @@ static struct ASTnode *switch_statement(void) {
 static struct ASTnode *single_statement(void) {
 	struct ASTnode *stmt;
 	struct symtable *ctype;
+	int linenum = Line;
 
 	switch (Token.token) {
 		case T_SEMI:
@@ -342,6 +343,7 @@ static struct ASTnode *single_statement(void) {
 			// We have a '{', so this is a compound statement
 			lbrace();
 			stmt = compound_statement(0);
+			stmt->linenum = linenum;
 			rbrace();
 			return (stmt);
 		case T_IDENT:
@@ -350,6 +352,7 @@ static struct ASTnode *single_statement(void) {
 			// Otherwise, fall down to the parse_type() call.
 			if (findtypedef(Text) == NULL) {
 				stmt = binexpr(0);
+				stmt->linenum = linenum;
 				semi();
 				return (stmt);
 			}
@@ -365,25 +368,42 @@ static struct ASTnode *single_statement(void) {
 			semi();
 			return (stmt);		// Any assignments from the declarations
 		case T_IF:
-			return (if_statement());
+			stmt = if_statement();
+			stmt->linenum = linenum;
+			return (stmt);
 		case T_WHILE:
-			return (while_statement());
+			stmt = while_statement();
+			stmt->linenum = linenum;
+			return (stmt);
 		case T_DO:
-			return (do_while_statement());
+			stmt = do_while_statement();
+			stmt->linenum = linenum;
+			return (stmt);
 		case T_FOR:
-			return (for_statement());
+			stmt = for_statement();
+			stmt->linenum = linenum;
+			return (stmt);
 		case T_RETURN:
-			return (return_statement());
+			stmt = return_statement();
+			stmt->linenum = linenum;
+			return(stmt);
 		case T_BREAK:
-			return (break_statement());
+			stmt = break_statement();
+			stmt->linenum = linenum;
+			return (stmt);
 		case T_CONTINUE:
-			return (continue_statement());
+			stmt = continue_statement();
+			stmt->linenum = linenum;
+			return (stmt);
 		case T_SWITCH:
-			return (switch_statement());
+			stmt = switch_statement();
+			stmt->linenum = linenum;
+			return (stmt);
 		default:
 			// For now, see if this is an expression.
 			// This catches assignment statements.
 			stmt = binexpr(0);
+			stmt->linenum = linenum;
 			semi();
 			return (stmt);
 	}

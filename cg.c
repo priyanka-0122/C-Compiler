@@ -7,6 +7,7 @@
 // Flag to say which section were are outputting in to
 enum { no_seg, text_seg, data_seg } currSeg = no_seg;
 
+// Switch to the text segment
 void cgtextseg() {
 	if (currSeg != text_seg) {
 		fputs("\t.text\n", Outfile);
@@ -14,6 +15,7 @@ void cgtextseg() {
 	}
 }
 
+// Switch to the data segment
 void cgdataseg() {
 	if (currSeg != data_seg) {
 		fputs("\t.data\n", Outfile);
@@ -53,36 +55,31 @@ int cgalign(int type, int offset, int direction) {
 	// on a 4-byte alignment
 	switch (type) {
 		case P_CHAR:
-			return (offset);
-		case P_INT:
-		case P_LONG:
 			break;
 		default:
-			if (!ptrtype(type))
-				fatald("Bad type in cg_align:", type);
+			// Align whatever we have now on a 4-byte alignment.
+			// I put the generic code here so it can be reused elsewhere.
+			alignment = 4;
+			offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
 	}
 
-	// Here we have an int or a long. Align it on a 4-byte offset
-	// I put the generic code here so it can be reused elsewhere.
-	alignment = 4;
-	offset = (offset + direction * (alignment - 1)) & ~(alignment - 1);
 	return (offset);
 }
 
 // Position of next local variable relative to stack base pointer.
 // We store the offset as positive to make aligning the stack pointer easier
 static int localOffset;
+
+// Position of stack pointer offset relative to stack base pointer.
+// We need this to ensure it is aligned on a 16-byte boundary.
 static int stackOffset;
 
 // Create the position of a new local variable.
 static int newlocaloffset(int size) {
-//	printf("localOffset = %d\t cg.c:82\n", localOffset);
 	
 	// Decrement the offset by a minimum of 4 bytes
 	// and allocate on the stack
-//	localOffset += (size > 4) ? size : 4;
-	localOffset = (size > 4) ? localOffset + size : localOffset + 4;
-//	printf("localoffset = %d cg.c:83\n", localOffset);
+	localOffset += (size > 4) ? size : 4;
 	return (-localOffset);
 }
 
@@ -108,7 +105,7 @@ static void popreg(int r) {
 
 // Set all registers as available.
 // But if reg is positive, don't free that one.
-void freeall_registers(int keepreg) {
+void cgfreeallregs(int keepreg) {
 	int i;
 	fprintf(Outfile, "# freeing all registers\n");
 	for (i = 0; i < NUMFREEREGS; i++)
@@ -125,7 +122,7 @@ static int spillreg = 0;
 
 // Allocate a free register. Return the number of
 // the register. Die if no available registers.
-int alloc_register(void) {
+int cgallocreg(void) {
 	int reg;
 
 	for (reg = 0; reg < NUMFREEREGS; reg++) {
@@ -165,7 +162,7 @@ void cgfreereg(int reg) {
 }
 
 // Spill all registers on the stack
-void spill_all_regs(void) {
+void cgspillregs(void) {
 	int i;
 
 	fprintf(Outfile, "# spilling all regs\n");
@@ -174,7 +171,7 @@ void spill_all_regs(void) {
 }
 
 // Unspill all registers from the stack
-static void unspill_all_regs(void) {
+static void cgunspillregs(void) {
 	int i;
 
 	fprintf(Outfile, "# unspilling all regs\n");
@@ -182,10 +179,15 @@ static void unspill_all_regs(void) {
 		popreg(i);
 }
 
-// Print out the assembly preamble
-void cgpreamble() {
-	freeall_registers(NOREG);
+// Print out the assembly preamble for one output file
+void cgpreamble(char *filename) {
+	cgfreeallregs(NOREG);
 	cgtextseg();
+	fprintf(Outfile, "\t.file 1 ");
+	fputc('"', Outfile);
+	fprintf(Outfile, "%s", filename);
+	fputc('"', Outfile);
+	fputc('\n', Outfile);
 	fprintf(Outfile,
 	 	"# internal switch(expr) routine\n"
 	 	"# %%rsi = switch table, %%rax = expr\n"
@@ -262,7 +264,7 @@ void cgfuncpostamble(struct symtable *sym) {
 	cglabel(sym->st_endlabel);
 	fprintf(Outfile, "\taddq\t$%d,%%rsp\n", stackOffset);
 	fputs("\tpopq\t%rbp\n" "\tret\n", Outfile);
-	freeall_registers(NOREG);
+	cgfreeallregs(NOREG);
 }
 
 // Load an integer literal value into a register.
@@ -270,7 +272,7 @@ void cgfuncpostamble(struct symtable *sym) {
 // For x86-64, we don't need to worry about the type.
 int cgloadint(int value, int type) {
 	// Get a new register
-	int r = alloc_register();
+	int r = cgallocreg();
 	// Print out the code to initialise it
 	fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
 	return (r);
@@ -284,7 +286,7 @@ int cgloadvar(struct symtable *sym, int op) {
 	int r, postreg, offset = 1;
 
 	// Get a new register
-	r = alloc_register();
+	r = cgallocreg();
 
 	// If the symbol is a pointer, use the size
 	// of the type that it points to as any
@@ -346,15 +348,15 @@ int cgloadvar(struct symtable *sym, int op) {
 
 	// If we have a post-operation, get a new register
 	if (op == A_POSTINC || op == A_POSTDEC) {
-		postreg = alloc_register();
+		postreg = cgallocreg();
 
 		// Load the symbol's address
 		if (sym->class == C_LOCAL || sym->class == C_PARAM)
 			fprintf(Outfile, "\tleaq\t%d(%%rbp), %s\n", sym->st_posn, reglist[postreg]);
 		else
 			fprintf(Outfile, "\tleaq\t%s(%%rip), %s\n", sym->name, reglist[postreg]);
-		// and change the value at that address
 
+		// and change the value at that address
 		switch (sym->size) {
 			case 1:
 				fprintf(Outfile, "\taddb\t$%d,(%s)\n", offset, reglist[postreg]);
@@ -366,7 +368,8 @@ int cgloadvar(struct symtable *sym, int op) {
 				fprintf(Outfile, "\taddq\t$%d,(%s)\n", offset, reglist[postreg]);
 				break;
 		}
-		// and free the register
+
+		// Finally, free the register
 		cgfreereg(postreg);
 	}
 
@@ -377,7 +380,7 @@ int cgloadvar(struct symtable *sym, int op) {
 // Given the label number of a global string, load its address into a new register
 int cgloadglobstr(int label) {
 	// Get a new register
-	int r = alloc_register();
+	int r = cgallocreg();
 	fprintf(Outfile, "\tleaq\tL%d(%%rip), %s\n", label, reglist[r]);
 	return (r);
 }
@@ -416,24 +419,28 @@ int cgdivmod(int r1, int r2, int op) {
 	return (r1);
 }
 
+// Bitwise AND two registers
 int cgand(int r1, int r2) {
 	fprintf(Outfile, "\tandq\t%s, %s\n", reglist[r2], reglist[r1]);
 	cgfreereg(r2);
 	return (r1);
 }
 
+// Bitwise OR two registers
 int cgor(int r1, int r2) {
 	fprintf(Outfile, "\torq\t%s, %s\n", reglist[r2], reglist[r1]);
 	cgfreereg(r2);
 	return (r1);
 }
 
+// Bitwise XOR two registers
 int cgxor(int r1, int r2) {
 	fprintf(Outfile, "\txorq\t%s, %s\n", reglist[r2], reglist[r1]);
 	cgfreereg(r2);
 	return (r1);
 }
 
+// Shift left r1 by r2 bits
 int cgshl(int r1, int r2) {
 	fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
 	fprintf(Outfile, "\tshlq\t%%cl, %s\n", reglist[r1]);
@@ -441,6 +448,7 @@ int cgshl(int r1, int r2) {
 	return (r1);
 }
 
+// Shift right r1 by r2 bits
 int cgshr(int r1, int r2) {
 	fprintf(Outfile, "\tmovb\t%s, %%cl\n", breglist[r2]);
 	fprintf(Outfile, "\tshrq\t%%cl, %s\n", reglist[r1]);
@@ -509,10 +517,10 @@ int cgcall(struct symtable *sym, int numargs) {
 		fprintf(Outfile, "\taddq\t$%d, %%rsp\n", 8 * (numargs - 6));
 
 	// Unspill all the registers
-	unspill_all_regs();
+	cgunspillregs();
 
 	// Get a new register and copy the return value into it
-	outr = alloc_register();
+	outr = cgallocreg();
 	fprintf(Outfile, "\tmovq\t%%rax, %s\n", reglist[outr]);
 	return (outr);
 }
@@ -647,6 +655,7 @@ void cgglobstr(int l, char *strvalue, int append) {
 	}
 }
 
+// NULL terminate a global string
 void cgglobstrend(void) {
 	fprintf(Outfile, "\t.byte\t0\n");
 }
@@ -673,6 +682,7 @@ int cgcompare_and_set(int ASTop, int r1, int r2, int type) {
 		default:
 			fprintf(Outfile, "\tcmpq\t%s, %s\n", reglist[r2], reglist[r1]);
 	}
+
 	fprintf(Outfile, "\t%s\t%s\n", cmplist[ASTop - A_EQ], breglist[r2]);
 	fprintf(Outfile, "\tmovzbq\t%s, %s\n", breglist[r2], reglist[r2]);
 	cgfreereg(r1);
@@ -720,6 +730,7 @@ int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2) {
 // Compare two registers and jump if false.
 int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
 	int size = cgprimsize(type);
+
 	// Check the range of the AST operation
 	if (ASTop < A_EQ || ASTop > A_GE)
 		fatal("Bad ASTop in cgcompare_and_jump()");
@@ -738,7 +749,6 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
 	fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
 	cgfreereg(r1);
 	cgfreereg(r2);
-//	freeall_registers(NOREG);
 	return (NOREG);
 }
 
@@ -780,7 +790,7 @@ void cgreturn(int reg, struct symtable *sym) {
 
 // Generate code to load the address of an identifier into a variable. Return a new register
 int cgaddress(struct symtable *sym) {
-	int r = alloc_register();
+	int r = cgallocreg();
 
 	if (sym->class == C_GLOBAL ||
 	    sym->class == C_EXTERN || sym->class == C_STATIC)
@@ -871,4 +881,11 @@ void cgswitch(int reg, int casecount, int toplabel,
 // Move value between registers
 void cgmove(int r1, int r2) {
 	fprintf(Outfile, "\tmovq\t%s, %s\n", reglist[r1], reglist[r2]);
+}
+
+// Output a gdb directive to say on which
+// source code line number the following
+// assembly code came from
+void cglinenum(int line) {
+	fprintf(Outfile, "\t.loc 1 %d 0\n", line);
 }

@@ -41,7 +41,6 @@ char *alter_suffix(char *str, char suffix) {
 // down to assembly code. Return the new file's name
 static char *do_compile(char *filename) {
 
-//	printf("In do_compile\n");
 	char cmd[TEXTLEN];
 
 	// Change the input file's suffix to .s
@@ -61,6 +60,7 @@ static char *do_compile(char *filename) {
 			exit(1);
 		}
 
+		printf("Preprocessing done\n");
 		// Exit after generating pre-processor file
 		exit(0);
 	} else {
@@ -75,7 +75,6 @@ static char *do_compile(char *filename) {
 		Infilename = filename;
 	}
 	
-//	printf("Preprocessing done\n");
 	// Create the output file
 	if ((Outfile = fopen(Outfilename, "w")) == NULL) {
     		fprintf(stderr, "Unable to create %s: %s\n", Outfilename,
@@ -90,12 +89,9 @@ static char *do_compile(char *filename) {
 	if (O_verbose)
 		printf("compiling:\t%s\n", cmd);
 
-//	printf("Ready to scan the first token\n");
 	scan(&Token);			// Get the first token from the input
-//	printf("Scanned token %s\n", Token.tokstr);
 	Peektoken.token = 0;		// and set there is no lookahead token
-	genpreamble();			// Output the preamble
-//	printf("Preamble generated\n");
+	genpreamble(filename);			// Output the preamble
 	global_declarations();		// Parse the global declarations
 	genpostamble();			// Output the postamble
 	fclose(Outfile);		// Close the output file

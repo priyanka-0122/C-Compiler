@@ -1,9 +1,9 @@
 #!/bin/sh
 make install
 
-rm *.s *.o
-#rm cg.o decl.o expr.o gen.o main.o misc.o opt.o scan.o stmt.o sym.o tree.o types.o
-#rm cg.s decl.s expr.s gen.s main.s misc.s opt.s scan.s stmt.s sym.s tree.s types.s
+#rm *.s *.o
+rm cg.o decl.o expr.o gen.o main.o misc.o opt.o scan.o stmt.o sym.o tree.o types.o
+rm cg.s decl.s expr.s gen.s main.s misc.s opt.s scan.s stmt.s sym.s tree.s types.s
 
 for i in cg.c decl.c expr.c gen.c main.c misc.c \
         opt.c scan.c stmt.c sym.c tree.c types.c
@@ -13,5 +13,5 @@ done
 cc -o cwj3 cg.o decl.o expr.o gen.o main.o misc.o \
         opt.o scan.o stmt.o sym.o tree.o types.o
 
-#rm cg.o decl.o expr.o gen.o main.o misc.o opt.o scan.o stmt.o sym.o tree.o types.o
-#rm cg.s decl.s expr.s gen.s main.s misc.s opt.s scan.s stmt.s sym.s tree.s types.s
+rm cg.o decl.o expr.o gen.o main.o misc.o opt.o scan.o stmt.o sym.o tree.o types.o
+rm cg.s decl.s expr.s gen.s main.s misc.s opt.s scan.s stmt.s sym.s tree.s types.s

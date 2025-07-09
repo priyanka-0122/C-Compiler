@@ -24,7 +24,7 @@ void dumpAST(struct ASTnode *n, int label, int level);
 int genlabel(void);
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	   int loopendlabel, int parentASTop);
-void genpreamble();
+void genpreamble(char *filename);
 void genpostamble();
 void genfreeregs(int keepreg);
 void genglobsym(struct symtable *node);
@@ -39,11 +39,11 @@ int cgprimsize(int type);
 int cgalign(int type, int offset, int direction);
 void cgtextseg();
 void cgdataseg();
-int alloc_register(void);
-void freeall_registers(int keepreg);
+int cgallocreg(void);
+void cgfreeallregs(int keepreg);
 void cgfreereg(int reg);
-void spill_all_regs(void);
-void cgpreamble();
+void cgspillregs(void);
+void cgpreamble(char *filename);
 void cgpostamble();
 void cgfuncpreamble(struct symtable *sym);
 void cgfuncpostamble(struct symtable *sym);
@@ -85,6 +85,7 @@ int cgshr(int r1, int r2);
 void cgswitch(int reg, int casecount, int toplabel,
 	int *caselabel, int *caseval, int defaultlabel);
 void cgmove(int r1, int r2);
+void cglinenum(int line);
 
 // expr.c
 struct ASTnode *expression_list(int endtoken);
