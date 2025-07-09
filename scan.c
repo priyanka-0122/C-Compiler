@@ -16,10 +16,10 @@ static int chrpos(char *s, int c) {
 	return (-1);
 }
 
-// Get the next character from the input file.
 static int next(void) {
 	int c, l;
 
+	// Get the next character from the input file.
 	if (Putback) {			// Use the character put
 		c = Putback;		// back if there is one
 		Putback = 0;
