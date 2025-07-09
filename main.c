@@ -89,7 +89,9 @@ static char *do_compile(char *filename) {
 	if (O_verbose)
 		printf("compiling:\t%s\n", cmd);
 
+//	printf("Ready to scan the first token\n");
 	scan(&Token);			// Get the first token from the input
+//	printf("Scanned token %s\n", Token.tokstr);
 	Peektoken.token = 0;		// and set there is no lookahead token
 	genpreamble(filename);			// Output the preamble
 	global_declarations();		// Parse the global declarations

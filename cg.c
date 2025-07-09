@@ -79,7 +79,9 @@ static int newlocaloffset(int size) {
 	
 	// Decrement the offset by a minimum of 4 bytes
 	// and allocate on the stack
-	localOffset += (size > 4) ? size : 4;
+//	localOffset += (size > 4) ? size : 4;
+	localOffset = (size > 4) ? localOffset + size : localOffset + 4;
+//	printf("localoffset = %d cg.c:83\n", localOffset);
 	return (-localOffset);
 }
 
@@ -371,7 +373,6 @@ int cgloadvar(struct symtable *sym, int op) {
 
 		// Finally, free the register
 		cgfreereg(postreg);
-	}
 
 	// Return the register with the value
 	return (r);
@@ -749,6 +750,7 @@ int cgcompare_and_jump(int ASTop, int r1, int r2, int label, int type) {
 	fprintf(Outfile, "\t%s\tL%d\n", invcmplist[ASTop - A_EQ], label);
 	cgfreereg(r1);
 	cgfreereg(r2);
+
 	return (NOREG);
 }
 

@@ -7,6 +7,9 @@ HSRCS= data.h decl.h defs.h incdir.h
 SRCS= cg.c decl.c expr.c gen.c main.c misc.c \
 	opt.c scan.c stmt.c sym.c tree.c types.c
 
+SRCO= cg.c decl.c expr.c gen_old.c main.c misc.c \
+	opt.c scan.c stmt.c sym.c tree.c types.c
+
 SRCN= cgn.c decl.c expr.c gen.c main.c misc.c \
 	opt.c scan.c stmt.c sym.c tree.c types.c
 
@@ -15,6 +18,9 @@ ARMSRCS= cg_arm.c decl.c expr.c gen.c main.c misc.c \
 
 comp: $(SRCS) $(HSRCS)
 	cc -o comp -g -Wall -DINCDIR=\"$(INCDIR)\" $(SRCS)
+
+comp_old: $(SRCO) $(HSRCS)
+	cc -o comp -g -Wall -DINCDIR=\"$(INCDIR)\" $(SRCO)
 
 compn: $(SRCN) $(HSRCS)
 	cc -D__NASM__ -o compn -g -Wall -DINCDIR=\"$(INCDIR)\" $(SRCN)
@@ -40,6 +46,19 @@ installn: compn
 memmake:
 	chmod +x ./memmake
 	./memmake
+
+memmake_2:
+	chmod +x ./memmake_2
+	./memmake_2
+
+memmake_3:
+	chmod +x ./memmake_3
+	./memmake_3
+
+cwj:
+	rm cwj;
+	cc -o cwj cg.o decl.o expr.o gen.o main.o misc.o \
+        	opt.o scan.o stmt.o sym.o tree.o types.o	
 
 clean:
 	rm -f comp comp_arm compn cwj* *.o *.out out incdir.h
