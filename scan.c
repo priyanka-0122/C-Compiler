@@ -16,10 +16,10 @@ static int chrpos(char *s, int c) {
 	return (-1);
 }
 
+// Get the next character from the input file.
 static int next(void) {
 	int c, l;
 
-	// Get the next character from the input file.
 	if (Putback) {			// Use the character put
 		c = Putback;		// back if there is one
 		Putback = 0;
@@ -368,7 +368,7 @@ int scan(struct token *t) {
 				t->token = T_ARROW;
 			} else if (c == '=') {
 				t->token = T_ASMINUS;
-			} else if (isdigit(c)) {	// Negative int literal
+			} else if ((isdigit(c)) && (Token.token != T_IDENT)) {	// Negative int literal
 				t->intvalue = -scanint(c);
 				t->token = T_INTLIT;
 			} else {

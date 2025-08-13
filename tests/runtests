@@ -4,7 +4,7 @@
 
 # Build our compiler if needed
 if [ ! -f ../comp ]
-	then (cd ..; make)
+	then (cd ..; make install; make)
 fi
 
 # Try to use each input source file
@@ -33,6 +33,10 @@ do
 			if [ "$?" -eq "1" ]
 				then echo ": failed"
 				diff -c "out.$i" "trial.$i"
+				# Stop if our 1st argument is "stop"
+				if [ $1 = "stop" ]
+					then exit 1
+				fi
 				echo
 
 			# No failure, so announce success

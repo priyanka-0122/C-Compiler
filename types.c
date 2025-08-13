@@ -104,7 +104,8 @@ struct ASTnode *modify_type(struct ASTnode *tree, int rtype,
 			if (rsize > 1)
 				return (mkastunary(A_SCALE, rtype, rctype, tree, NULL, rsize));
 			else
-				return (tree);		// Size 1, no need to scale
+				// No need to scale, but we need to widen to pointer size
+				return (mkastunary(A_WIDEN, rtype, NULL, tree, NULL, 0));
 		}
 	}
 	// If we get here, the types are not compatible

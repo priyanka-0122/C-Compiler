@@ -181,7 +181,7 @@ static struct ASTnode *return_statement(void) {
 	if (Token.token == T_LPAREN) {
 		// Can't return a value if function returns P_VOID
 		if (Functionid->type == P_VOID)
-			fatal("Can't return from a void function");
+			fatal("Can't return a value from a void function");
 
 		// Skip the left parenthesis
 		lparen();
@@ -197,6 +197,10 @@ static struct ASTnode *return_statement(void) {
 		// Get the ')'
 		rparen();
 	}
+
+	// In case of empty return from a non void function
+	// if (Functionid->type != P_VOID && tree == NULL)
+	//	Functionid->type = P_VOID;
 
 	// Add on the A_RETURN node
 	tree = mkastunary(A_RETURN, P_NONE, NULL, tree, NULL, 0);
@@ -416,7 +420,7 @@ static struct ASTnode *single_statement(void) {
 // the parsing
 struct ASTnode *compound_statement(int inswitch) {
 	struct ASTnode *left = NULL;
-	struct ASTnode *tree;
+	struct ASTnode *tree = NULL;
 
 	while (1) {
 		// Leave if we've hit the end token. We do this first to allow
@@ -425,6 +429,14 @@ struct ASTnode *compound_statement(int inswitch) {
 			return (left);
 		if (inswitch && (Token.token == T_CASE || Token.token == T_DEFAULT))
 			return (left);
+		
+		if (tree != NULL && tree->op >= A_ASSIGN) {
+			if (tree->op == A_RETURN) {
+				while (Token.token != T_RBRACE)
+					scan(&Token);
+				return (left);
+			}
+		}
 
 		// Parse a single statement
 		tree = single_statement();
@@ -438,6 +450,8 @@ struct ASTnode *compound_statement(int inswitch) {
 			else
 				left = mkastnode(A_GLUE, P_NONE, NULL, left, NULL, tree, NULL, 0);
 		}
+//		if (tree->op == A_RETURN)
+//			return (left);
 	}
 	return (NULL);		// Keep -Wall happy
 }

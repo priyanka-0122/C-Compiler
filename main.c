@@ -15,7 +15,6 @@
 char *alter_suffix(char *str, char suffix) {
 	char *posn;
 	char *newstr;
-//	printf("Entering alter_suffix main.c:18\n");
 
 	// Clone the string
 	if ((newstr = strdup(str)) == NULL)
@@ -43,8 +42,8 @@ static char *do_compile(char *filename) {
 
 	char cmd[TEXTLEN];
 
-	// Change the input file's suffix to .s
-	Outfilename = alter_suffix(filename, 's');
+	// Change the input file's suffix to .q
+	Outfilename = alter_suffix(filename, 'q');
 	if (Outfilename == NULL) {
 		fprintf(stderr, "Error: %s has no suffix, try .c on the end\n", filename);
 		exit(1);
@@ -89,12 +88,12 @@ static char *do_compile(char *filename) {
 	if (O_verbose)
 		printf("compiling:\t%s\n", cmd);
 
-	scan(&Token);			// Get the first token from the input
-	Peektoken.token = 0;		// and set there is no lookahead token
+	scan(&Token);				// Get the first token from the input
+	Peektoken.token = 0;			// and set there is no lookahead token
 	genpreamble(filename);			// Output the preamble
-	global_declarations();		// Parse the global declarations
-	genpostamble();			// Output the postamble
-	fclose(Outfile);		// Close the output file
+	global_declarations();			// Parse the global declarations
+	genpostamble();				// Output the postamble
+	fclose(Outfile);			// Close the output file
 
 	// Dump the symbol table if requested
 	if (O_dumpsym) {
@@ -105,6 +104,31 @@ static char *do_compile(char *filename) {
 
 	freestaticsyms();		// Free any static symbols in the file
 	return (Outfilename);
+}
+
+// Given an input filename, run QBE on the file and
+// produce an assembly file. Return the object filename
+char *do_qbe(char *filename) {
+	char cmd[TEXTLEN];
+	int err;
+
+	char *outfilename = alter_suffix(filename, 's');
+	if (outfilename == NULL) {
+		fprintf(stderr, "Error: %s has no suffix, try .qbe on the end\n", filename);
+		exit(1);
+	}
+
+	// Build the QBE command and run it
+	snprintf(cmd, TEXTLEN, "%s %s %s", QBECMD, outfilename, filename);
+//	printf("%s\n", cmd);
+	if (O_verbose)
+		printf("%s\n", cmd);
+	err = system(cmd);
+	if (err != 0) {
+		fprintf(stderr, "QBE translation of %s failed\n", filename);
+		exit(1);
+	}
+	return (outfilename);
 }
 
 // Given an input filename, assemble that file
@@ -162,7 +186,7 @@ void do_link(char *outfilename, char **objlist) {
 
 // Print out a usage if started incorrectly
 static void usage(char *prog) {
-	fprintf(stderr, "Usage: %s [-vcST] [-o outfile] file [file ...]\n", prog);
+	fprintf(stderr, "Usage: %s [-vcSTM] [-o outfile] file [file ...]\n", prog);
 	fprintf(stderr, "       -v give verbose output of the compilation stages\n");
   	fprintf(stderr, "       -c generate object files but don't link them\n");
 	fprintf(stderr, "	-E generate pre-process files but don't proceed\n");
@@ -179,7 +203,7 @@ static void usage(char *prog) {
 enum { MAXOBJ = 100 };
 int main(int argc, char **argv) {
 	char *outfilename = AOUT;
-	char *asmfile, *objfile;
+	char *qbefile, *asmfile, *objfile;
 	char *objlist[MAXOBJ];
 	int i, j, objcnt = 0;
 
@@ -192,23 +216,14 @@ int main(int argc, char **argv) {
 	O_verbose = 0;
 	O_dolink = 1;
 
-//	printf("In main.c:199\n");
-
 	// Scan for command-line options
 	for (i = 1; i < argc; i++) {
-//		printf("In main.c:201\n");
 		// No leading '-', stop scanning for options
-//		printf("argv[%d] = %s main.c:205\n", i, argv[i]);
-//		printf("%c main.c:206\n", *argv[i]);
 		if (*argv[i] != '-')
 			break;
-//		printf("argv[%d] = %s main.c:209\n", i, argv[i]);
-
-//		printf("In main.c:211\n");
 
 		// For each option in this argument
 		for (j = 1; (*argv[i] == '-') && argv[i][j]; j++) {
-//			printf("In for main.c:215\n");
 			switch (argv[i][j]) {
 				case 'o':
 					outfilename = argv[++i];	// Save & skip to next argument
@@ -247,8 +262,8 @@ int main(int argc, char **argv) {
 
 	// Work on each input file in turn
 	while (i < argc) {
-//		printf("argv[%d] = %s main.c:254\n", i, argv[i]);
-		asmfile = do_compile(argv[i]);	// Compile the source file
+		qbefile = do_compile(argv[i]);	// Compile the source file
+		asmfile = do_qbe(qbefile);
 
 		if (O_dolink || O_assemble) {
 			objfile = do_assemble(asmfile);	// Assemble it to object forma
@@ -260,8 +275,12 @@ int main(int argc, char **argv) {
 			objlist[objcnt] = NULL;		// to the list of object files
 		}
 
-		if (!O_keepasm)				// Remove the assembly file if
-		unlink(asmfile);			// we don't need to keep it
+		// Remove the QBE and assembly files if we don't need to keep it
+		if (!O_keepasm)	{
+			unlink(qbefile);
+			unlink(asmfile);
+		}
+
 		i++;
 	}
 

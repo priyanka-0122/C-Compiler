@@ -12,13 +12,9 @@ enum {
 
 // Commands and default filenames
 #define AOUT "a.out"
-#ifdef __NASM__
-#define ASCMD "nasm -g -f elf64 -w-ptr -pnasmext.inc -o "
-#define LDCMD "cc -g -no-pie -fno-plt -Wall -o "
-#else
 #define ASCMD "as -g -o "
-#define LDCMD "cc -g -o "
-#endif
+#define QBECMD "qbe -o "
+#define LDCMD "cc -g -no-pie -o "
 #define CPPCMD "cpp -nostdinc -isystem "
 
 // Token types
@@ -50,12 +46,12 @@ enum {
 	T_SIZEOF, T_STATIC,					// 50
 	
 	// Structural tokens
-	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 51
-	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,			// 55
-	T_LBRACKET, T_RBRACKET,					// 59
-	T_COMMA,						// 61
-	T_DOT, T_ARROW,						// 62
-	T_COLON							// 64
+	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 52
+	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,			// 56
+	T_LBRACKET, T_RBRACKET,					// 60
+	T_COMMA,						// 62
+	T_DOT, T_ARROW,						// 63
+	T_COLON							// 65
 };
 
 // Token structure
@@ -80,15 +76,15 @@ enum {
 	A_INTLIT, A_STRLIT,					// 26
 	A_IDENT, A_GLUE,					// 28
 	A_IF, A_WHILE, A_DO_WHILE, A_FUNCTION,			// 30
-	A_WIDEN,						// 35
-	A_RETURN, A_FUNCCALL,					// 36
+	A_WIDEN,						// 34
+	A_RETURN, A_FUNCCALL,					// 35
 	A_DEREF, A_ADDR, A_SCALE,				// 37
 	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,		// 40
 	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,			// 44
 	A_BREAK, A_CONTINUE,					// 48
-	A_SWITCH, A_CASE, A_DEFAULT,				// 49
-	A_SIZEOF,						// 52
-	A_CAST							// 53
+	A_SWITCH, A_CASE, A_DEFAULT,				// 50
+	A_SIZEOF,						// 53
+	A_CAST							// 54
 };
 
 // Primitive types. The bottom 4 bits is an integer value that represents the level
@@ -128,8 +124,9 @@ struct symtable {
 	int size;			// Total size in bytes of this symbol
 	int nelems;			// Functions: # params. Arrays: # elements
 #define st_endlabel st_posn		// For functions, the end label
-	int st_posn;			// For locals, the negative offset
-					// from the stack base pointer
+#define st_hasaddr  st_posn		// For locals, 1 if any A_ADDR operation
+	int st_posn;			// For struct members, the offset of
+					// the member from the base of the struct
 	int *initlist;			// List of initial values
 	struct symtable *next;		// Next symbol in one list
 	struct symtable *member;	// First member of a function, struct,

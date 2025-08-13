@@ -149,7 +149,7 @@ static struct ASTnode *member_access(struct ASTnode *left, int withpointer) {
 	left->rvalue = 1;
 
 	// Build an A_INTLIT node with the offset
-	right = mkastleaf(A_INTLIT, P_INT, NULL, NULL, m->st_posn);
+	right = mkastleaf(A_INTLIT, P_LONG, NULL, NULL, m->st_posn);
 
 	// Add the member's offset to the base of the struct/union
 	// and dereference it. Still an lvalue at this point
@@ -445,7 +445,7 @@ static int op_precedence(int tokentype) {
 // Parse a prefix expression and return 
 // a sub-tree representing it.
 static struct ASTnode *prefix(int ptp) {
-	struct ASTnode *tree;
+	struct ASTnode *tree = NULL;
 	switch (Token.token) {
 		case T_AMPER:
 			// Get the next token and parse it
@@ -462,9 +462,11 @@ static struct ASTnode *prefix(int ptp) {
 				fatal("& operator cannot be performed on an array");
 
 			// Now change the operator to A_ADDR and the type to
-			// a pointer to the original type
+			// a pointer to the original type. Mark the identifier
+			// as needing a real memory address
 			tree->op = A_ADDR;
 			tree->type = pointer_to(tree->type);
+			tree->sym->st_hasaddr = 1;
 			break;
 
 		case T_STAR:
@@ -472,7 +474,7 @@ static struct ASTnode *prefix(int ptp) {
 			// Make it an rvalue
 			scan(&Token);
 			tree = prefix(ptp);
-			tree->rvalue= 1;
+			tree->rvalue = 1;
 
 			// Ensure the tree's type is a pointer
 			if (!ptrtype(tree->type))
