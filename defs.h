@@ -102,10 +102,10 @@ enum {
 // Storage classes
 enum {
 	C_GLOBAL = 1,		// Globally visible symbol
-	C_LOCAL,		// Locally visible symbol
+	C_LOCAL,		// Locally visible symbol			// 2
 	C_PARAM,		// Locally visible function parameter
-	C_EXTERN,		// External globally visible symbol
-	C_STATIC,		// Static symbol, visible in one file
+	C_EXTERN,		// External globally visible symbol		// 4
+	C_STATIC,		// Static symbol, visible in one file		// 5
 	C_STRUCT,		// A struct
 	C_UNION,		// A union
 	C_MEMBER,		// Member of a struct or union

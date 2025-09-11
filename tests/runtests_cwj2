@@ -41,6 +41,10 @@ do
 			if [ "$?" -eq "1" ]
 				then echo ": failed"
 				diff -c "out.$i" "trial.$i"
+				# Stop if our 1st argument is "stop"
+				if [ $1 = "stop" ]
+					then exit 1
+				fi
 				echo
 
 			# No failure, so announce success

@@ -13,6 +13,9 @@ ARMSRCS= cg_arm.c decl.c expr.c gen.c main.c misc.c \
 comp: $(SRCS) $(HSRCS)
 	cc -o comp -g -Wall $(SRCS)
 
+comp_old: $(SRCS) $(HSRCS)
+	cc -o comp_old -g -Wall cg.c decl.c expr.c gen_old.c main.c misc.c opt.c scan.c stmt.c sym.c tree.c types.c
+
 comp_arm: $(ARMSRCS) $(HSRCS)
 	cc -o comp_arm -g -Wall $(ARMSRCS)
 
@@ -41,11 +44,14 @@ clean_qbe:
 clean_assem:
 	rm *.s
 
+cwj: comp $(SRCS) $(HSRCS)
+	./comp -o cwj $(SRCS)
+
 cwj2: cwj $(SRCS) $(HSRCS)
 	./cwj -o cwj2 $(SRCS)
 
-cwj: comp $(SRCS) $(HSRCS)
-	./comp -o cwj $(SRCS)
+cwj3: cwj2 $(SRCS) $(HSRCS)
+	./cwj2 -o cwj3 $(SRCS)
 
 test: install tests/runtests
 	(cd tests; chmod +x runtests; ./runtests)

@@ -220,7 +220,7 @@ int cgloadvar(struct symtable *sym, int op) {
 	qbeprefix = ((sym->class == C_GLOBAL) || (sym->class == C_STATIC) ||
 		     (sym->class == C_EXTERN)) ? '$' : '%';
 
-//	printf("qbeprefix = %c on cg.c:221\n", qbeprefix);
+
 	// If we have a pre-operation
 	if (op == A_PREINC || op == A_PREDEC) {
 		if (sym->st_hasaddr || qbeprefix == '$') {
@@ -603,8 +603,8 @@ int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2) {
 	int r3;
 	
 	// Check the range of the AST operation
-	if (ASTop < A_EQ || ASTop > A_GE)
-		fatal("Bad ASTop in cgcompare_and_jump()");
+	if ((ASTop < A_EQ || ASTop > A_GE) && (ASTop != A_TERNARY))
+		fatal("Bad ASTop in cgcompare_and_move()");
 
 	r3 = cgalloctemp();
 
@@ -614,7 +614,10 @@ int cgcompare_and_move(int ASTop, int r1, int r2, int const1, int const2) {
 		// for result = cond ? true : false;
 		// used       = (cond * true) + ((1-cond) * false) 
 		// remember that cond is either 0 or 1
-		fprintf(Outfile, "\t%%.cond =w %sw %%.t%d, %%.t%d\n", cmplist[ASTop - A_EQ], r1, r2) ;
+		if (ASTop == A_TERNARY) {
+			fprintf(Outfile, "\t%%.cond =w copy %%.t%d\n", r1) ;
+		} else	
+			fprintf(Outfile, "\t%%.cond =w %sw %%.t%d, %%.t%d\n", cmplist[ASTop - A_EQ], r1, r2) ;
 
 		fprintf(Outfile, "\t%%.true =w mul %%.cond, %%.t%d\n", const1);
 		fprintf(Outfile, "\t%%.inv =w sub 1, %%.cond\n");

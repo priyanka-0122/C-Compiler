@@ -303,7 +303,11 @@ static int gen_ternary_constant(struct ASTnode *n) {
 	reg1 = cgloadint(n->mid->a_intvalue, n->mid->type);
 	reg2 = cgloadint(n->right->a_intvalue, n->right->type);
 
+	n->left->rvalue = 1;
 	reg = genAST(n->left, NOLABEL, reg1, reg2, n->op);
+	if ((n->left->op < A_EQ || n->left->op > A_GE))
+		reg = cgcompare_and_move(n->op, reg, reg, reg1, reg2);
+
 	return (reg);
 }
 
