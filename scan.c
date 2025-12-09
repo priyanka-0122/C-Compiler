@@ -1,18 +1,31 @@
 #include "defs.h"
-#include "data.h"
-#include "decl.h"
+#include "misc.h"
 
 // Lexical scanning
 
-// Return the position of character c in string s, or -1 if c not found
+
+int Line = 1;					// Current line number
+int Newlinenum = 0;				// Flag: has line number changed
+int Linestart = 1;				// True if at start of a line
+int Putback = '\n';				// Character put back by scanner
+char *Infilename;				// Name of file we are parsing
+int Newfilename = 0;				// Flag: has filename changed
+FILE *Infile;					// Input file struct
+struct token Token;				// Last token scanned
+struct token Peektoken;				// A look-ahead token
+char Text[TEXTLEN + 1];				// Last identifier scanned
+
+int scan(struct token *t, int nocpp);
+
+// Return the position of character c
+// in string s, or -1 if c not found
 static int chrpos(char *s, int c) {
 	int i;
 
-	for (i = 0; s[i] != '\0'; i++) {
-		if (s[i] == (char) c) {
+	for (i = 0; s[i] != '\0'; i++)
+		if (s[i] == (char) c)
 			return (i);
-		}
-	}
+
 	return (-1);
 }
 
@@ -30,29 +43,34 @@ static int next(void) {
 
 	while (Linestart && c == '#') {		// We've hit a pre-processor statement
 		Linestart = 0;			// No longer at the start of the line
-		scan(&Token);			// Get the line number into l
+		scan(&Token, 1);		// Get the line number into l
 		if (Token.token != T_INTLIT)
 			fatals("Expecting pre-processor line number, got:", Text);
 		l = Token.intvalue;
 
-		scan(&Token);				// Get the filename in Text
+		scan(&Token, 1);			// Get the filename in Text
 		if (Token.token != T_STRLIT)
 			fatals("Expecting pre-processor file name, got:", Text);
 
-		if (Text[0] != '<') {			// If this is a real filename and not the one we have now
-			if (strcmp(Text, Infilename))	// save it. Then update the line num
+		if (Text[0] != '<') {				// If this is a real filename and not the one we have now
+			if (strcmp(Text, Infilename)) {		// save it. Then update the line num
+				free(Infilename);
 				Infilename = strdup(Text);
+				Newfilename = 1;
+			}
 			Line = l;
+			Newfilename = 1;
 		}
 
 		while ((c = fgetc(Infile)) != '\n');	// Skip to the end of the line
-		c = fgetc(Infile);		// and get the next character
+		c = fgetc(Infile);			// and get the next character
 		Linestart = 1;				// Now back at the start of the line
 	}
 
 	Linestart = 0;					// No longer at the start of the line
 	if ('\n' == c) {
 		Line++;					// Increment line count
+		Newlinenum = 1;
 		Linestart = 1;				// Now back at the start of the line
 	}
 	return (c);
@@ -83,6 +101,7 @@ static int hexchar(void) {
 	while (isxdigit(c = next())) {
 		// Convert from char to int value
 		h = chrpos("0123456789abcdef", tolower(c));
+
 		// Add to running hex value
 		n = n * 16 + h;
 		f = 1;
@@ -90,22 +109,28 @@ static int hexchar(void) {
 
 	// We hit a non-hex character, put it back
 	putback(c);
+
 	// Flag tells us we never saw any hex characters
 	if (!f)
 		fatal("missing digits after '\\x'");
 	if (n > 255)
 		fatal("value out of range after '\\x'");
+
 	return (n);
 }
 
-// Return the next character from a character or string literal
-static int scanch(void) {
+// Return the next character from a character
+// or string literal. Also return if this
+// character was quoted with a preceding backslash
+static int scanch(int *slash) {
 	int i, c, c2;
+	*slash = 0;
 
 	// Get the next input character and interpret
 	// metacharacters that start with a backslash
 	c = next();
 	if (c == '\\') {
+		*slash = 1;
 		switch (c = next()) {
 			case 'a':
 				return ('\a');
@@ -127,10 +152,11 @@ static int scanch(void) {
 				return ('"');
 			case '\'':
 				return ('\'');
-				// Deal with octal constants by reading in
-				// characters until we hit a non-octal digit.
-				// Build up the octal value in c2 and count
-				// # digits in i. Permit only 3 octal digits.
+
+			// Deal with octal constants by reading in
+			// characters until we hit a non-octal digit.
+			// Build up the octal value in c2 and count
+			// # digits in i. Permit only 3 octal digits.
 			case '0':
 			case '1':
 			case '2':
@@ -144,6 +170,7 @@ static int scanch(void) {
 						break;
 					c2 = c2 * 8 + (c - '0');
 				}
+
 				putback(c);		// Put back the first non-octalchar
 				return (c2);
 			case 'x':
@@ -186,17 +213,21 @@ static int scanint(int c) {
 // Scan in a string literal from the input file, and store it in buf[]. Return the length of the string
 static int scanstr(char *buf) {
 	int i, c;
+	int slash;
 	
 	// Loop while we have enough buffer space
 	for (i = 0; i < TEXTLEN - 1; i++) {
 		// Get the next char and append to buf
 		// Return when we hit the ending double quote
-		if ((c = scanch()) == '"') {
+		// (which wasn't quoted with a backslash)
+		c = scanch(&slash);
+		if (c == '"' && slash == 0) {
 			buf[i] = 0;
 			return (i);
 		}
-		buf[i] = (char)c;
+		buf[i] = (char) c;
 	}
+
 	// Ran out of buf[] space
 	fatal("String literal too long");
 	return (0);
@@ -214,10 +245,11 @@ static int scanident(int c, char *buf, int lim) {
 			printf("Identifier too long on line %d\n",Line);
 			exit(1);
 		} else if (i < lim - 1) {
-			buf[i++] = (char)c;
+			buf[i++] = (char) c;
 		}
 		c = next();
 	}
+
 	// We hit a non-valid character, put it back. NULL-terminate the buf[] and return the length
 	putback(c);
 	buf[i] = '\0';
@@ -302,6 +334,7 @@ static int keyword(char *s) {
 	return (0);
 }
 
+#ifdef DEBUG
 // List of token strings, for debugging purposes
 char *Tstring[] = {
 	"EOF",					// 0
@@ -310,7 +343,7 @@ char *Tstring[] = {
 	"?",					// 7
 	"||", "&&",				// 8
 	"|", "^", "&",				// 10
-	"==", "!=",				// 13	
+	"==", "!=",				// 13
 	"<", ">", "<=", ">=",			// 15
 	"<<", ">>",				// 19
 	"+", "-", "*", "/", "%",		// 21
@@ -326,27 +359,52 @@ char *Tstring[] = {
 	"{", "}", "(", ")", "[", "]",		// 56
 	",",					// 62
 	".", "->",				// 63
-	":"					// 65
+	":", "..."				// 65
+	"charlit", "filename", "linenum"	// 67
 };
+#endif
 
 // Scan and return the next token found in the input.
 // Return 1 if token valid, 0 if no tokens left.
-int scan(struct token *t) {
+// If nocpp, don't return on new filenames or line numbers.
+// This is because we use scan() when parsing new filenames
+// and line numbers :-)
+int scan(struct token *t, int nocpp) {
 	int c, tokentype;
+	int slash;
+
+	// Skip whitespace
+	c = skip();
+
+	if (nocpp == 0) {
+		// If the filename changed, return the filename
+		if (Newfilename) {
+			t->token = T_FILENAME;
+			Newfilename = 0;
+			putback(c);
+			return (1);
+		}
+
+		// If the line number changed, return the line number
+		if (Newlinenum) {
+			t->intvalue = Line;
+			t->token = T_LINENUM;
+			Newlinenum = 0;
+			putback(c);
+			return (1);
+		}
+	}
 
 	// If we have a lookahead token, return this token
 	if (Peektoken.token != 0) {
 		t->token = Peektoken.token;
-		t->tokstr = Peektoken.tokstr;
 		t->intvalue = Peektoken.intvalue;
 		Peektoken.token = 0;
 		return (1);
 	}
 	
-	// Skip whitespace
-	c = skip();
-
 	// Determine the token based on the input character
+
 	switch (c) {
 		case EOF:
 			t->token = T_EOF;
@@ -368,7 +426,7 @@ int scan(struct token *t) {
 				t->token = T_ARROW;
 			} else if (c == '=') {
 				t->token = T_ASMINUS;
-			} else if ((isdigit(c)) && (Token.token != T_IDENT)) {	// Negative int literal
+			} else if (isdigit(c) && (Token.token != T_IDENT)) {	// Negative int literal
 				t->intvalue = -scanint(c);
 				t->token = T_INTLIT;
 			} else {
@@ -431,7 +489,14 @@ int scan(struct token *t) {
 			t->token = T_COMMA;
 			break;
 		case '.':
-			t->token = T_DOT;
+			if ((c = next()) == '.') {
+				t->token = T_ELLIPSIS;
+			if ((c = next()) != '.')
+				fatal("Expected '...', only got '..'\n");
+			} else {
+				putback(c);
+				t->token = T_DOT;
+			}
 			break;
 		case ':':
 			t->token = T_COLON;
@@ -495,8 +560,8 @@ int scan(struct token *t) {
 			// If it's a quote, scan in the
 			// literal character value and
 			// the trailing quote
-			t->intvalue = scanch();
-			t->token = T_INTLIT;
+			t->intvalue = scanch(&slash);
+			t->token = T_CHARLIT;
 			if (next() != '\'')
 				fatal("Expected '\\'' at end of char literal");
 			break;
@@ -515,6 +580,7 @@ int scan(struct token *t) {
 			} else if (isalpha(c) || '_' == c) {
 				// Read in a keyword or identifier
 				scanident(c, Text, TEXTLEN);
+
 				// If it's a recognised keyword, return that token
 				if ((tokentype = keyword(Text)) != 0) {
 					t->token = tokentype;
@@ -528,7 +594,58 @@ int scan(struct token *t) {
 			fatalc("Unrecognised character", c);
 	}
 
-	// We found a token
-	t->tokstr = Tstring[t->token];
 	return (1);
+}
+
+// Read lines of code from stdin and output
+// a token stream
+int main() {
+	int i;
+
+	Infile = stdin;
+	Infilename = strdup("");		// Cpp hasn't told us the filename yet
+	Peektoken.token = 0;			// Set there is no lookahead token
+	scan(&Token, 0);			// Get the first token from the input
+
+	// Loop getting more tokens
+	while (Token.token != T_EOF) {
+
+		// Output a binary stream of tokens to standard output.
+		// T_INTLIT tokens are followed by the n-byte literal value.
+		// T_STRLIT and T_IDENT tokens are followed by a NULL-terminated string.
+		fputc(Token.token, stdout);
+		switch (Token.token) {
+			case T_INTLIT:
+			case T_CHARLIT:
+				i = Token.intvalue;
+				fwrite(&i, sizeof(int), 1, stdout);
+				// fprintf(stderr, "%02X: %d\n", Token.token, Token.intvalue);
+				break;
+			case T_STRLIT:
+				fputs(Text, stdout);
+				fputc(0, stdout);
+				// fprintf(stderr, "%02X: \"%s\"\n", Token.token, Text);
+				break;
+			case T_IDENT:
+				fputs(Text, stdout);
+				fputc(0, stdout);
+				// fprintf(stderr, "%02X: %s\n", Token.token, Text);
+				break;
+			case T_FILENAME:
+				fputs(Infilename, stdout);
+				fputc(0, stdout);
+				// fprintf(stderr, "%02X: %s\n", Token.token, Infilename);
+				break;
+			case T_LINENUM:
+				fwrite(&Line, sizeof(int), 1, stdout);
+				// fprintf(stderr, "%02X: %d\n", Token.token, Line);
+				break;
+			default:
+				// fprintf(stderr, "%02X: %s\n", Token.token, Tstring[Token.token]);
+		}
+		scan(&Token, 0);
+	}
+
+	exit(0);
+	return(0);
 }

@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "incdir.h"
 
 // Structure and enum definitions
 
@@ -12,9 +11,8 @@ enum {
 
 // Commands and default filenames
 #define AOUT "a.out"
-#define ASCMD "as -g -o "
-#define QBECMD "qbe -o "
-#define LDCMD "cc -g -no-pie -o "
+#define ASCMD "as6809 -o "
+#define LDCMD "ld6809 -o %s /tmp/crt0.o %s /opt/fcc/lib/6809/libc.a /opt/fcc/lib/6809/lib6809.a -m %s.map"
 #define CPPCMD "cpp -nostdinc -isystem "
 
 // Token types
@@ -51,7 +49,11 @@ enum {
 	T_LBRACKET, T_RBRACKET,					// 60
 	T_COMMA,						// 62
 	T_DOT, T_ARROW,						// 63
-	T_COLON							// 65
+	T_COLON,						// 65
+	T_ELLIPSIS, T_CHARLIT,					// 66
+
+	// Misc
+	T_FILENAME, T_LINENUM					// 68
 };
 
 // Token structure
@@ -94,43 +96,47 @@ enum {
 	P_STRUCT=80, P_UNION=96
 };
 
-// Structural types
+// A symbol in the symbol table is
+// one of these structural types.
 enum {
-	S_VARIABLE, S_FUNCTION, S_ARRAY
+	S_VARIABLE, S_FUNCTION, S_ARRAY, S_ENUMVAL, S_STRLIT,
+	S_STRUCT, S_UNION, S_ENUMTYPE, S_TYPEDEF, S_NOTATYPE
 };
 
-// Storage classes
+// Visibilty class for symbols
 enum {
-	C_GLOBAL = 1,		// Globally visible symbol
-	C_LOCAL,		// Locally visible symbol			// 2
-	C_PARAM,		// Locally visible function parameter
-	C_EXTERN,		// External globally visible symbol		// 4
-	C_STATIC,		// Static symbol, visible in one file		// 5
-	C_STRUCT,		// A struct
-	C_UNION,		// A union
-	C_MEMBER,		// Member of a struct or union
-	C_ENUMTYPE,		// A named enumeration type
-	C_ENUMVAL,		// A named enumeration value
-	C_TYPEDEF		// A named typedef
+	V_GLOBAL,			// Globally visible symbol
+	V_EXTERN,			// External globally visible symbol		// 1
+	V_STATIC,			// Static symbol, visible in one file		// 2
+	V_LOCAL,			// Locally visible symbol
+	V_PARAM,			// Locally visible function parameter
+	V_MEMBER			// Member of a struct or union
 };
 
 // Symbol table structure
 struct symtable {
 	char *name;			// Name of a symbol
+	int id;				// Numeric id of the symbol
 	int type;			// Primitive type for the symbol
 	struct symtable *ctype;		// If struct/union, ptr to that type
+	int ctypeid;			// Numeric id of the struct/union type
 	int stype;			// Structural type for the symbol
-	int class;			// Storage class for the symbol
+	int class;			// Visibility class for the symbol
 	int size;			// Total size in bytes of this symbol
-	int nelems;			// Functions: # params. Arrays: # elements
-#define st_endlabel st_posn		// For functions, the end label
-#define st_hasaddr  st_posn		// For locals, 1 if any A_ADDR operation
-	int st_posn;			// For struct members, the offset of
+					// For functions: size 1 means ... (ellipsis)
+#define has_ellipsis	size
+	int nelems;			// Functions: # params. Arrays: # elements.
+	int st_hasaddr;			// For locals, 1 if any A_ADDR operation
+#define st_endlabel	st_posn		// For functions, the end label
+#define st_label	st_posn		// For string literals, the associated label
+	int st_posn;			// For locals, the negative offset
+					// from the stack base pointer.
+					// For struct members, the offset of
 					// the member from the base of the struct
 	int *initlist;			// List of initial values
-	struct symtable *next;		// Next symbol in one list
-	struct symtable *member;	// First member of a function, struct,
-					// union or enum
+	struct symtable *next;		// Next symbol in the symbol table
+	struct symtable *member;	// List of member of struct, union or enum.
+					// For functions, list of parameters & locals.
 };
 
 // Abstract Syntax Tree structure
@@ -142,14 +148,22 @@ struct ASTnode {
 	struct ASTnode *left;		// Left, middle and right child trees
 	struct ASTnode *mid;
 	struct ASTnode *right;
+	int nodeid;			// Node id when tree is serialised
+	int leftid;			// Numeric ids when serialised
+	int midid;
+	int rightid;
 	struct symtable *sym;		// For many AST nodes, the pointer to
 					// the symbol in the symbol table
+	char *name;			// The symbol's name (used by serialiser)
+	int symid;			// Symbol's unique id (used by serialiser)
 #define a_intvalue a_size		// For A_INTLIT, the integer value
 	int a_size;			// For A_SCALE, the size to scale by
 	int linenum;			// Line number from where this node comes
 };
 
 enum {
-	NOREG= -1,	// Use NOREG when the AST generation functions have no register to return
-	NOLABEL= 0	// Use NOLABEL when we have no label to pass to genAST()
+	NOREG = -1,			// Use NOREG when the AST generation
+					// functions have no register to return
+	NOLABEL = 0			// Use NOLABEL when we have no label to
+					// pass to genAST()
 };

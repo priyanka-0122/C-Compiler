@@ -1,8 +1,16 @@
 #include "defs.h"
 #include "data.h"
-#include "decl.h"
+#include "misc.h"
+#include "parse.h"
+#include "sym.h"
+#include "gen.h"
 
 // AST tree functions
+
+#undef DEBUG
+
+// Used to enumerate the AST nodes
+static int nodeid = 1;
 
 // Build and return a generic AST node
 struct ASTnode *mkastnode(int op, int type,
@@ -19,15 +27,39 @@ struct ASTnode *mkastnode(int op, int type,
 		fatal("Unable to calloc in mkastnode()");
 	
 	// Copy in the field values and return it
+	n->nodeid =nodeid++;
 	n->op = op;
 	n->type = type;
 	n->ctype = ctype;
 	n->left = left;
 	n->mid = mid;
 	n->right = right;
+	n->leftid = 0;
+	n->midid = 0;
+	n->rightid = 0;
+#ifdef DEBUG
+	fprintf(stderr, "mkastnodeA l %d m %d r %d\n", n->leftid, n->midid, n->rightid);
+#endif
+	if (left != NULL)
+		n->leftid = left->nodeid;
+	if (mid != NULL)
+		n->midid = mid->nodeid;
+	if (right != NULL)
+		n->rightid = right->nodeid;
+#ifdef DEBUG
+	fprintf(stderr, "mkastnodeB l %d m %d r %d\n", n->leftid, n->midid, n->rightid);
+#endif
 	n->sym = sym;
+	if (sym != NULL) {
+		n->name = sym->name;
+		n->symid = sym->id;
+	} else {
+		n->name = NULL;
+		n->symid = 0;
+	}
 	n->a_intvalue = intvalue;
 	n->linenum = 0;
+	n->rvalue = 0;
 	return (n);
 }
 
@@ -39,125 +71,200 @@ struct ASTnode *mkastleaf(int op, int type,
 }
 
 // Make a unary AST node with only one child
-struct ASTnode *mkastunary(int op, int type, struct symtable *ctype, struct ASTnode *left,
+struct ASTnode *mkastunary(int op, int type,
+			   struct symtable *ctype,
+			   struct ASTnode *left,
 			   struct symtable *sym, int intvalue) {
 	return (mkastnode(op, type, ctype, left, NULL, NULL, sym, intvalue));
 }
 
-// Generate and return a new label number just for AST dumping purposes
-static int dumpid = 1;
-static int gendumplabel(void) {
-	return (dumpid++);
+// Free the given AST node
+void freeASTnode(struct ASTnode *tree) {
+	if (tree == NULL)
+		return;
+	if (tree->name != NULL)
+		free(tree->name);
+	free(tree);
 }
 
-// List of AST node names
-static char *astname[] = { NULL,
-  "ASSIGN", "ASPLUS", "ASMINUS", "ASSTAR",
-  "ASSLASH", "ASMOD", "TERNARY", "LOGOR",
-  "LOGAND", "OR", "XOR", "AND", "EQ", "NE", "LT",
-  "GT", "LE", "GE", "LSHIFT", "RSHIFT",
-  "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "MOD",
-  "INTLIT", "STRLIT", "IDENT", "GLUE",
-  "IF", "WHILE", "DO_WHILE" "FUNCTION", "WIDEN", "RETURN",
-  "FUNCCALL", "DEREF", "ADDR", "SCALE",
-  "PREINC", "PREDEC", "POSTINC", "POSTDEC",
-  "NEGATE", "INVERT", "LOGNOT", "TOBOOL", "BREAK",
-  "CONTINUE", "SWITCH", "CASE", "DEFAULT", "CAST"
-};
+// Free the contents of a tree. Possibly
+// because of tree optimisation, sometimes
+// left and right are the same sub-nodes.
+// Free the names if asked to do so.
+void freetree(struct ASTnode *tree, int freenames) {
+	if (tree == NULL)
+		return;
+ 
+	if (tree->left != NULL)
+		freetree(tree->left, freenames);
+	if (tree->mid != NULL)
+		freetree(tree->mid, freenames);
+	if (tree->right != NULL && tree->right != tree->left)
+		freetree(tree->right, freenames);
+	if (freenames && tree->name != NULL)
+		free(tree->name);
+	free(tree);
+}
 
-// Given an AST tree, print it out and follow the traversal of the tree that genAST() follows
-void dumpAST(struct ASTnode *n, int label, int level) {
-	int Lfalse, Lstart, Lend;
-	int i;
+#ifndef WRITESYMS
 
-	if (n == NULL)
-		fatal("NULL AST node");
-	if (n->op > A_CAST)
-		fatald("Unknown dumpAST operator", n->op);
+// We record the id of the last function that we loaded.
+// and the highest index in the array below
+static int lastFuncid = -1;
+static int hiFuncid;
 
-	// Deal with IF and WHILE statements specifically
-	switch (n->op) {
-		case A_IF:
-			Lfalse = gendumplabel();
-			for (i = 0; i < level; i++)
-				fprintf(stdout, " ");
-			fprintf(stdout, "IF");
-			if (n->right) {
-				Lend = gendumplabel();
-				fprintf(stdout, ", end L%d", Lend);
-			}
-			fprintf(stdout, "\n");
-			dumpAST(n->left, Lfalse, level + 2);
-			dumpAST(n->mid, NOLABEL, level + 2);
-			if (n->right)
-				dumpAST(n->right, NOLABEL, level + 2);
-			return;
-		case A_WHILE:
-			Lstart = gendumplabel();
-			for (i = 0; i < level; i++)
-				fprintf(stdout, " ");
-			fprintf(stdout, "WHILE, start L%d\n", Lstart);
-			Lend = gendumplabel();
-			dumpAST(n->left, Lend, level + 2);
-			if (n->right)
-				dumpAST(n->right, NOLABEL, level + 2);
-			return;
-	}
+// We also keep an array of AST node offsets that
+// represent the functions in the AST file
+long *Funcoffset;
 
-	// Reset level to -2 for A_GLUE nodes
-	if (n->op == A_GLUE) {
-		level -= 2;
+// Given an AST node id, load that AST node from the AST file.
+// If nextfunc is set, find the next AST node which is a function.
+// Allocate and return the node or NULL if it can't be found.
+struct ASTnode *loadASTnode(int id, int nextfunc) {
+	long offset, idxoff;
+	struct ASTnode *node;
+
+	// Do nothing if nothing to do
+	if (id == 0 && nextfunc == 0)
+		return(NULL);
+
+#ifdef DEBUG
+	fprintf(stderr, "loadASTnode id %d nextfunc %d\n", id, nextfunc);
+
+	if (id < 0)
+		fatal("negative id in loadASTnode()");
+#endif 
+
+	// Determine the offset of the node.
+	// Use the function offset array, or
+	// use the AST index file otherwise
+	if (nextfunc == 1) {
+		lastFuncid++;
+		if (lastFuncid > hiFuncid)
+			return(NULL);
+		offset = Funcoffset[lastFuncid];
 	} else {
-
-		// General AST node handling
-		for (i = 0; i < level; i++)
-			fprintf(stdout, " ");
-		fprintf(stdout, "%s", astname[n->op]);
-		switch (n->op) {
-			case A_FUNCTION:
-			case A_FUNCCALL:
-			case A_ADDR:
-			case A_PREINC:
-			case A_PREDEC:
-				if (n->sym != NULL)
-					fprintf(stdout, " %s", n->sym->name);
-				break;
-			case A_INTLIT:
-				fprintf(stdout, " %d", n->a_intvalue);
-				break;
-			case A_STRLIT:
-				fprintf(stdout, " rval label L%d", n->a_intvalue);
-				break;
-			case A_IDENT:
-				if (n->rvalue)
-					fprintf(stdout, " rval %s", n->sym->name);
-				else
-					fprintf(stdout, " %s", n->sym->name);
-				break;
-			case A_DEREF:
-				if (n->rvalue)
-					fprintf(stdout, "A_DEREF rval");
-				else
-					fprintf(stdout, "A_DEREF");
-				break;
-			case A_SCALE:
-				fprintf(stdout, "A_SCALE %d", n->a_size);
-				break;
-			case A_CASE:
-				fprintf(stdout, " A_CASE %d", n->a_intvalue);
-				break;
-			case A_CAST:
-				fprintf(stdout, "A_CAST %d", n->type);
-				break;
-		}
-		fprintf(stdout, "\n");
+		idxoff = id * sizeof(long);
+		fseek(Idxfile, idxoff, SEEK_SET);
+		fread(&offset, sizeof(long), 1, Idxfile);
 	}
 
-	// General AST node handling
-	if (n->left)
-		dumpAST(n->left, NOLABEL, level + 2);
-	if (n->mid)
-		dumpAST(n->mid, NOLABEL, level + 2);
-	if (n->right)
-		dumpAST(n->right, NOLABEL, level + 2);
+	// Allocate a node
+	node = (struct ASTnode *)malloc(sizeof(struct ASTnode));
+	if (node == NULL)
+		fatal("Cannot malloc an AST node in loadASTnode");
+
+	// Read the node in from the AST file. Give up if EOF
+	fseek(Infile, offset, SEEK_SET);
+	if (fread(node, sizeof(struct ASTnode), 1, Infile) != 1) {
+		free(node);
+		return(NULL);
+	}
+
+#ifdef DEBUG
+	// Check that the node we loaded was the one we wanted
+	if (id != 0 && id != node->nodeid)
+		fprintf(stderr, "Wanted AST node id %d, got %d\n", id, node->nodeid);
+#endif
+
+	// If there is a string/identifier literal, get it
+	if (node->name != NULL) {
+		fgetstr(Text, TEXTLEN + 1, Infile);
+		node->name = strdup(Text);
+		if (node->name == NULL)
+			fatal("Unable to malloc string literal in deserialiseAST()");
+
+#ifndef DETREE
+		// If this wasn't a string literal
+		// search for the actual symbol and link it in
+		if (node->op != A_STRLIT) {
+			node->sym = findSymbol(NULL, 0, node->symid);
+			if (node->sym == NULL)
+				fatald("Can't find symbol with id", node->symid);
+		}
+#endif
+	}
+
+	// Set the pointers to NULL to trip us up!
+	node->left = node->mid = node->right = NULL;
+
+#ifndef DETREE
+	// If this is a function, set the global
+	// Functionid and create an endlabel for it.
+	// Update the lastFuncnode too.
+	if (node->op == A_FUNCTION) {
+		Functionid = node->sym;
+		Functionid->st_endlabel = genlabel();
+	}
+#endif
+
+	// Return the node that we found
+#ifdef DEBUG
+	fprintf(stderr, "Found AST node id %d\n", node->nodeid);
+#endif
+	return(node);
 }
+
+// Using the open AST file and the newly-created
+// index file, build a list of AST file offsets
+// for each AST node in the AST file.
+void mkASTidxfile(void) {
+	struct ASTnode *node;
+	long offset, idxoff;
+
+	// Allocate a node and at least some Funcoffset area
+	node = (struct ASTnode *)malloc(sizeof(struct ASTnode));
+	Funcoffset = (long *)malloc(sizeof(long));
+	if (node == NULL || Funcoffset == NULL)
+		fatal("Cannot malloc an AST node in loadASTnode");
+
+	while (1) {
+		// Get the current offset
+		offset = ftell(Infile);
+#ifdef DEBUG
+		if (sizeof(long) == 4)
+			fprintf(stderr, "A offset %ld sizeof ASTnode %d\n", offset,
+				sizeof(struct ASTnode));
+		else
+			fprintf(stderr, "A offset %ld sizeof ASTnode %ld\n", offset,
+					sizeof(struct ASTnode));
+#endif
+
+		// Read in the next node, stop if none
+		if (fread(node, sizeof(struct ASTnode), 1, Infile) != 1) {
+			break;
+		}
+#ifdef DEBUG
+		fprintf(stderr, "Node %d at offset %ld\n", node->nodeid, offset);
+		fprintf(stderr, "Node %d left %d mid %d right %d\n", node->nodeid,
+				node->leftid, node->midid, node->rightid);
+#endif
+
+		// If there is a string/identifier literal, get it
+		if (node->name != NULL) {
+			fgetstr(Text, TEXTLEN + 1, Infile);
+#ifdef DEBUG
+			fprintf(stderr, "  name %s\n", Text);
+#endif
+		}
+
+		// Save the node's offset at its index position in the file.
+		idxoff = node->nodeid * sizeof(long);
+
+		fseek(Idxfile, idxoff, SEEK_SET);
+		fwrite(&offset, sizeof(long), 1, Idxfile);
+
+		// If this node is a function, increase the size
+		// of the function index array and save the offset
+		if (node->op == A_FUNCTION) {
+			lastFuncid++;
+			Funcoffset = (long *)realloc(Funcoffset, sizeof(long)* (lastFuncid+1));
+			Funcoffset[lastFuncid] = offset;
+		}
+	}
+
+	// Reset before we start using the array
+	hiFuncid = lastFuncid; lastFuncid = -1;
+	free(node);
+}
+#endif // WRITESYMS

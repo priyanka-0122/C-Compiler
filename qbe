@@ -1,0 +1,69 @@
+mkdir -p /home/priyanka/6809_Target/include/6809
+mkdir -p /home/priyanka/6809_Target/include/qbe
+mkdir -p /home/priyanka/6809_Target/bin
+mkdir -p /home/priyanka/6809_Target/lib/6809
+rsync -a --exclude RCS include/qbe/. /home/priyanka/6809_Target/include/qbe
+rsync -a --exclude RCS include/6809/. /home/priyanka/6809_Target/include/6809
+rsync -a --exclude Makefile --exclude RCS --exclude crt0.s \
+	lib/6809/. /home/priyanka/6809_Target/lib/6809
+cp wcc cscan detok detree desym cpeep \
+  cparse6809 cgen6809 \
+  cparseqbe cgenqbe /home/priyanka/6809_Target/bin
+(cd tests; chmod +x runtests; ./runtests qbe)
+input041.c: OK
+input042.c: OK
+input043.c: OK
+input045.c: OK
+input046.c: OK
+input047.c: OK
+input048.c: OK
+input049.c: OK
+input050.c: OK
+input051.c: OK
+input052.c: OK
+input053.c: OK
+input054.c: OK
+input055.c: OK
+input056.c: OK
+input057.c: OK
+input058.c: OK
+input059.c: OK
+input060.c: OK
+input061.c: OK
+input062.c: OK
+input066.c: OK
+input067.c: OK
+input070.c: OK
+input071.c: OK
+input072.c: OK
+input074.c: OK
+input076.c: OK
+input077.c: OK
+input078.c: OK
+input080.c: OK
+input081.c: OK
+input084.c: OK
+input085.c: OK
+input087.c: OK
+input088.c: OK
+input089.c: OK
+input090.c: OK
+input091.c: OK
+input097.c: OK
+input098.c: OK
+input103.c: OK
+input104.c: OK
+input105.c: OK
+input106.c: OK
+input107.c: OK
+input109.c: OK
+input113.c: OK
+input114.c: OK
+input115.c: OK
+input116.c: OK
+input129.c: OK
+input137.c: OK
+input139.c: OK
+input142.c: OK
+input155.c: OK
+input156.c: OK
