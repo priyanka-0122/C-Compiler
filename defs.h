@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include "incdir.h"
 
 // Structure and enum definitions
 
@@ -12,13 +11,8 @@ enum {
 
 // Commands and default filenames
 #define AOUT "a.out"
-#ifdef __NASM__
-#define ASCMD "nasm -g -f elf64 -w-ptr -pnasmext.inc -o "
-#define LDCMD "cc -g -no-pie -fno-plt -Wall -o "
-#else
-#define ASCMD "as -g -o "
-#define LDCMD "cc -g -o "
-#endif
+#define ASCMD "as6809 -o "
+#define LDCMD "ld6809 -o %s /tmp/crt0.o %s /opt/fcc/lib/6809/libc.a /opt/fcc/lib/6809/lib6809.a -m %s.map"
 #define CPPCMD "cpp -nostdinc -isystem "
 
 // Token types
@@ -50,12 +44,16 @@ enum {
 	T_SIZEOF, T_STATIC,					// 50
 	
 	// Structural tokens
-	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 51
-	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,			// 55
-	T_LBRACKET, T_RBRACKET,					// 59
-	T_COMMA,						// 61
-	T_DOT, T_ARROW,						// 62
-	T_COLON							// 64
+	T_INTLIT, T_STRLIT, T_SEMI, T_IDENT,			// 52
+	T_LBRACE, T_RBRACE, T_LPAREN, T_RPAREN,			// 56
+	T_LBRACKET, T_RBRACKET,					// 60
+	T_COMMA,						// 62
+	T_DOT, T_ARROW,						// 63
+	T_COLON,						// 65
+	T_ELLIPSIS, T_CHARLIT,					// 66
+
+	// Misc
+	T_FILENAME, T_LINENUM					// 68
 };
 
 // Token structure
@@ -80,15 +78,15 @@ enum {
 	A_INTLIT, A_STRLIT,					// 26
 	A_IDENT, A_GLUE,					// 28
 	A_IF, A_WHILE, A_DO_WHILE, A_FUNCTION,			// 30
-	A_WIDEN,						// 35
-	A_RETURN, A_FUNCCALL,					// 36
+	A_WIDEN,						// 34
+	A_RETURN, A_FUNCCALL,					// 35
 	A_DEREF, A_ADDR, A_SCALE,				// 37
 	A_PREINC, A_PREDEC, A_POSTINC, A_POSTDEC,		// 40
 	A_NEGATE, A_INVERT, A_LOGNOT, A_TOBOOL,			// 44
 	A_BREAK, A_CONTINUE,					// 48
-	A_SWITCH, A_CASE, A_DEFAULT,				// 49
-	A_SIZEOF,						// 52
-	A_CAST							// 53
+	A_SWITCH, A_CASE, A_DEFAULT,				// 50
+	A_SIZEOF,						// 53
+	A_CAST							// 54
 };
 
 // Primitive types. The bottom 4 bits is an integer value that represents the level
@@ -98,42 +96,47 @@ enum {
 	P_STRUCT=80, P_UNION=96
 };
 
-// Structural types
+// A symbol in the symbol table is
+// one of these structural types.
 enum {
-	S_VARIABLE, S_FUNCTION, S_ARRAY
+	S_VARIABLE, S_FUNCTION, S_ARRAY, S_ENUMVAL, S_STRLIT,
+	S_STRUCT, S_UNION, S_ENUMTYPE, S_TYPEDEF, S_NOTATYPE
 };
 
-// Storage classes
+// Visibilty class for symbols
 enum {
-	C_GLOBAL = 1,		// Globally visible symbol
-	C_LOCAL,		// Locally visible symbol
-	C_PARAM,		// Locally visible function parameter
-	C_EXTERN,		// External globally visible symbol
-	C_STATIC,		// Static symbol, visible in one file
-	C_STRUCT,		// A struct
-	C_UNION,		// A union
-	C_MEMBER,		// Member of a struct or union
-	C_ENUMTYPE,		// A named enumeration type
-	C_ENUMVAL,		// A named enumeration value
-	C_TYPEDEF		// A named typedef
+	V_GLOBAL,			// Globally visible symbol
+	V_EXTERN,			// External globally visible symbol		// 1
+	V_STATIC,			// Static symbol, visible in one file		// 2
+	V_LOCAL,			// Locally visible symbol
+	V_PARAM,			// Locally visible function parameter
+	V_MEMBER			// Member of a struct or union
 };
 
 // Symbol table structure
 struct symtable {
 	char *name;			// Name of a symbol
+	int id;				// Numeric id of the symbol
 	int type;			// Primitive type for the symbol
 	struct symtable *ctype;		// If struct/union, ptr to that type
+	int ctypeid;			// Numeric id of the struct/union type
 	int stype;			// Structural type for the symbol
-	int class;			// Storage class for the symbol
+	int class;			// Visibility class for the symbol
 	int size;			// Total size in bytes of this symbol
-	int nelems;			// Functions: # params. Arrays: # elements
-#define st_endlabel st_posn		// For functions, the end label
+					// For functions: size 1 means ... (ellipsis)
+#define has_ellipsis	size
+	int nelems;			// Functions: # params. Arrays: # elements.
+	int st_hasaddr;			// For locals, 1 if any A_ADDR operation
+#define st_endlabel	st_posn		// For functions, the end label
+#define st_label	st_posn		// For string literals, the associated label
 	int st_posn;			// For locals, the negative offset
-					// from the stack base pointer
+					// from the stack base pointer.
+					// For struct members, the offset of
+					// the member from the base of the struct
 	int *initlist;			// List of initial values
-	struct symtable *next;		// Next symbol in one list
-	struct symtable *member;	// First member of a function, struct,
-					// union or enum
+	struct symtable *next;		// Next symbol in the symbol table
+	struct symtable *member;	// List of member of struct, union or enum.
+					// For functions, list of parameters & locals.
 };
 
 // Abstract Syntax Tree structure
@@ -145,14 +148,22 @@ struct ASTnode {
 	struct ASTnode *left;		// Left, middle and right child trees
 	struct ASTnode *mid;
 	struct ASTnode *right;
+	int nodeid;			// Node id when tree is serialised
+	int leftid;			// Numeric ids when serialised
+	int midid;
+	int rightid;
 	struct symtable *sym;		// For many AST nodes, the pointer to
 					// the symbol in the symbol table
+	char *name;			// The symbol's name (used by serialiser)
+	int symid;			// Symbol's unique id (used by serialiser)
 #define a_intvalue a_size		// For A_INTLIT, the integer value
 	int a_size;			// For A_SCALE, the size to scale by
 	int linenum;			// Line number from where this node comes
 };
 
 enum {
-	NOREG= -1,	// Use NOREG when the AST generation functions have no register to return
-	NOLABEL= 0	// Use NOLABEL when we have no label to pass to genAST()
+	NOREG = -1,			// Use NOREG when the AST generation
+					// functions have no register to return
+	NOLABEL = 0			// Use NOLABEL when we have no label to
+					// pass to genAST()
 };
