@@ -1,0 +1,45 @@
+input126.c: failed
+*** out.input126.c	2025-09-23 17:58:49.984805191 +0530
+--- trial.input126.c	2025-12-09 16:02:58.244739947 +0530
+***************
+*** 1,7 ****
+! 1
+! 4
+! 8
+! 8
+! 16
+! 64
+! 48
+--- 1,7 ----
+! 65832
+! 131368
+! 262440
+! 131368
+! 524584
+! 1442088
+! 1048872
+./runtests: 56: [: =: unexpected operator
+
+input158.c: failed
+*** out.input158.c	2025-09-23 17:58:49.994805191 +0530
+--- trial.input158.c	2025-12-09 16:02:58.544739952 +0530
+***************
+*** 1 ****
+! Unable to open fred: Success
+--- 1 ----
+! Unable to open fred: Unknown error 25
+./runtests: 56: [: =: unexpected operator
+
+input162.cIllegal type, token:charlit on line 4 of input162.c
+./out: No such file or directory
+: failed
+*** out.input162.c	2025-09-23 17:58:50.004805191 +0530
+--- trial.input162.c	2025-12-09 16:02:58.584739953 +0530
+***************
+*** 1,4 ****
+- 4
+- 4
+- 4
+- 6
+--- 0 ----
+./runtests: 56: [: =: unexpected operator

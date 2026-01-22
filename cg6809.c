@@ -371,7 +371,7 @@ void cgfuncpreamble(struct symtable *sym) {
 }
 
 // Print out a function postamble
-void cgfuncpostamble(struct symtable *sym) {
+void cgfuncpostamble(struct symtable *sym, int ret_exists) {
   cglabel(sym->st_endlabel);
   if (localOffset!=0)
     fprintf(Outfile, "\tleas %d,s\n", localOffset);

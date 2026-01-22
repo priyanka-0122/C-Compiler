@@ -1,5 +1,0 @@
-#define TOPDIR "/home/priyanka/6809_Target"
-#define INCQBEDIR "/home/priyanka/6809_Target/include/qbe"
-#define INC6809DIR "/home/priyanka/6809_Target/include/6809"
-#define BINDIR "/home/priyanka/6809_Target/bin"
-#define LIB6809DIR "/home/priyanka/6809_Target/lib/6809"

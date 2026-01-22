@@ -8,6 +8,7 @@
 #include "tree.h"
 #include "types.h"
 
+#define	RETURN_STMT	100
 // Generic code generator
 int genAST(struct ASTnode *n, int iflabel, int looptoplabel, int loopendlabel,
 	   int parentASTop);
@@ -512,6 +513,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 	int type = P_VOID;
 	int id;
 	int special = 0;
+	static int ret_exists = 0;
 	struct ASTnode *nleft, *nmid, *nright;
 
 	// Empty tree, do nothing
@@ -582,8 +584,12 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			special = 1;
 			Infilename = n->sym->name;
 			cgfuncpreamble(n->sym);
+			ret_exists = 0;
 			genAST(nleft, NOLABEL, NOLABEL, NOLABEL, n->op);
-			cgfuncpostamble(n->sym);
+			if (ret_exists == RETURN_STMT)
+				cgfuncpostamble(n->sym, 1);
+			else
+				cgfuncpostamble(n->sym, 0);
 			leftreg = NOREG;
 	}
 
@@ -726,6 +732,7 @@ int genAST(struct ASTnode *n, int iflabel, int looptoplabel,
 			break;
 		case A_RETURN:
 			cgreturn(leftreg, Functionid);
+			ret_exists = RETURN_STMT;
 			leftreg = NOREG;
 			break;
 		case A_ADDR:

@@ -9,7 +9,7 @@ void cgspillregs();
 void cgpreamble();
 void cgpostamble();
 void cgfuncpreamble(struct symtable *sym);
-void cgfuncpostamble(struct symtable *sym);
+void cgfuncpostamble(struct symtable *sym, int ret_exists);
 int cgloadint(int value, int type);
 int cgloadvar(struct symtable *sym, int op);
 int cgloadglobstr(int label);

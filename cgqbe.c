@@ -180,11 +180,11 @@ void cgfuncpreamble(struct symtable *sym) {
 }
 
 // Print out a function postamble
-void cgfuncpostamble(struct symtable *sym) {
+void cgfuncpostamble(struct symtable *sym, int ret_exists) {
 	cglabel(sym->st_endlabel);
 
 	// Return a value if the function's type isn't void
-	if (sym->type != P_VOID)
+	if ((sym->type != P_VOID) && ret_exists)
 		fprintf(Outfile, "\tret %%.ret\n}\n");
 	else
 		fprintf(Outfile, "\tret\n}\n");
@@ -721,6 +721,10 @@ void cgreturn(int r, struct symtable *sym) {
 	// Only return a value if we have a value to return
 	if (r != NOREG)
 		fprintf(Outfile, "\t%%.ret =%c copy %%.t%d\n", cgprimtype(sym->type), r);
+	else if (prevregused != 0 && r == NOREG && sym->type != P_VOID)
+ 		fprintf(Outfile, "\t%%.ret =%c copy %%.t%d\n", cgprimtype(sym->type), prevregused);
+	else if (sym->type != P_VOID && r == NOREG)
+		fprintf(Outfile, "\t%%.ret =%c copy 0\n", cgprimtype(sym->type));
 
 	cgjump(sym->st_endlabel);
 }
