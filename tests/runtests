@@ -38,10 +38,13 @@ do
 
 			# Choose the expected file
 			# Added due to big endianess of 6809
-			if [ "$i" = "input074.c" -a "$1" = "6809" ]
+			if [ "$i" = "input074.c" ] || [ "$i" = "input158.c" ]
 				then
-					# Compare this against the correct output
-					cmp -s "out6809.$i" "trial.$i"
+					if [ "$1" = "6809" ]
+						then
+							# Compare this against the correct output
+							cmp -s "out6809.$i" "trial.$i"
+					fi
 			else
 				# Compare this against the correct output
 				cmp -s "out.$i" "trial.$i"
@@ -51,7 +54,7 @@ do
 			# and print out the difference
 			if [ "$?" -eq "1" ]
 				then echo ": failed"
-				diff -c "out.$i" "trial.$i"
+					diff -c "out.$i" "trial.$i"
 				# Stop if our 1st argument is "stop"
 				if [ $2 = "stop" ]
 					then exit 1
